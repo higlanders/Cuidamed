@@ -2,25 +2,20 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Configuration;
 
 namespace Cuidamed.Handlers
 {
     public class CuidanetAuthHandler : DelegatingHandler
     {
-        private readonly string _usuario;
-        private readonly string _password;
-        private readonly string _loginUrl;
+        private readonly IConfiguration _configuration;
         private string? _cachedToken;
         private string? _lastLoginError;
         private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-        public CuidanetAuthHandler(string usuario, string password, IConfiguration configuration)
+        public CuidanetAuthHandler(IConfiguration configuration)
         {
-            _usuario = usuario;
-            _password = password;
-
-            _loginUrl = configuration["CuidanetServices:loginUrl"]
-                        ?? "https://admin.cuidanet.net/APILIS/api/Auth/login";
+            _configuration = configuration;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -41,7 +36,7 @@ namespace Cuidamed.Handlers
                     ReasonPhrase = "ServiceLoginFailed",
                     Content = new StringContent(
                         _lastLoginError
-                        ?? "No se pudo obtener el token de servicio. Revisa CuidanetServices:user/pass en appsettings (o limpia la caché del sitio).")
+                        ?? "No se pudo obtener el token de servicio. Revisa CuidanetServices:user/pass en appsettings.")
                 };
             }
 
@@ -79,17 +74,22 @@ namespace Cuidamed.Handlers
                 if (!forceRefresh && !string.IsNullOrEmpty(_cachedToken))
                     return _cachedToken;
 
-                if (string.IsNullOrWhiteSpace(_usuario) || string.IsNullOrWhiteSpace(_password))
+                var usuario = _configuration["CuidanetServices:user"] ?? string.Empty;
+                var password = _configuration["CuidanetServices:pass"] ?? string.Empty;
+                var loginUrl = _configuration["CuidanetServices:loginUrl"]
+                               ?? "https://admin.cuidanet.net/APILIS/api/Auth/login";
+
+                if (string.IsNullOrWhiteSpace(usuario) || string.IsNullOrWhiteSpace(password))
                 {
                     _lastLoginError =
-                        "Faltan credenciales de API (CuidanetServices:user/pass). Limpia datos del sitio o revisa el deploy.";
+                        "Faltan credenciales de API (CuidanetServices:user/pass). appsettings.json no se cargó.";
                     _cachedToken = null;
                     return null;
                 }
 
                 using var authClient = new HttpClient();
-                var payload = new LoginRequest { Usuario = _usuario, Password = _password };
-                var response = await authClient.PostAsJsonAsync(_loginUrl, payload, cancellationToken);
+                var payload = new LoginRequest { Usuario = usuario, Password = password };
+                var response = await authClient.PostAsJsonAsync(loginUrl, payload, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {
