@@ -508,8 +508,8 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
         if (string.IsNullOrWhiteSpace(phone))
             return string.Empty;
 
-        var digits = new string(phone.Where(char.IsDigit).ToArray());
-        return digits;
+        // Igual que ControladorMensajesSmsGateway.NormalizarCelular (EnvioSmsGateway)
+        return new string(phone.Where(char.IsDigit).ToArray());
     }
 
     private static bool IsValidPhone(string phone) =>

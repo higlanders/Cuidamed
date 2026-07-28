@@ -45,7 +45,8 @@ namespace Cuidamed.Services
         }
 
         /// <summary>
-        /// Envía un código SMS OTP vía APILISPoblacion (cola MensajesSmsNube).
+        /// Envía OTP SMS: mismo flujo que EnvioSmsGateway (INSERT MensajesSmsNube vía APILIS).
+        /// Endpoint: POST api/sms/enviar-codigo
         /// </summary>
         public async Task<SmsApiResponse> EnviarSmsAsync(string cedula, string telefono)
         {
