@@ -49,6 +49,8 @@ const settings = {
       MovimientoConsulta: "MovimientoServicio/consulta",
       UploadImagen: "Imagenes/upload",
       ImagenesServicio: "Imagenes/servicio",
+      EnviarSms: process.env.CUIDANET_SMS_ENVIAR || "Auth/sms/enviar",
+      VerificarSms: process.env.CUIDANET_SMS_VERIFICAR || "Auth/sms/verificar",
     },
   },
 };

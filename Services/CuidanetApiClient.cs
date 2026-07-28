@@ -19,6 +19,8 @@ namespace Cuidamed.Services
         private readonly string _movimientoConsultaUrl;
         private readonly string _uploadImagenUrl;
         private readonly string _ImagenesServicioUrl;
+        private readonly string _enviarSmsUrl;
+        private readonly string _verificarSmsUrl;
 
         // 3. Modificar el constructor para inyectar IConfiguration
         public CuidanetApiClient(HttpClient httpClient, IConfiguration configuration)
@@ -38,7 +40,83 @@ namespace Cuidamed.Services
             _movimientoConsultaUrl = configuration["CuidanetServices:Endpoints:MovimientoConsulta"] ?? "MovimientoServicio/consulta";
             _uploadImagenUrl = configuration["CuidanetServices:Endpoints:UploadImagen"] ?? "Imagenes/upload";
             _ImagenesServicioUrl = configuration["CuidanetServices:Endpoints:ImagenesServicio"] ?? "Imagenes/servicio";
+            _enviarSmsUrl = configuration["CuidanetServices:Endpoints:EnviarSms"] ?? "Auth/sms/enviar";
+            _verificarSmsUrl = configuration["CuidanetServices:Endpoints:VerificarSms"] ?? "Auth/sms/verificar";
+        }
 
+        /// <summary>
+        /// Envía un código SMS al teléfono indicado para la cédula.
+        /// </summary>
+        public async Task<SmsApiResponse> EnviarSmsAsync(string cedula, string telefono)
+        {
+            var payload = new EnviarSmsRequest { Cedula = cedula, Telefono = telefono };
+            var response = await _httpClient.PostAsJsonAsync(_enviarSmsUrl, payload);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    $"No se pudo enviar el SMS ({(int)response.StatusCode}). {TrimError(body)}");
+            }
+
+            var parsed = ParseSmsResponse(body);
+            if (parsed != null && parsed.IsExplicitFailure)
+                return parsed;
+
+            return parsed ?? new SmsApiResponse { Ok = true };
+        }
+
+        /// <summary>
+        /// Verifica el código SMS recibido por el afiliado.
+        /// </summary>
+        public async Task<SmsApiResponse> VerificarSmsAsync(string cedula, string telefono, string codigo)
+        {
+            var payload = new VerificarSmsRequest
+            {
+                Cedula = cedula,
+                Telefono = telefono,
+                Codigo = codigo
+            };
+            var response = await _httpClient.PostAsJsonAsync(_verificarSmsUrl, payload);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    $"No se pudo verificar el SMS ({(int)response.StatusCode}). {TrimError(body)}");
+            }
+
+            var parsed = ParseSmsResponse(body);
+            if (parsed != null && parsed.IsExplicitFailure)
+                return parsed;
+
+            return parsed ?? new SmsApiResponse { Ok = true, Valid = true };
+        }
+
+        private static SmsApiResponse? ParseSmsResponse(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return null;
+
+            try
+            {
+                return System.Text.Json.JsonSerializer.Deserialize<SmsApiResponse>(
+                    body,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string TrimError(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return string.Empty;
+
+            var trimmed = body.Trim();
+            return trimmed.Length <= 180 ? trimmed : trimmed[..180] + "…";
         }
 
         /// <summary>
