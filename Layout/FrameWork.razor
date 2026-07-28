@@ -1,0 +1,403 @@
+﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using Cuidanet.Services
+@using Cuidanet.Models
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject CuidanetApiClient CuidanetService
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<AuthorizeView>
+    <Authorized>
+        <!-- Banner/Modal Emergente de Instalación con botón de cerrar (X) -->
+        @if (mostrarPromptInstalacion)
+        {
+            <div class="install-banner-overlay">
+                <div class="install-banner-card p-3 shadow-lg position-relative">
+                    <!-- Botón de X para cerrar el mensaje -->
+                    <button type="button"
+                            class="btn-close position-absolute top-0 end-0 m-2"
+                            style="font-size: 0.75rem;"
+                            aria-label="Cerrar"
+                            @onclick="CerrarBannerInstalacion">
+                    </button>
+
+                    <div class="d-flex align-items-center mb-2 pe-3">
+                        <img src="logo.png" style="width: 35px; height: auto;" class="me-2" alt="Cuidamed" />
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark" style="font-size: 14px;">Instalar Cuidanet</h6>
+                            <p class="text-muted mb-0" style="font-size: 11px;">Instala la aplicación en tu dispositivo para un acceso rápido y directo.</p>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-2">
+                        <button class="btn btn-sm btn-info text-white w-100 fw-bold" @onclick="InstalarApp">
+                            📲 Instalar App
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Barra superior compacta y responsive -->
+        <div class="p-2 d-flex justify-content-between align-items-center border-bottom" style="min-height: 55px;">
+            <div class="d-flex gap-2">
+                <!-- Botón del menú Perfil (Izquierda) -->
+                <button class="btn btn-sm btn-outline-info px-2 py-1" @onclick="ToggleSidebar" aria-label="Perfil">
+                    <span style="font-size: 1.1rem; line-height: 1;">👤</span>
+                </button>
+
+                <!-- NUEVO: Botón para desplegar el menú inferior -->
+                <button class="btn btn-sm btn-info text-white px-2 py-1" @onclick="ToggleBottomMenu" aria-label="Menú navegación">
+                    <span style="font-size: 1.1rem; line-height: 1;">☰ Menú</span>
+                </button>
+            </div>
+
+            <div class="text-end d-flex flex-column align-items-end justify-content-center">
+                <img class="logohome" src="logo.png" style="max-width: 55px; height: auto;" alt="Logo" />
+                <p class="slogan fst-italic mb-0" style="font-size: 9px; line-height: 1;">"Cuidamos tu bienestar"</p>
+            </div>
+        </div>
+
+        <!-- Fondo translúcido (se comparte o se activa con cualquiera de los dos menús) -->
+        <div class="sidebar-overlay @(isSidebarOpen || isBottomMenuOpen ? "show" : "")" @onclick="CloseAllMenus"></div>
+
+        <!-- Sidebar Menú de Usuario (Perfil Izquierda) -->
+        <div class="custom-sidebar @(isSidebarOpen ? "show" : "")">
+            <div class="sidebar-header d-flex justify-content-between align-items-center p-3 border-bottom">
+                <h5 class="mb-0 text-info-custom fw-bold">Mi Perfil</h5>
+                <button type="button" class="btn-close" @onclick="ToggleSidebar"></button>
+            </div>
+            <div class="sidebar-body p-3 text-center">
+                @if (afiliadoDetalle != null)
+                {
+                    @if (!string.IsNullOrEmpty(afiliadoDetalle.FotoBase64))
+                    {
+                        <img src="data:image/jpeg;base64,@afiliadoDetalle.FotoBase64"
+                             alt="Foto Afiliado"
+                             class="rounded-circle border border-info mb-3"
+                             style="width: 100px; height: 100px; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-3" style="width: 100px; height: 100px; color: white; font-size: 2rem;">
+                            👤
+                        </div>
+                    }
+                    <h6 class="fw-bold mb-1"></h6>
+                    <p class="text-muted small mb-3">Cédula: @cedulaUsuario</p>
+                }
+                else if (isLoading)
+                {
+                    <div class="spinner-border spinner-border-sm text-info" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="text-muted small mt-2">Cargando datos del afiliado...</p>
+                }
+                else
+                {
+                    <p class="text-muted small">Cédula: @cedulaUsuario</p>
+                }
+
+                <hr />
+
+                <button class="btn btn-danger w-100 mt-4" @onclick="BeginLogOut">
+                    🚪 Salir
+                </button>
+            </div>
+        </div>
+
+        <!-- NUEVO: Menú Desplegable desde la parte Inferior (Bottom Sheet) -->
+        <div class="custom-bottom-menu @(isBottomMenuOpen ? "show" : "")">
+            <div class="bottom-menu-header d-flex justify-content-between align-items-center p-3 border-bottom">
+                <h6 class="mb-0 fw-bold text-secondary">Navegación</h6>
+                <button type="button" class="btn-close" @onclick="ToggleBottomMenu"></button>
+            </div>
+            <div class="bottom-menu-body p-3">
+                <div class="dashboard-grid-menu">
+                    <!-- Opción Home (Nueva) -->
+                    <div class="dashboard-card-menu" @onclick='() => NavigateTo("Home")'>
+                        <div class="card-content text-center">
+                            <span style="font-size: 28px; display: block; margin-bottom: 4px;">🏠</span>
+                            <p class="fuente-gris-menu m-0">Home</p>
+                        </div>
+                    </div>
+
+                    <!-- Coberturas y consumos -->
+                    <div class="dashboard-card-menu" @onclick='() => NavigateTo("beneficios")'>
+                        <div class="card-content text-center">
+                            <img class="logodashboard-menu" src="coberturas.png" />
+                            <p class="fuente-gris-menu m-0">Coberturas</p>
+                        </div>
+                    </div>
+
+                    <!-- Red de Proveedores -->
+                    <div class="dashboard-card-menu" @onclick='() => NavigateTo("proveedores")'>
+                        <div class="card-content text-center">
+                            <img class="logodashboard-menu" src="proveedores.png" />
+                            <p class="fuente-gris-menu m-0">Proveedores</p>
+                        </div>
+                    </div>
+
+                    <!-- Agendar cita APS -->
+                    <div class="dashboard-card-menu" @onclick='() => NavigateTo("citas-aps")'>
+                        <div class="card-content text-center">
+                            <img class="logodashboard-menu" src="proveedores.png" />
+                            <p class="fuente-gris-menu m-0">Cita APS</p>
+                        </div>
+                    </div>
+
+                    <!-- Consultas y Laboratorios -->
+                    <div class="dashboard-card-menu" @onclick='() => NavigateTo("Laboratorios")'>
+                        <div class="card-content text-center">
+                            <img class="logodashboard-menu" src="sintomas.png" />
+                            <p class="fuente-gris-menu m-0">Laboratorios</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <main class="px-3 mt-2">
+            @Body
+        </main>
+    </Authorized>
+
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+<style>
+    /* Estilos del Banner Emergente de Instalación */
+    .install-banner-overlay {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 400px;
+        z-index: 2000;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    .install-banner-card {
+        background-color: #ffffff;
+        border: 2px solid #00a4ba;
+        border-radius: 12px;
+    }
+
+    @@keyframes slideUp {
+        from {
+            transform: translate(-50%, 100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
+    }
+
+    /* Estilos del Sidebar */
+    .custom-sidebar {
+        position: fixed;
+        top: 0;
+        left: -300px;
+        width: 300px;
+        height: 100%;
+        background-color: #ffffff;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+        z-index: 1050;
+        transition: left 0.3s ease-in-out;
+    }
+
+        .custom-sidebar.show {
+            left: 0;
+        }
+
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
+        display: none;
+    }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+
+    .text-info-custom, .slogan {
+        color: #00a4ba !important;
+    }
+
+    
+    .text-info-custom {
+        color: #00a4ba !important;
+    }
+
+    .slogan {
+        color: #00a4ba;
+    }
+
+    /* ESTILOS DEL NUEVO MENÚ INFERIOR (BOTTOM SHEET) */
+    .custom-bottom-menu {
+        position: fixed;
+        bottom: -100%; /* Totalmente oculto inicialmente */
+        left: 0;
+        width: 100%;
+        background-color: #ffffff;
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+        box-shadow: 0 -5px 15px rgba(0,0,0,0.15);
+        z-index: 1050;
+        transition: bottom 0.35s ease-in-out;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+        .custom-bottom-menu.show {
+            bottom: 0; /* Emerge por completo */
+        }
+
+    /* Grilla de opciones adaptada para el menú inferior (3 columnas por fila en móviles) */
+    .dashboard-grid-menu {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+    }
+
+    .dashboard-card-menu {
+        border-radius: 12px;
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        background-color: #ffffff;
+        border: 1px solid #f0f0f0;
+    }
+
+        .dashboard-card-menu:active {
+            background-color: #f7f9fa; /* Efecto feedback táctil */
+        }
+
+    .logodashboard-menu {
+        display: block;
+        margin: 0 auto 4px auto;
+        width: 28px;
+        height: auto;
+    }
+
+    .fuente-gris-menu {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 300;
+        color: #808080;
+        font-size: 11px;
+        text-align: center;
+        line-height: 1.1;
+    }
+</style>
+
+@code {
+    private bool isBottomMenuOpen = false; // Estado para el menú inferior
+    private bool isSidebarOpen = false;
+    private bool isLoading = true;
+    private string cedulaUsuario = string.Empty;
+    private BeneficiarioDto? afiliadoDetalle;
+
+    private bool mostrarPromptInstalacion = false;
+    private DotNetObjectReference<FrameWork>? dotNetHelper;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            cedulaUsuario = user.Identity.Name ?? string.Empty;
+
+            try
+            {
+                var resultados = await CuidanetService.GetBeneficiariosAsync(cedula: cedulaUsuario);
+                if (resultados != null && resultados.Any())
+                {
+                    var primerAfiliado = resultados.First();
+                    afiliadoDetalle = await CuidanetService.GetBeneficiarioDetalleAsync(primerAfiliado.BeneficiarioId);
+                }
+            }
+            catch (Exception) { }
+            finally { isLoading = false; }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetHelper = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("registrarHelperInstalacion", dotNetHelper);
+        }
+    }
+
+    [JSInvokable]
+    public void MostrarBannerInstalacion()
+    {
+        mostrarPromptInstalacion = true;
+        StateHasChanged();
+    }
+
+    private async Task InstalarApp()
+    {
+        var exito = await JSRuntime.InvokeAsync<bool>("promptInstalarPwa");
+        if (exito)
+        {
+            mostrarPromptInstalacion = false;
+        }
+    }
+
+    // Nuevo método para ocultar el banner al presionar la X
+    private void CerrarBannerInstalacion()
+    {
+        mostrarPromptInstalacion = false;
+    }
+
+    private void ToggleSidebar() => isSidebarOpen = !isSidebarOpen;
+
+    
+    private void ToggleBottomMenu()
+    {
+        isBottomMenuOpen = !isBottomMenuOpen;
+        if (isBottomMenuOpen) isSidebarOpen = false; // Cierra el otro menú si se abre este
+    }
+
+    private void CloseAllMenus()
+    {
+        isSidebarOpen = false;
+        isBottomMenuOpen = false;
+    }
+
+    private void NavigateTo(string page)
+    {
+        CloseAllMenus();
+        Navigation.NavigateTo($"./{page}", forceLoad: true);
+    }
+
+    public async Task BeginLogOut()
+    {
+        var customAuth = (CustomAuthStateProvider)AuthStateProvider;
+        await customAuth.MarkUserAsLoggedOut();
+        Navigation.NavigateTo("./", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        dotNetHelper?.Dispose();
+    }
+}

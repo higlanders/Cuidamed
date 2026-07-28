@@ -1,0 +1,10 @@
+Cuidanet
+
+Installing:
+
+Microsoft.AspNetCore.Components.Authorization.10.0.10
+Microsoft.AspNetCore.Components.WebAssembly.Authentication.10.0.10
+
+Microsoft.Extensions.Http
+dotnet add package Microsoft.Extensions.Http
+

@@ -1,0 +1,68 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JSRuntime
+<div class="page">
+    <main>
+        <!-- Banner/Modal Emergente de Instalación con botón de cerrar (X) -->
+        @if (mostrarPromptInstalacion)
+        {
+            <div class="install-banner-overlay">
+                <div class="install-banner-card p-3 shadow-lg position-relative">
+                    <!-- Botón de X para cerrar el mensaje -->
+                    <button type="button"
+                            class="btn-close position-absolute top-0 end-0 m-2"
+                            style="font-size: 0.75rem;"
+                            aria-label="Cerrar"
+                            @onclick="CerrarBannerInstalacion">
+                    </button>
+
+                    <div class="d-flex align-items-center mb-2 pe-3">
+                        <img src="logo.png" style="width: 35px; height: auto;" class="me-2" alt="Cuidamed" />
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark" style="font-size: 14px;">Instalar Cuidamed</h6>
+                            <p class="text-muted mb-0" style="font-size: 11px;">Instala la aplicación en tu dispositivo para un acceso rápido y directo.</p>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-2">
+                        <button class="btn btn-sm btn-info text-white w-100 fw-bold" @onclick="InstalarApp">
+                            📲 Instalar App
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private bool mostrarPromptInstalacion = false;
+
+
+    [JSInvokable]
+    public void MostrarBannerInstalacion()
+    {
+        mostrarPromptInstalacion = true;
+        StateHasChanged();
+    }
+
+    private async Task InstalarApp()
+    {
+        var exito = await JSRuntime.InvokeAsync<bool>("promptInstalarPwa");
+        if (exito)
+        {
+            mostrarPromptInstalacion = false;
+        }
+    }
+
+    // Nuevo método para ocultar el banner al presionar la X
+    private void CerrarBannerInstalacion()
+    {
+        mostrarPromptInstalacion = false;
+    }
+
+}

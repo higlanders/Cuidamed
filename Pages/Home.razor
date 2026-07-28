@@ -1,0 +1,116 @@
+﻿@page "/Home"
+@layout FrameWork
+@inject NavigationManager Navigation
+
+<PageTitle>Cuidanet</PageTitle>
+
+<div class="dashboard-container pt-1">
+    <div class="dashboard-grid">
+        <div class="dashboard-card" @onclick='() => NavigateTo("beneficios")'>
+            <div class="card-content">
+                <img class="logodashboard" src="coberturas.png" />
+                <div align="center">
+                    <p class="fuente-gris mt-2 mb-1">Coberturas y consumos</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-card" @onclick='() => NavigateTo("proveedores")'>
+            <div class="card-content">
+                <img class="logodashboard" src="proveedores.png" />
+                <div align="center">
+                    <p class="fuente-gris mt-2 mb-1">Red de Proveedores</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-card" @onclick='() => NavigateTo("Citas-aps")'>
+            <div class="card-content">
+                <img class="logodashboard" src="proveedores.png" />
+                <div align="center">
+                    <p class="fuente-gris mt-2 mb-1">Agendar cita APS</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-card" @onclick='() => NavigateTo("Laboratorios")'>
+            <div class="card-content">
+                <img class="logodashboard" src="sintomas.png" />
+                <div align="center">
+                    <p class="fuente-gris mt-2 mb-1">Consultas y Laboratorios</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Forzar el contenedor a tener un padding más pequeño en móviles */
+    .dashboard-container {
+        padding: 0.75rem !important;
+        background-color: #ffffff;
+    }
+
+    /* Grilla estricta de 2 columnas en cualquier tamaño de pantalla */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem !important; /* Separación compacta entre tarjetas */
+    }
+
+    /* Ajuste de tarjetas para que quepan bien de dos en dos */
+    .dashboard-card {
+        border-radius: 12px !important;
+        padding: 0.75rem !important; /* Reducción del espacio interno */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        cursor: pointer;
+        background-color: #ffffff;
+        border: 1px solid #f0f0f0; /* Borde muy sutil opcional para delimitar el toque */
+    }
+
+    /* Tamaño de los iconos optimizado para el espacio de media pantalla */
+    .logodashboard {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        width: 35px; /* Tamaño fijo controlado */
+        height: auto;
+    }
+
+    /* Estilo heredado del Login con tamaño reducido para celulares (13px) */
+    .fuente-gris {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 300;
+        color: #808080;
+        font-size: 13px; /* Reducido de 15px para evitar saltos de línea toscos */
+        line-height: 1.2;
+    }
+
+    /* En pantallas un poco más grandes (tablets/PC) se puede relajar el tamaño */
+    @@media (min-width: 576px) {
+        .dashboard-grid {
+            gap: 1.25rem !important;
+        }
+
+        .dashboard-card {
+            padding: 1.25rem !important;
+        }
+
+        .fuente-gris {
+            font-size: 15px;
+        }
+
+        .logodashboard {
+            width: 45px;
+        }
+    }
+</style>
+
+@code {
+    private void NavigateTo(string page)
+    {
+        Navigation.NavigateTo($"./{page}", forceLoad: true);
+    }
+}

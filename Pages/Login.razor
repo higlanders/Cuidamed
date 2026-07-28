@@ -1,0 +1,548 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Authorization
+@using Cuidanet.Services
+@using Cuidanet.Models
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject CuidanetApiClient CuidanetService
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<PageTitle>Cuidanet</PageTitle>
+
+<!-- Banner/Modal Emergente de Instalación -->
+@if (mostrarPromptInstalacion)
+{
+    <div class="install-banner-overlay">
+        <div class="install-banner-card p-3 shadow-lg position-relative">
+            <!-- Botón de X para cerrar el mensaje -->
+            <button type="button"
+                    class="btn-close position-absolute top-0 end-0 m-2"
+                    style="font-size: 0.75rem;"
+                    aria-label="Cerrar"
+                    @onclick="CerrarBannerInstalacion">
+            </button>
+
+            <div class="d-flex align-items-center mb-2 pe-3">
+                <img src="logo.png" style="width: 35px; height: auto;" class="me-2" alt="Cuidamed" />
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 14px;">Instalar Cuidanet</h6>
+                    <p class="text-muted mb-0" style="font-size: 11px;">Instala la aplicación en tu dispositivo para un acceso rápido y directo.</p>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-2">
+                <button class="btn btn-sm btn-info text-white w-100 fw-bold" @onclick="InstalarApp">
+                    📲 Instalar App
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="text-center">
+    <header class="cn-login-card__head">
+        <span class="cn-login-card__badge">Acceso seguro</span>
+        <img src="LogoCuidaNet.png" alt="CuidaNet" class="cn-login-card__logo">
+    </header>
+
+    @if (isSmsOk)
+    {
+        <div class="d-flex align-items-center justify-content-center mb-3">
+            <div class="checkmark-icon">✓</div>
+        </div>
+
+        <p class="text-muted mb-3" style="font-size: 15px;">Verificación realizada con éxito</p>
+        <p class="slogan fst-italic mb-5">"Cuidarte nos mueve"</p>
+
+        <div class="text-start w-100 px-3">
+            <select id="afiliadoSelect" class="form-select afiliado-box mb-2"
+                    @bind="AfiliadoSeleccionadoValue" @bind:after="OnAfiliadoCambiado">
+                <option value="" disabled selected hidden>Selecciona al afiliado...</option>
+                @foreach (var afiliado in listaAfiliados)
+                {
+                    <option value="@afiliado.BeneficiarioId">ID: @afiliado.BeneficiarioId - Cédula: @afiliado.Cedula</option>
+                }
+            </select>
+
+            @if (afiliadoDetalle != null && !string.IsNullOrEmpty(afiliadoDetalle.FotoBase64))
+            {
+                <div class="text-center my-3">
+                    <img src="data:image/jpeg;base64,@afiliadoDetalle.FotoBase64"
+                         alt="Foto Afiliado"
+                         class="rounded-circle border border-info"
+                         style="width: 90px; height: 90px; object-fit: cover;" />
+                </div>
+            }
+
+            <div class="w-100 mb-4">
+                <textarea class="form-control terms-textarea" readonly rows="5">
+CONTRATO DE TÉRMINOS Y CONDICIONES DEL SERVICIO
+
+1. ACEPTACIÓN DE LOS TÉRMINOS
+Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los siguientes términos y condiciones de uso. Si no está de acuerdo con alguna parte de estos términos, no deberá acceder al servicio.
+                </textarea>
+            </div>
+
+            <div class="form-check d-flex align-items-center text-info-custom">
+                <input class="form-check-input custom-checkbox me-2" type="checkbox" id="termsCheck" @bind="AceptoTerminos" @onclick='() => NavigateTo("Home")' />
+                <label class="form-check-label fst-italic user-select-none" for="termsCheck">
+                    Acepto los Términos y Condiciones
+                </label>
+            </div>
+        </div>
+    }
+    else
+    {
+        <p class="slogan fst-italic mb-4">"Lo que necesitas en un solo lugar"</p>
+        @if (isSmsStep)
+        {
+            <p class="placeholder-text text-muted small mb-4">Hemos enviado un SMS con un código para validar la información. Ingresa los números recibidos</p>
+        }
+
+        <br />
+        <h1 class="fw-normal text-secondary mb-2" style="font-size: 26px;">Bienvenido</h1>
+        <p class="fuente-gris">Por favor ingresa los datos solicitados</p>
+
+        <EditForm Model="loginModel" OnValidSubmit="HandleSubmit" class="d-flex flex-column align-items-center w-100">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger small mb-3" />
+
+            <div class="mb-3">
+                <InputNumber id="cedula"
+                             class="form-control-custom"
+                             @bind-Value="loginModel.Cedula"
+                             placeholder="Cédula"
+                             readonly="@(isSmsStep)" />
+            </div>
+
+            @if (isSmsStep)
+            {
+                <div class="mb-3">
+                    <InputNumber id="codigoSms"
+                                 class="form-control-custom"
+                                 @bind-Value="loginModel.CodigoSms"
+                                 placeholder="Código SMS" />
+
+                    <div class="text-center small" role="alert">
+                        Expira en: <span class="fw-bold">@FormatTime(timeLeft)</span>
+                    </div>
+                </div>
+            }
+
+            <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-link btn-submit text-decoration-none fw-bold text-secondary tracking-wide">
+                    @(isSmsStep ? "Verificar código SMS" : "Continuar")
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger small w-100 text-center my-2" role="alert">
+                    @errorMessage
+                </div>
+            }
+        </EditForm>
+    }
+</div>
+
+<style>
+    /* Estilos para el Banner Emergente de Instalación */
+    .install-banner-overlay {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 400px;
+        z-index: 2000;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    .install-banner-card {
+        background-color: #ffffff;
+        border: 2px solid #00a4ba;
+        border-radius: 12px;
+    }
+
+    @@keyframes slideUp {
+        from {
+            transform: translate(-50%, 100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
+    }
+
+    :root {
+        --cn-primary: #0170a0;
+    }
+
+    .top-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 8px;
+        background-color: #ff6600;
+    }
+
+    .slogan {
+        color: #00a4ba;
+        font-size: 15px;
+    }
+
+    .form-control-custom {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #e06d11;
+        font-size: 14px;
+        color: #333333;
+        outline: none;
+    }
+
+        .form-control-custom:focus {
+            border-color: #ff6600;
+            box-shadow: 0 0 0 0.2rem rgba(244, 129, 33, 0.25);
+        }
+
+    .btn-submit {
+        font-size: 14px;
+        letter-spacing: 1px;
+    }
+
+        .btn-submit:hover {
+            color: #000000 !important;
+        }
+
+    .fuente-gris {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 300;
+        color: #808080;
+    }
+
+    .checkmark-icon {
+        color: #00a4ba;
+        font-size: 30px;
+        font-family: sans-serif;
+        line-height: 0;
+    }
+
+    .afiliado-box {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #f6e093;
+        background-color: #ffffff;
+        border-radius: 4px;
+        font-size: 15px;
+        color: #333333;
+        outline: none;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e06d11' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    }
+
+        .afiliado-box:focus {
+            border-color: #f4b41a;
+            box-shadow: 0 0 0 0.2rem rgba(246, 224, 147, 0.4);
+        }
+
+    .text-info-custom {
+        color: #00a4ba !important;
+        font-size: 15px;
+    }
+
+    .custom-checkbox {
+        border-color: #00a4ba;
+        cursor: pointer;
+    }
+
+        .custom-checkbox:checked {
+            background-color: #00a4ba;
+            border-color: #00a4ba;
+        }
+
+    .terms-textarea {
+        width: 100%;
+        background-color: #f9f9f9;
+        border: 1px solid #dcdcdc;
+        border-radius: 4px;
+        font-size: 13px;
+        color: #555555;
+        line-height: 1.5;
+        padding: 12px;
+        resize: vertical;
+        overflow-y: auto;
+    }
+
+        .terms-textarea:focus {
+            background-color: #f9f9f9;
+            border-color: #cccccc;
+            box-shadow: none;
+        }
+
+    .cn-login-card__head {
+        padding: 28px 24px 22px;
+        text-align: center;
+        background: linear-gradient(125deg, #0a4180 0%, var(--cn-primary) 48%, #1a9a9e 100%);
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .cn-login-card__logo {
+        position: relative;
+        z-index: 1;
+        display: block;
+        max-height: 52px;
+        width: auto;
+        margin: 0 auto 14px;
+    }
+
+    .cn-login-card__badge {
+        position: relative;
+        z-index: 1;
+        display: inline-block;
+        margin-bottom: 10px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.18);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+</style>
+
+@code {
+    private LoginViewModel loginModel = new();
+    private bool isSmsStep = false;
+    private bool isSmsOk = false;
+    private string AfiliadoSeleccionado { get; set; } = string.Empty;
+    private bool AceptoTerminos { get; set; } = false;
+    private string errorMessage = string.Empty;
+
+    // --- Variables de PWA e Interop JS ---
+    private bool mostrarPromptInstalacion = false;
+    private DotNetObjectReference<Login>? dotNetHelper;
+
+    private List<BeneficiarioDto> listaAfiliados = new();
+    private System.Threading.Timer? countdownTimer;
+    private int timeLeft = 120;
+    private BeneficiarioDto? afiliadoDetalle;
+
+    private string _afiliadoSeleccionado = string.Empty;
+    private string AfiliadoSeleccionadoValue
+    {
+        get => _afiliadoSeleccionado;
+        set => _afiliadoSeleccionado = value;
+    }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState != null)
+        {
+            var authState = await AuthState;
+            var user = authState.User;
+
+            if (user.Identity != null && user.Identity.IsAuthenticated)
+            {
+                Navigation.NavigateTo("Home");
+            }
+        }
+    }
+
+    // REGISTRO OBLIGATORIO DE JS INTEROP TRAS RENDERIZAR
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetHelper = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("registrarHelperInstalacion", dotNetHelper);
+        }
+    }
+
+    [JSInvokable]
+    public void MostrarBannerInstalacion()
+    {
+        mostrarPromptInstalacion = true;
+        StateHasChanged();
+    }
+
+    private async Task InstalarApp()
+    {
+        var exito = await JSRuntime.InvokeAsync<bool>("promptInstalarPwa");
+        if (exito)
+        {
+            mostrarPromptInstalacion = false;
+        }
+    }
+
+    private void CerrarBannerInstalacion()
+    {
+        mostrarPromptInstalacion = false;
+    }
+
+    private async Task HandleSubmit()
+    {
+        errorMessage = string.Empty;
+
+        if (!isSmsStep)
+        {
+            if (loginModel.Cedula.HasValue && loginModel.Cedula > 0)
+            {
+                try
+                {
+                    var resultado = await CuidanetService.GetBeneficiariosAsync(cedula: loginModel.Cedula.ToString());
+
+                    if (resultado != null && resultado.Any())
+                    {
+                        var infoUsuario = resultado.First();
+
+                        isSmsStep = false;
+                        isSmsOk = true;
+                        try
+                        {
+                            var busquedaInicial = await CuidanetService.GetBeneficiariosAsync(cedula: loginModel.Cedula.ToString());
+                            if (busquedaInicial.Any())
+                            {
+                                int titularId = busquedaInicial.First().TitularId;
+                                listaAfiliados = await CuidanetService.GetBeneficiariosAsync(titularId: titularId);
+                            }
+
+                            isSmsOk = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            errorMessage = $"Error al recuperar el grupo familiar: {ex.Message}";
+                        }
+                    }
+                    else
+                    {
+                        errorMessage = "La cédula ingresada no se encuentra registrada en el sistema de CuidaNet.";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errorMessage = $"Error de comunicación con la API: {ex.Message}";
+                }
+            }
+        }
+        else
+        {
+            if (loginModel.CodigoSms.HasValue && loginModel.CodigoSms > 0)
+            {
+                bool isSmsValid = true;
+
+                if (isSmsValid)
+                {
+                    try
+                    {
+                        var busquedaInicial = await CuidanetService.GetBeneficiariosAsync(cedula: loginModel.Cedula.ToString());
+                        if (busquedaInicial.Any())
+                        {
+                            int titularId = busquedaInicial.First().TitularId;
+                            listaAfiliados = await CuidanetService.GetBeneficiariosAsync(titularId: titularId);
+                        }
+
+                        isSmsOk = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        errorMessage = $"Error al recuperar el grupo familiar: {ex.Message}";
+                    }
+                }
+                else
+                {
+                    errorMessage = "El código SMS introducido es incorrecto o ha expirado.";
+                }
+            }
+        }
+    }
+
+    private void StartCountdown()
+    {
+        timeLeft = 120;
+        countdownTimer = new System.Threading.Timer(async _ =>
+        {
+            if (timeLeft > 0)
+            {
+                timeLeft--;
+                await InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                await ResetForm();
+            }
+        }, null, 0, 1000);
+    }
+
+    private async Task ResetForm()
+    {
+        StopTimer();
+        isSmsStep = false;
+        loginModel.CodigoSms = null;
+        loginModel.Cedula = null;
+        listaAfiliados.Clear();
+        errorMessage = string.Empty;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void StopTimer()
+    {
+        countdownTimer?.Dispose();
+        countdownTimer = null;
+    }
+
+    private string FormatTime(int seconds)
+    {
+        int minutes = seconds / 60;
+        int remainingSeconds = seconds % 60;
+        return $"{minutes:D2}:{remainingSeconds:D2}";
+    }
+
+    public void Dispose()
+    {
+        StopTimer();
+        dotNetHelper?.Dispose();
+    }
+
+    private async Task OnAfiliadoCambiado()
+    {
+        if (int.TryParse(_afiliadoSeleccionado, out int beneficiarioId))
+        {
+            try
+            {
+                afiliadoDetalle = await CuidanetService.GetBeneficiarioDetalleAsync(beneficiarioId);
+            }
+            catch (Exception)
+            {
+                afiliadoDetalle = null;
+            }
+        }
+    }
+
+    public class LoginViewModel
+    {
+        public long? Cedula { get; set; }
+        public long? CodigoSms { get; set; }
+    }
+
+    private async Task NavigateTo(string page)
+    {
+        if (string.IsNullOrEmpty(AfiliadoSeleccionadoValue))
+            return;
+
+        var customAuth = (CustomAuthStateProvider)AuthStateProvider;
+        long temp = loginModel.Cedula is null ? 0 : Convert.ToInt64(loginModel.Cedula);
+        await customAuth.MarkUserAsAuthenticated(temp);
+
+        Navigation.NavigateTo($"{page}");
+    }
+}
