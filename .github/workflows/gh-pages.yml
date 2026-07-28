@@ -39,10 +39,16 @@ jobs:
 
       - name: Publish Blazor WASM
         run: |
-          dotnet publish -c Release -o publish
-          # GitHub Pages project site lives under /Cuidamed/
-          sed -i 's|<base href="/" />|<base href="/Cuidamed/" />|' publish/wwwroot/index.html
-          sed -i 's|const base = "/";|const base = "/Cuidamed/";|' publish/wwwroot/service-worker.js
+          # Patch paths BEFORE publish so service-worker asset hashes match
+          sed -i 's|<base href="/" />|<base href="/Cuidamed/" />|' wwwroot/index.html
+          sed -i 's|const base = "/";|const base = "/Cuidamed/";|' wwwroot/service-worker.published.js
+
+          # Publish the project (not the solution) to avoid NETSDK1194 output issues
+          dotnet publish Cuidamed.csproj -c Release -o publish
+
+          # Jekyll ignores _* folders; without this, _framework 404s on GitHub Pages
+          touch publish/wwwroot/.nojekyll
+
           # SPA fallback for Blazor client-side routes
           cp publish/wwwroot/index.html publish/wwwroot/404.html
 
