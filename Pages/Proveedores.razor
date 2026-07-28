@@ -1,0 +1,208 @@
+﻿@page "/proveedores"
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+
+<PageTitle>Cuidanet — Red de Proveedores</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-prov">
+            <div class="cn-prov__shell">
+                <header class="cn-prov__hero">
+                    <div class="cn-prov__hero-glow" aria-hidden="true"></div>
+                    <div class="cn-prov__topbar">
+                        <button type="button" class="cn-prov__back" @onclick="GoHome" aria-label="Volver al inicio">
+                            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                        </button>
+                        <h1 class="cn-prov__heading">Red de Proveedores</h1>
+                        <span class="cn-prov__topbar-spacer" aria-hidden="true"></span>
+                    </div>
+                    <p class="cn-prov__lead">Encuentra clínicas, laboratorios y farmacias de tu red.</p>
+                </header>
+
+                <section class="cn-prov__sheet">
+                    <div class="cn-prov__search">
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <input type="search"
+                               class="cn-prov__search-input"
+                               placeholder="Buscar por nombre, ciudad o especialidad"
+                               value="@searchQuery"
+                               @oninput="OnSearchInput"
+                               aria-label="Buscar proveedores" />
+                        @if (!string.IsNullOrWhiteSpace(searchQuery))
+                        {
+                            <button type="button" class="cn-prov__search-clear" @onclick="ClearSearch" aria-label="Limpiar búsqueda">
+                                <i class="bi bi-x-circle-fill" aria-hidden="true"></i>
+                            </button>
+                        }
+                    </div>
+
+                    <div class="cn-prov__filters" role="tablist" aria-label="Tipo de proveedor">
+                        @foreach (var filtro in filtros)
+                        {
+                            <button type="button"
+                                    role="tab"
+                                    aria-selected="@(filtroActivo == filtro.Id)"
+                                    class="cn-prov__chip @(filtroActivo == filtro.Id ? "is-active" : "")"
+                                    @onclick="() => SetFiltro(filtro.Id)">
+                                <i class="bi @filtro.Icono" aria-hidden="true"></i>
+                                @filtro.Etiqueta
+                            </button>
+                        }
+                    </div>
+
+                    <p class="cn-prov__count">
+                        @FilteredProveedores.Count() @(FilteredProveedores.Count() == 1 ? "resultado" : "resultados")
+                    </p>
+
+                    @if (!FilteredProveedores.Any())
+                    {
+                        <div class="cn-prov__empty">
+                            <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                            <p>No encontramos proveedores con esos criterios.</p>
+                            <button type="button" class="cn-prov__empty-btn" @onclick="ResetFilters">Ver todos</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="cn-prov__list">
+                            @foreach (var p in FilteredProveedores)
+                            {
+                                <li class="cn-prov__card">
+                                    <div class="cn-prov__card-icon" aria-hidden="true">
+                                        <i class="bi @IconoPorTipo(p.Tipo)"></i>
+                                    </div>
+                                    <div class="cn-prov__card-body">
+                                        <div class="cn-prov__card-top">
+                                            <h2 class="cn-prov__card-name">@p.Nombre</h2>
+                                            <span class="cn-prov__badge">@EtiquetaTipo(p.Tipo)</span>
+                                        </div>
+                                        <p class="cn-prov__card-spec">@p.Especialidad</p>
+                                        <p class="cn-prov__card-meta">
+                                            <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                                            @p.Ciudad · @p.Direccion
+                                        </p>
+                                        <div class="cn-prov__card-actions">
+                                            @if (!string.IsNullOrEmpty(p.Telefono))
+                                            {
+                                                <a class="cn-prov__action cn-prov__action--call" href="tel:@p.Telefono">
+                                                    <i class="bi bi-telephone-fill" aria-hidden="true"></i>
+                                                    Llamar
+                                                </a>
+                                            }
+                                            <a class="cn-prov__action cn-prov__action--map"
+                                               href="@MapUrl(p)"
+                                               target="_blank"
+                                               rel="noopener noreferrer">
+                                                <i class="bi bi-map" aria-hidden="true"></i>
+                                                Ver mapa
+                                            </a>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+
+                    <p class="cn-prov__footnote">
+                        Datos de referencia. La red oficial se actualizará al conectar la API CuidaNet.
+                    </p>
+                </section>
+            </div>
+        </div>
+    </Authorized>
+
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string searchQuery = string.Empty;
+    private string filtroActivo = "todos";
+
+    private readonly List<FiltroItem> filtros = new()
+    {
+        new("todos", "Todos", "bi-grid"),
+        new("clinica", "Clínicas", "bi-hospital"),
+        new("laboratorio", "Labs", "bi-eyedropper"),
+        new("farmacia", "Farmacias", "bi-capsule"),
+        new("odontologia", "Dental", "bi-emoji-smile"),
+    };
+
+    private readonly List<ProveedorItem> proveedores = new()
+    {
+        new("Centro Médico CuidaNet Caracas", "clinica", "Medicina general y especialistas", "Caracas", "Av. Francisco de Miranda, Chacao", "+582129991100"),
+        new("Clínica El Ávila", "clinica", "Traumatología y cardiología", "Caracas", "Los Palos Grandes", "+582122851200"),
+        new("Lab Diagnóstico Plus", "laboratorio", "Análisis clínicos y PCR", "Caracas", "Sabana Grande", "+582127774433"),
+        new("Laboratorio BioSalud", "laboratorio", "Hematología y bioquímica", "Valencia", "Av. Bolívar Norte", "+582418882200"),
+        new("Farmacia FarmaSalud 24h", "farmacia", "Medicamentos y cuidado personal", "Caracas", "Las Mercedes", "+582129933445"),
+        new("Farmacia Comunitaria Oriente", "farmacia", "Genéricos y OTC", "Barcelona", "Calle Principal", "+582812556677"),
+        new("Dental Care Plaza", "odontologia", "Odontología general y ortodoncia", "Caracas", "CC Sambil Chacao", "+582122667788"),
+        new("Sonrisas IPS", "odontologia", "Endodoncia y estética dental", "Maracaibo", "Av. 5 de Julio", "+582614445566"),
+        new("Policlínica Los Andes", "clinica", "Pediatría y ginecología", "Mérida", "Av. Las Américas", "+582744112233"),
+        new("Lab Norte Express", "laboratorio", "Resultados en 24 horas", "Maracay", "Centro", "+582435556677"),
+    };
+
+    private IEnumerable<ProveedorItem> FilteredProveedores =>
+        proveedores
+            .Where(p => filtroActivo == "todos" || p.Tipo == filtroActivo)
+            .Where(p =>
+            {
+                if (string.IsNullOrWhiteSpace(searchQuery)) return true;
+                var q = searchQuery.Trim();
+                return Contains(p.Nombre, q)
+                    || Contains(p.Ciudad, q)
+                    || Contains(p.Especialidad, q)
+                    || Contains(p.Direccion, q)
+                    || Contains(EtiquetaTipo(p.Tipo), q);
+            });
+
+    private void GoHome() => Navigation.NavigateTo("/Home");
+
+    private void OnSearchInput(ChangeEventArgs e) => searchQuery = e.Value?.ToString() ?? string.Empty;
+
+    private void ClearSearch() => searchQuery = string.Empty;
+
+    private void SetFiltro(string id) => filtroActivo = id;
+
+    private void ResetFilters()
+    {
+        searchQuery = string.Empty;
+        filtroActivo = "todos";
+    }
+
+    private static bool Contains(string source, string query) =>
+        source.Contains(query, StringComparison.OrdinalIgnoreCase);
+
+    private static string EtiquetaTipo(string tipo) => tipo switch
+    {
+        "clinica" => "Clínica",
+        "laboratorio" => "Laboratorio",
+        "farmacia" => "Farmacia",
+        "odontologia" => "Odontología",
+        _ => "Proveedor"
+    };
+
+    private static string IconoPorTipo(string tipo) => tipo switch
+    {
+        "clinica" => "bi-hospital",
+        "laboratorio" => "bi-eyedropper",
+        "farmacia" => "bi-capsule",
+        "odontologia" => "bi-emoji-smile",
+        _ => "bi-geo-alt-fill"
+    };
+
+    private static string MapUrl(ProveedorItem p) =>
+        $"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString($"{p.Nombre} {p.Direccion} {p.Ciudad}")}";
+
+    private sealed record FiltroItem(string Id, string Etiqueta, string Icono);
+
+    private sealed record ProveedorItem(
+        string Nombre,
+        string Tipo,
+        string Especialidad,
+        string Ciudad,
+        string Direccion,
+        string Telefono);
+}
