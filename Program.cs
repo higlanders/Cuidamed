@@ -1,4 +1,5 @@
-﻿using Cuidamed;
+﻿using System.Text;
+using Cuidamed;
 using Cuidamed.Handlers;
 using Cuidamed.Services;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -10,17 +11,26 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 // appsettings*.json se excluyen del pipeline SWA (.NET 10 fingerprint bug) y se copian
 // a mano a wwwroot. CreateDefault no los registra en blazor.boot → hay que cargarlos aquí.
-using (var configClient = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) })
+// Usamos MemoryStream: AddJsonStream no debe depender de un stream HTTP ya dispuesto.
+try
 {
-    try
-    {
-        await using var stream = await configClient.GetStreamAsync("appsettings.json");
-        builder.Configuration.AddJsonStream(stream);
-    }
-    catch (Exception ex)
-    {
-        Console.Error.WriteLine($"[Cuidamed] No se pudo cargar appsettings.json: {ex.Message}");
-    }
+    using var configClient = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
+    // cache-bust para evitar appsettings viejo del service worker
+    var json = await configClient.GetStringAsync($"appsettings.json?v={DateTime.UtcNow.Ticks}");
+    if (string.IsNullOrWhiteSpace(json) || !json.Contains("CuidanetServices", StringComparison.Ordinal))
+        throw new InvalidOperationException("appsettings.json vacío o inválido.");
+
+    builder.Configuration.AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(json)));
+
+    var user = builder.Configuration["CuidanetServices:user"];
+    if (string.IsNullOrWhiteSpace(user))
+        Console.Error.WriteLine("[Cuidamed] appsettings cargó pero CuidanetServices:user está vacío.");
+    else
+        Console.WriteLine($"[Cuidamed] Config API OK (user len={user.Length}).");
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine($"[Cuidamed] No se pudo cargar appsettings.json: {ex.Message}");
 }
 
 builder.RootComponents.Add<App>("#app");

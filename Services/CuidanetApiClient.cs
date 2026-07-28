@@ -180,6 +180,14 @@ namespace Cuidamed.Services
                 throw new InvalidOperationException("Acceso denegado: El endpoint requiere parámetros de filtrado explícitos para este usuario (Regla Crítica de Privacidad).");
             }
 
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                var detail = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException(
+                    "No autorizado (401). No se pudo autenticar el servicio API. " +
+                    "Borra los datos del sitio y recarga. " + TrimError(detail));
+            }
+
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<List<BeneficiarioDto>>() ?? new List<BeneficiarioDto>();
         }

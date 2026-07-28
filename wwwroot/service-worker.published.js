@@ -40,6 +40,11 @@ async function onActivate(event) {
 }
 
 async function onFetch(event) {
+    // appsettings siempre desde red (nunca caché): credenciales/endpoints
+    if (event.request.method === 'GET' && /appsettings/i.test(event.request.url)) {
+        return fetch(event.request, { cache: 'no-store' });
+    }
+
     // Navigations: network-first so deploys (new Home/login) show up without stuck PWA cache
     if (event.request.method === 'GET' && event.request.mode === 'navigate') {
         try {
