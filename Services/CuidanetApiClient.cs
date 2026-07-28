@@ -60,6 +60,13 @@ namespace Cuidamed.Services
                 if (parsed != null && (!string.IsNullOrWhiteSpace(parsed.UserMessage) || parsed.IsExplicitFailure))
                     return parsed;
 
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    throw new HttpRequestException(
+                        "No autorizado (401). Suele ser caché vieja de appsettings o credenciales de API. " +
+                        "Borra los datos del sitio y recarga. Detalle: " + TrimError(body));
+                }
+
                 throw new HttpRequestException(
                     $"No se pudo enviar el SMS ({(int)response.StatusCode}). {TrimError(body)}");
             }
