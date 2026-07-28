@@ -40,26 +40,29 @@ namespace Cuidamed.Services
             _movimientoConsultaUrl = configuration["CuidanetServices:Endpoints:MovimientoConsulta"] ?? "MovimientoServicio/consulta";
             _uploadImagenUrl = configuration["CuidanetServices:Endpoints:UploadImagen"] ?? "Imagenes/upload";
             _ImagenesServicioUrl = configuration["CuidanetServices:Endpoints:ImagenesServicio"] ?? "Imagenes/servicio";
-            _enviarSmsUrl = configuration["CuidanetServices:Endpoints:EnviarSms"] ?? "Auth/sms/enviar";
-            _verificarSmsUrl = configuration["CuidanetServices:Endpoints:VerificarSms"] ?? "Auth/sms/verificar";
+            _enviarSmsUrl = configuration["CuidanetServices:Endpoints:EnviarSms"] ?? "sms/enviar-codigo";
+            _verificarSmsUrl = configuration["CuidanetServices:Endpoints:VerificarSms"] ?? "sms/verificar-codigo";
         }
 
         /// <summary>
-        /// Envía un código SMS al teléfono indicado para la cédula.
+        /// Envía un código SMS OTP vía APILISPoblacion (cola MensajesSmsNube).
         /// </summary>
         public async Task<SmsApiResponse> EnviarSmsAsync(string cedula, string telefono)
         {
             var payload = new EnviarSmsRequest { Cedula = cedula, Telefono = telefono };
             var response = await _httpClient.PostAsJsonAsync(_enviarSmsUrl, payload);
             var body = await response.Content.ReadAsStringAsync();
+            var parsed = ParseSmsResponse(body);
 
             if (!response.IsSuccessStatusCode)
             {
+                if (parsed != null && (!string.IsNullOrWhiteSpace(parsed.UserMessage) || parsed.IsExplicitFailure))
+                    return parsed;
+
                 throw new HttpRequestException(
                     $"No se pudo enviar el SMS ({(int)response.StatusCode}). {TrimError(body)}");
             }
 
-            var parsed = ParseSmsResponse(body);
             if (parsed != null && parsed.IsExplicitFailure)
                 return parsed;
 
@@ -67,7 +70,7 @@ namespace Cuidamed.Services
         }
 
         /// <summary>
-        /// Verifica el código SMS recibido por el afiliado.
+        /// Verifica el código SMS OTP en APILISPoblacion.
         /// </summary>
         public async Task<SmsApiResponse> VerificarSmsAsync(string cedula, string telefono, string codigo)
         {
@@ -79,14 +82,21 @@ namespace Cuidamed.Services
             };
             var response = await _httpClient.PostAsJsonAsync(_verificarSmsUrl, payload);
             var body = await response.Content.ReadAsStringAsync();
+            var parsed = ParseSmsResponse(body);
 
             if (!response.IsSuccessStatusCode)
             {
+                if (parsed != null)
+                {
+                    parsed.Ok = false;
+                    parsed.Valid = false;
+                    return parsed;
+                }
+
                 throw new HttpRequestException(
                     $"No se pudo verificar el SMS ({(int)response.StatusCode}). {TrimError(body)}");
             }
 
-            var parsed = ParseSmsResponse(body);
             if (parsed != null && parsed.IsExplicitFailure)
                 return parsed;
 

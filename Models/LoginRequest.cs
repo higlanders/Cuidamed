@@ -67,6 +67,9 @@ namespace Cuidamed.Models
         [JsonPropertyName("message")]
         public string? Message { get; set; }
 
+        [JsonPropertyName("messageId")]
+        public long? MessageId { get; set; }
+
         public bool IsSuccessful =>
             (Ok ?? true) && (Success ?? true) && (Valid ?? true);
 
