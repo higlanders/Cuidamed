@@ -1,121 +1,260 @@
 ﻿@page "/Laboratorios"
 @using System.IO
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using Cuidamed.Services
 @using Cuidamed.Models
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 @inject CuidanetApiClient CuidanetService
 
-<h3 class="text-center my-3 text-secondary">Cargar Documentación</h3>
+<PageTitle>Cuidanet — Consultas y Laboratorios</PageTitle>
 
-<div class="container" style="max-width: 500px;">
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-lab">
+            <div class="cn-lab__shell">
+                <header class="cn-lab__hero">
+                    <div class="cn-lab__hero-glow" aria-hidden="true"></div>
+                    <div class="cn-lab__topbar">
+                        <button type="button" class="cn-lab__back" @onclick="GoHome" aria-label="Volver al inicio">
+                            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                        </button>
+                        <h1 class="cn-lab__heading">Consultas y Labs</h1>
+                        <span class="cn-lab__topbar-spacer" aria-hidden="true"></span>
+                    </div>
+                    <p class="cn-lab__lead">Sube tu récipe o resultado con la cámara o desde tu dispositivo.</p>
+                </header>
 
-    <div class="d-flex justify-content-center gap-2 mb-3">
-        <button class="btn @(origenSeleccionado == OrigenMedia.Camara ? "btn-secondary" : "btn-outline-secondary") btn-sm"
-                @onclick="() => CambiarOrigen(OrigenMedia.Camara)">
-            <i class="bi bi-camera-fill"></i> Usar Cámara
-        </button>
-        <button class="btn @(origenSeleccionado == OrigenMedia.Archivo ? "btn-secondary" : "btn-outline-secondary") btn-sm"
-                @onclick="() => CambiarOrigen(OrigenMedia.Archivo)">
-            <i class="bi bi-folder-fill"></i> Subir Archivo Local
-        </button>
-    </div>
+                <section class="cn-lab__sheet">
+                    <div class="cn-lab__steps" aria-hidden="true">
+                        <span class="cn-lab__step is-active"><i class="bi bi-1-circle-fill"></i> Elegir</span>
+                        <span class="cn-lab__step-line"></span>
+                        <span class="cn-lab__step @(isUploading || ultimoRegistroUploaded != null ? "is-active" : "")">
+                            <i class="bi bi-2-circle-fill"></i> Validar
+                        </span>
+                        <span class="cn-lab__step-line"></span>
+                        <span class="cn-lab__step @(ultimoRegistroUploaded != null ? "is-active" : "")">
+                            <i class="bi bi-3-circle-fill"></i> Enviar
+                        </span>
+                    </div>
 
-    @if (origenSeleccionado == OrigenMedia.Camara)
-    {
-        <div class="video-container border rounded bg-dark mb-3 position-relative" style="height: 350px; overflow:hidden;">
-            <video id="webcam" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
-            <canvas id="captureCanvas" style="display: none;"></canvas>
-        </div>
+                    <div class="cn-lab__tabs" role="tablist" aria-label="Origen del documento">
+                        <button type="button"
+                                role="tab"
+                                aria-selected="@(origenSeleccionado == OrigenMedia.Camara)"
+                                class="cn-lab__tab @(origenSeleccionado == OrigenMedia.Camara ? "is-active" : "")"
+                                @onclick="() => CambiarOrigen(OrigenMedia.Camara)">
+                            <i class="bi bi-camera-fill" aria-hidden="true"></i>
+                            Cámara
+                        </button>
+                        <button type="button"
+                                role="tab"
+                                aria-selected="@(origenSeleccionado == OrigenMedia.Archivo)"
+                                class="cn-lab__tab @(origenSeleccionado == OrigenMedia.Archivo ? "is-active" : "")"
+                                @onclick="() => CambiarOrigen(OrigenMedia.Archivo)">
+                            <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                            Archivo
+                        </button>
+                    </div>
 
-        <div class="d-grid gap-2 mb-4">
-            @if (!cameraInitialized)
-            {
-                <button class="btn btn-primary" @onclick="InicializarCamara">
-                    <i class="bi bi-camera"></i> Encender Cámara
-                </button>
-            }
-            else
-            {
-                <button class="btn btn-success" @onclick="TomarYSubirFoto" disabled="@isUploading">
-                    @if (isUploading)
+                    @if (origenSeleccionado == OrigenMedia.Camara)
                     {
-                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        <span> Subiendo a CuidaNet...</span>
+                        <div class="cn-lab__camera">
+                            <div class="cn-lab__viewport @(cameraInitialized ? "is-live" : "")">
+                                <video id="webcam" autoplay playsinline muted class="cn-lab__video"></video>
+                                <canvas id="captureCanvas" class="cn-lab__canvas"></canvas>
+                                @if (!cameraInitialized)
+                                {
+                                    <div class="cn-lab__viewport-empty">
+                                        <i class="bi bi-camera-video" aria-hidden="true"></i>
+                                        <p>Enciende la cámara para capturar el documento</p>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="cn-lab__frame" aria-hidden="true">
+                                        <span class="cn-lab__corner cn-lab__corner--tl"></span>
+                                        <span class="cn-lab__corner cn-lab__corner--tr"></span>
+                                        <span class="cn-lab__corner cn-lab__corner--bl"></span>
+                                        <span class="cn-lab__corner cn-lab__corner--br"></span>
+                                    </div>
+                                    <p class="cn-lab__viewport-hint">Centra el documento dentro del marco</p>
+                                }
+                            </div>
+
+                            @if (!cameraInitialized)
+                            {
+                                <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="InicializarCamara" disabled="@isUploading">
+                                    <i class="bi bi-camera" aria-hidden="true"></i>
+                                    Encender cámara
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="button"
+                                        class="cn-lab__btn cn-lab__btn--primary"
+                                        @onclick="TomarYSubirFoto"
+                                        disabled="@isUploading">
+                                    @if (isUploading)
+                                    {
+                                        <span class="cn-lab__spinner" aria-hidden="true"></span>
+                                        <span>Procesando...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-cloud-arrow-up-fill" aria-hidden="true"></i>
+                                        <span>Capturar y enviar</span>
+                                    }
+                                </button>
+                            }
+                        </div>
                     }
                     else
                     {
-                        <span><i class="bi bi-cloud-arrow-up"></i> Capturar y Enviar Documento</span>
+                        <div class="cn-lab__drop @(isUploading ? "is-busy" : "")">
+                            <label class="cn-lab__drop-area">
+                                <InputFile OnChange="HandleFileSelected"
+                                           class="cn-lab__file-input"
+                                           accept="image/png,image/jpeg,application/pdf"
+                                           disabled="@isUploading" />
+                                <span class="cn-lab__drop-icon" aria-hidden="true">
+                                    <i class="bi bi-cloud-arrow-up"></i>
+                                </span>
+                                <span class="cn-lab__drop-title">Toca para elegir un archivo</span>
+                                <span class="cn-lab__drop-hint">JPG, PNG o PDF · máx. 100 MB</span>
+                            </label>
+
+                            @if (!string.IsNullOrEmpty(selectedFileName))
+                            {
+                                <div class="cn-lab__file-chip">
+                                    <i class="bi bi-file-earmark-medical" aria-hidden="true"></i>
+                                    <span>@selectedFileName</span>
+                                </div>
+                            }
+
+                            @if (isUploading)
+                            {
+                                <p class="cn-lab__busy">
+                                    <span class="cn-lab__spinner" aria-hidden="true"></span>
+                                    <span>Subiendo archivo...</span>
+                                </p>
+                            }
+                        </div>
                     }
-                </button>
-            }
-        </div>
-    }
-    else
-    {
-        <div class="card p-4 border-dashed text-center mb-4 bg-light">
-            <i class="bi bi-file-earmark-arrow-up text-muted mb-2" style="font-size: 48px;"></i>
-            <p class="text-muted small mb-3">Selecciona una imagen (.jpg, .png) o un documento (.pdf) guardado en tu dispositivo.</p>
 
-            <InputFile OnChange="HandleFileSelected" class="form-control" accept="image/png, image/jpeg, application/pdf" disabled="@isUploading" />
+                    @if (!string.IsNullOrEmpty(statusMessage))
+                    {
+                        <div class="cn-lab__status @StatusClass" role="status">
+                            <i class="bi @StatusIcon" aria-hidden="true"></i>
+                            <p>@statusMessage</p>
+                        </div>
+                    }
 
-            @if (isUploading && origenSeleccionado == OrigenMedia.Archivo)
-            {
-                <div class="mt-3">
-                    <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
-                    <span class="text-primary small ms-2"> Subiendo archivo local...</span>
-                </div>
-            }
-        </div>
-    }
+                    @if (ultimoRegistroUploaded != null)
+                    {
+                        <div class="cn-lab__success">
+                            <div class="cn-lab__success-badge" aria-hidden="true">
+                                <i class="bi bi-check-lg"></i>
+                            </div>
+                            <h2 class="cn-lab__success-title">Documento enviado</h2>
+                            <p class="cn-lab__success-lead">Tu archivo quedó registrado en CuidaNet.</p>
+                            <dl class="cn-lab__meta">
+                                <div>
+                                    <dt>ID imagen</dt>
+                                    <dd>@ultimoRegistroUploaded.ImagenesId</dd>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(ultimoRegistroUploaded.Periodo))
+                                {
+                                    <div>
+                                        <dt>Periodo</dt>
+                                        <dd>@ultimoRegistroUploaded.Periodo</dd>
+                                    </div>
+                                }
+                            </dl>
+                            <div class="cn-lab__success-actions">
+                                @if (!string.IsNullOrWhiteSpace(ultimoRegistroUploaded.UrlPublica))
+                                {
+                                    <a class="cn-lab__btn cn-lab__btn--ghost"
+                                       href="@ultimoRegistroUploaded.UrlPublica"
+                                       target="_blank"
+                                       rel="noopener noreferrer">
+                                        <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                                        Ver en servidor
+                                    </a>
+                                }
+                                <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="ResetUpload">
+                                    <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                                    Subir otro
+                                </button>
+                            </div>
+                        </div>
+                    }
 
-    @if (!string.IsNullOrEmpty(statusMessage))
-    {
-        <div class="alert @statusClass small text-center" role="alert">
-            @statusMessage
-        </div>
-    }
-
-    @if (ultimoRegistroUploaded != null)
-    {
-        <div class="card text-start border-success mt-3">
-            <div class="card-body">
-                <h6 class="card-title text-success">¡Subida Completada con Éxito! </h6>
-                <p class="card-text small mb-1"><strong>ID Imagen:</strong> @ultimoRegistroUploaded.ImagenesId </p>
-                <p class="card-text small mb-1"><strong>Ruta Asignada:</strong> <code>@ultimoRegistroUploaded.Url</code> </p>
-                <p class="card-text small mb-1"><strong>Periodo:</strong> @ultimoRegistroUploaded.Periodo </p>
-                <a href="@ultimoRegistroUploaded.UrlPublica" target="_blank" class="btn btn-link btn-sm p-0">Ver archivo en el servidor </a>
+                    <p class="cn-lab__footnote">
+                        Validamos el documento con OCR antes de enviarlo. Usa buena luz y enfoca el texto.
+                    </p>
+                </section>
             </div>
         </div>
-    }
-</div>
+    </Authorized>
+
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private enum OrigenMedia { Camara, Archivo }
     private OrigenMedia origenSeleccionado = OrigenMedia.Camara;
 
-    private bool cameraInitialized = false;
-    private bool isUploading = false;
+    private bool cameraInitialized;
+    private bool isUploading;
     private string statusMessage = string.Empty;
-    private string statusClass = "alert-info";
+    private string statusTone = "info";
+    private string selectedFileName = string.Empty;
     private UploadImagenResponse? ultimoRegistroUploaded;
 
-    // ID de servicio contextual de tu negocio
     private int servicioContextoId = 1024;
-
-    // Límite de 100 MB dictado por la especificación de la API de CuidaNet
     private const long MaxFileSizeBytes = 100 * 1024 * 1024;
+
+    private string StatusClass => statusTone switch
+    {
+        "success" => "cn-lab__status--success",
+        "warning" => "cn-lab__status--warning",
+        "danger" => "cn-lab__status--danger",
+        _ => "cn-lab__status--info"
+    };
+
+    private string StatusIcon => statusTone switch
+    {
+        "success" => "bi-check-circle-fill",
+        "warning" => "bi-exclamation-triangle-fill",
+        "danger" => "bi-x-circle-fill",
+        _ => "bi-info-circle-fill"
+    };
+
+    private void GoHome() => Navigation.NavigateTo("Home");
 
     private void CambiarOrigen(OrigenMedia nuevoOrigen)
     {
         origenSeleccionado = nuevoOrigen;
         statusMessage = string.Empty;
+        selectedFileName = string.Empty;
+        ultimoRegistroUploaded = null;
+    }
+
+    private void ResetUpload()
+    {
+        statusMessage = string.Empty;
+        selectedFileName = string.Empty;
         ultimoRegistroUploaded = null;
     }
 
     private async Task InicializarCamara()
     {
-        statusMessage = "Solicitando permisos de cámara...";
-        statusClass = "alert-info";
+        statusMessage = "Solicitando permisos de cámara…";
+        statusTone = "info";
 
         bool resultado = await JS.InvokeAsync<bool>("BlazorCamera.start", "webcam");
 
@@ -123,17 +262,15 @@
         {
             cameraInitialized = true;
             statusMessage = "Cámara lista. Posiciona el documento frente al lente.";
-            statusClass = "alert-success";
+            statusTone = "success";
         }
         else
         {
-            statusMessage = "No se pudo acceder a la cámara. Revisa los permisos de tu navegador.";
-            statusClass = "alert-danger";
+            statusMessage = "No se pudo acceder a la cámara. Revisa los permisos del navegador.";
+            statusTone = "danger";
         }
     }
 
-
-    // Clase auxiliar para mapear el resultado del JS Interop
     public class OcrResult
     {
         public bool Exito { get; set; }
@@ -141,7 +278,6 @@
         public bool EsDocumentoValido { get; set; }
     }
 
-    // --- MANEJO DE LA CARGA DEL ARCHIVO DISPOSITIVO ---
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
         try
@@ -149,23 +285,23 @@
             var file = e.File;
             if (file == null) return;
 
+            selectedFileName = file.Name;
+
             if (file.Size > MaxFileSizeBytes)
             {
                 statusMessage = "El archivo excede el límite permitido de 100 MB.";
-                statusClass = "alert-danger";
+                statusTone = "danger";
                 return;
             }
 
             isUploading = true;
-            statusMessage = "Analizando contenido del documento (OCR)...";
-            statusClass = "alert-info";
+            statusMessage = "Analizando contenido del documento (OCR)…";
+            statusTone = "info";
             ultimoRegistroUploaded = null;
             StateHasChanged();
 
-            // 1. VALIDACIÓN OCR SÓLO PARA IMÁGENES
             if (file.ContentType.StartsWith("image/"))
             {
-                // Convertimos el stream del archivo local a un Data URL Base64 para que Tesseract lo procese
                 using var memoryStream = new MemoryStream();
                 await file.OpenReadStream(MaxFileSizeBytes).CopyToAsync(memoryStream);
                 var buffer = memoryStream.ToArray();
@@ -175,14 +311,13 @@
 
                 if (!resultadoOcr.Exito || !resultadoOcr.EsDocumentoValido)
                 {
-                    statusMessage = "Validación rechazada: El documento no parece ser un récipe o diagnóstico válido.";
-                    statusClass = "alert-warning";
-                    return; // Detiene la subida si no cumple el criterio
+                    statusMessage = "Validación rechazada: el documento no parece un récipe o diagnóstico válido.";
+                    statusTone = "warning";
+                    return;
                 }
             }
 
-            // 2. PROCESO DE SUBIDA (Si es PDF o si pasó el OCR con éxito)
-            statusMessage = "Leyendo archivo e iniciando transferencia...";
+            statusMessage = "Enviando archivo a CuidaNet…";
             StateHasChanged();
 
             using var stream = file.OpenReadStream(MaxFileSizeBytes);
@@ -193,13 +328,13 @@
                 servicioId: servicioContextoId
             );
 
-            statusMessage = "Archivo local validado y subido correctamente a CuidaNet.";
-            statusClass = "alert-success";
+            statusMessage = "Archivo validado y subido correctamente.";
+            statusTone = "success";
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error al cargar el archivo local: {ex.Message}";
-            statusClass = "alert-danger";
+            statusMessage = $"Error al cargar el archivo: {ex.Message}";
+            statusTone = "danger";
         }
         finally
         {
@@ -207,43 +342,40 @@
         }
     }
 
-    // --- PROCESO DE LA CÁMARA CON VALIDACIÓN ---
     private async Task TomarYSubirFoto()
     {
         try
         {
             isUploading = true;
-            statusMessage = "Procesando captura de imagen...";
-            statusClass = "alert-info";
+            statusMessage = "Procesando captura…";
+            statusTone = "info";
             ultimoRegistroUploaded = null;
             StateHasChanged();
 
             string base64DataUrl = await JS.InvokeAsync<string>("BlazorCamera.capture", "webcam", "captureCanvas");
-            if (string.IsNullOrEmpty(base64DataUrl) || !base64DataUrl.Contains(","))
+            if (string.IsNullOrEmpty(base64DataUrl) || !base64DataUrl.Contains(','))
             {
-                throw new Exception("La captura falló o el stream de video está vacío.");
+                throw new Exception("La captura falló o el video está vacío.");
             }
 
-            // 1. VALIDACIÓN OCR DE LA CAPTURA EN VIVO
-            statusMessage = "Validando texto de la captura...";
+            statusMessage = "Validando texto de la captura…";
             StateHasChanged();
 
             var resultadoOcr = await JS.InvokeAsync<OcrResult>("BlazorOcr.analizarDocumento", base64DataUrl);
 
             if (!resultadoOcr.Exito || !resultadoOcr.EsDocumentoValido)
             {
-                statusMessage = "Validación fallida: Asegúrate de enfocar bien el récipe o diagnóstico.";
-                statusClass = "alert-warning";
-                return; // Detiene la subida
+                statusMessage = "Validación fallida: enfoca bien el récipe o diagnóstico.";
+                statusTone = "warning";
+                return;
             }
 
-            // 2. CONVERSIÓN Y TRANSFERENCIA (Idéntico a tu flujo original)
             string base64Data = base64DataUrl.Split(',')[1];
             byte[] imageBytes = Convert.FromBase64String(base64Data);
             using var memoryStream = new MemoryStream(imageBytes);
             string nombreArchivo = $"Captura_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
-            statusMessage = "Transmitiendo captura validada a la API...";
+            statusMessage = "Transmitiendo a CuidaNet…";
             StateHasChanged();
 
             ultimoRegistroUploaded = await CuidanetService.UploadImagenAsync(
@@ -254,12 +386,12 @@
             );
 
             statusMessage = "Captura validada y guardada correctamente.";
-            statusClass = "alert-success";
+            statusTone = "success";
         }
         catch (Exception ex)
         {
             statusMessage = $"Error durante el proceso de cámara: {ex.Message}";
-            statusClass = "alert-danger";
+            statusTone = "danger";
         }
         finally
         {
