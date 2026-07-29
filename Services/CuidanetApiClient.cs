@@ -21,6 +21,8 @@ namespace Cuidamed.Services
         private readonly string _ImagenesServicioUrl;
         private readonly string _enviarSmsUrl;
         private readonly string _verificarSmsUrl;
+        private readonly string _afiliadoRedUrl;
+        private readonly string _afiliadoRedFiltrosUrl;
 
         // 3. Modificar el constructor para inyectar IConfiguration
         public CuidanetApiClient(HttpClient httpClient, IConfiguration configuration)
@@ -42,6 +44,8 @@ namespace Cuidamed.Services
             _ImagenesServicioUrl = configuration["CuidanetServices:Endpoints:ImagenesServicio"] ?? "Imagenes/servicio";
             _enviarSmsUrl = configuration["CuidanetServices:Endpoints:EnviarSms"] ?? "sms/enviar-codigo";
             _verificarSmsUrl = configuration["CuidanetServices:Endpoints:VerificarSms"] ?? "sms/verificar-codigo";
+            _afiliadoRedUrl = configuration["CuidanetServices:Endpoints:AfiliadoRed"] ?? "Afiliado/red";
+            _afiliadoRedFiltrosUrl = configuration["CuidanetServices:Endpoints:AfiliadoRedFiltros"] ?? "Afiliado/red/filtros";
         }
 
         /// <summary>
@@ -204,6 +208,40 @@ namespace Cuidamed.Services
 
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<BeneficiarioDto>();
+        }
+
+        /// <summary>
+        /// GET /api/Afiliado/red — proveedores de la red para la cédula (sin exclusiones del cliente).
+        /// </summary>
+        public async Task<List<ProveedorRedDto>> GetRedProveedoresAsync(
+            string cedula,
+            string? estado = null,
+            string? ciudad = null,
+            string? tipo = null)
+        {
+            var query = HttpUtility.ParseQueryString(string.Empty);
+            query["cedula"] = cedula;
+            if (!string.IsNullOrWhiteSpace(estado)) query["estado"] = estado;
+            if (!string.IsNullOrWhiteSpace(ciudad)) query["ciudad"] = ciudad;
+            if (!string.IsNullOrWhiteSpace(tipo)) query["tipo"] = tipo;
+
+            var response = await _httpClient.GetAsync($"{_afiliadoRedUrl}?{query}");
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<List<ProveedorRedDto>>() ?? new List<ProveedorRedDto>();
+        }
+
+        /// <summary>
+        /// GET /api/Afiliado/red/filtros — valores distintos de estado, ciudad y tipo.
+        /// </summary>
+        public async Task<ProveedorRedFiltrosDto> GetRedProveedoresFiltrosAsync(string cedula)
+        {
+            var query = HttpUtility.ParseQueryString(string.Empty);
+            query["cedula"] = cedula;
+
+            var response = await _httpClient.GetAsync($"{_afiliadoRedFiltrosUrl}?{query}");
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<ProveedorRedFiltrosDto>()
+                   ?? new ProveedorRedFiltrosDto();
         }
 
         /// <summary>

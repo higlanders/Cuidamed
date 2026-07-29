@@ -94,4 +94,42 @@ namespace Cuidamed.Models
         [JsonPropertyName("foto")]
         public string? FotoBase64 { get; set; } // Solo vendrá en el detalle unitario
     }
+
+    /// <summary>Proveedor de la red CuidaNet (GET Afiliado/red).</summary>
+    public class ProveedorRedDto
+    {
+        [JsonPropertyName("nombre")]
+        public string Nombre { get; set; } = string.Empty;
+
+        [JsonPropertyName("direccion")]
+        public string Direccion { get; set; } = string.Empty;
+
+        [JsonPropertyName("telefono")]
+        public string Telefono { get; set; } = string.Empty;
+
+        [JsonPropertyName("contactoWhatsApp")]
+        public string ContactoWhatsApp { get; set; } = string.Empty;
+
+        [JsonPropertyName("estado")]
+        public string? Estado { get; set; }
+
+        [JsonPropertyName("ciudad")]
+        public string? Ciudad { get; set; }
+
+        [JsonPropertyName("tipo")]
+        public string? Tipo { get; set; }
+    }
+
+    /// <summary>Combos de filtro para la red de proveedores.</summary>
+    public class ProveedorRedFiltrosDto
+    {
+        [JsonPropertyName("estados")]
+        public List<string> Estados { get; set; } = new();
+
+        [JsonPropertyName("ciudades")]
+        public List<string> Ciudades { get; set; } = new();
+
+        [JsonPropertyName("tipos")]
+        public List<string> Tipos { get; set; } = new();
+    }
 }

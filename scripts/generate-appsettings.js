@@ -51,6 +51,8 @@ const settings = {
       ImagenesServicio: "Imagenes/servicio",
       EnviarSms: process.env.CUIDANET_SMS_ENVIAR || "sms/enviar-codigo",
       VerificarSms: process.env.CUIDANET_SMS_VERIFICAR || "sms/verificar-codigo",
+      AfiliadoRed: "Afiliado/red",
+      AfiliadoRedFiltros: "Afiliado/red/filtros",
     },
   },
 };

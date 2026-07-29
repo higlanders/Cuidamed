@@ -1,6 +1,10 @@
 ﻿@page "/proveedores"
 @using Microsoft.AspNetCore.Components.Authorization
+@using Cuidamed.Services
+@using Cuidamed.Models
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject CuidanetApiClient CuidanetService
 
 <PageTitle>Cuidanet — Red de Proveedores</PageTitle>
 
@@ -21,11 +25,44 @@
                 </header>
 
                 <section class="cn-prov__sheet">
+                    <div class="cn-prov__filters-form">
+                        <label class="cn-prov__field">
+                            <span>Estado</span>
+                            <select class="cn-prov__select" @bind="filtroEstado" @bind:after="OnFiltroChangedAsync">
+                                <option value="">Todos</option>
+                                @foreach (var e in filtros.Estados)
+                                {
+                                    <option value="@e">@e</option>
+                                }
+                            </select>
+                        </label>
+                        <label class="cn-prov__field">
+                            <span>Ciudad</span>
+                            <select class="cn-prov__select" @bind="filtroCiudad" @bind:after="OnFiltroChangedAsync">
+                                <option value="">Todas</option>
+                                @foreach (var c in filtros.Ciudades)
+                                {
+                                    <option value="@c">@c</option>
+                                }
+                            </select>
+                        </label>
+                        <label class="cn-prov__field">
+                            <span>Tipo</span>
+                            <select class="cn-prov__select" @bind="filtroTipo" @bind:after="OnFiltroChangedAsync">
+                                <option value="">Todos</option>
+                                @foreach (var t in filtros.Tipos)
+                                {
+                                    <option value="@t">@t</option>
+                                }
+                            </select>
+                        </label>
+                    </div>
+
                     <div class="cn-prov__search">
                         <i class="bi bi-search" aria-hidden="true"></i>
                         <input type="search"
                                class="cn-prov__search-input"
-                               placeholder="Buscar por nombre, ciudad o especialidad"
+                               placeholder="Buscar por nombre o dirección"
                                value="@searchQuery"
                                @oninput="OnSearchInput"
                                aria-label="Buscar proveedores" />
@@ -37,76 +74,88 @@
                         }
                     </div>
 
-                    <div class="cn-prov__filters" role="tablist" aria-label="Tipo de proveedor">
-                        @foreach (var filtro in filtros)
-                        {
-                            <button type="button"
-                                    role="tab"
-                                    aria-selected="@(filtroActivo == filtro.Id)"
-                                    class="cn-prov__chip @(filtroActivo == filtro.Id ? "is-active" : "")"
-                                    @onclick="() => SetFiltro(filtro.Id)">
-                                <i class="bi @filtro.Icono" aria-hidden="true"></i>
-                                @filtro.Etiqueta
-                            </button>
-                        }
-                    </div>
-
-                    <p class="cn-prov__count">
-                        @FilteredProveedores.Count() @(FilteredProveedores.Count() == 1 ? "resultado" : "resultados")
-                    </p>
-
-                    @if (!FilteredProveedores.Any())
+                    @if (isLoading)
+                    {
+                        <p class="cn-prov__count">Cargando proveedores…</p>
+                    }
+                    else if (!string.IsNullOrEmpty(errorMessage))
                     {
                         <div class="cn-prov__empty">
-                            <i class="bi bi-geo-alt" aria-hidden="true"></i>
-                            <p>No encontramos proveedores con esos criterios.</p>
-                            <button type="button" class="cn-prov__empty-btn" @onclick="ResetFilters">Ver todos</button>
+                            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                            <p>@errorMessage</p>
+                            <button type="button" class="cn-prov__empty-btn" @onclick="ReloadAsync">Reintentar</button>
                         </div>
                     }
                     else
                     {
-                        <ul class="cn-prov__list">
-                            @foreach (var p in FilteredProveedores)
-                            {
-                                <li class="cn-prov__card">
-                                    <div class="cn-prov__card-icon" aria-hidden="true">
-                                        <i class="bi @IconoPorTipo(p.Tipo)"></i>
-                                    </div>
-                                    <div class="cn-prov__card-body">
-                                        <div class="cn-prov__card-top">
-                                            <h2 class="cn-prov__card-name">@p.Nombre</h2>
-                                            <span class="cn-prov__badge">@EtiquetaTipo(p.Tipo)</span>
-                                        </div>
-                                        <p class="cn-prov__card-spec">@p.Especialidad</p>
-                                        <p class="cn-prov__card-meta">
-                                            <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
-                                            @p.Ciudad · @p.Direccion
-                                        </p>
-                                        <div class="cn-prov__card-actions">
-                                            @if (!string.IsNullOrEmpty(p.Telefono))
-                                            {
-                                                <a class="cn-prov__action cn-prov__action--call" href="tel:@p.Telefono">
-                                                    <i class="bi bi-telephone-fill" aria-hidden="true"></i>
-                                                    Llamar
-                                                </a>
-                                            }
-                                            <a class="cn-prov__action cn-prov__action--map"
-                                               href="@MapUrl(p)"
-                                               target="_blank"
-                                               rel="noopener noreferrer">
-                                                <i class="bi bi-map" aria-hidden="true"></i>
-                                                Ver mapa
-                                            </a>
-                                        </div>
-                                    </div>
-                                </li>
-                            }
-                        </ul>
-                    }
+                        <p class="cn-prov__count">
+                            @FilteredProveedores.Count() @(FilteredProveedores.Count() == 1 ? "resultado" : "resultados")
+                        </p>
 
-                    <p class="cn-prov__footnote">
-                        Datos de referencia. La red oficial se actualizará al conectar la API CuidaNet.
-                    </p>
+                        @if (!FilteredProveedores.Any())
+                        {
+                            <div class="cn-prov__empty">
+                                <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                                <p>No encontramos proveedores con esos criterios.</p>
+                                <button type="button" class="cn-prov__empty-btn" @onclick="ResetFiltersAsync">Ver todos</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <ul class="cn-prov__list">
+                                @foreach (var p in FilteredProveedores)
+                                {
+                                    <li class="cn-prov__card">
+                                        <div class="cn-prov__card-icon" aria-hidden="true">
+                                            <i class="bi @IconoPorTipo(p.Tipo)"></i>
+                                        </div>
+                                        <div class="cn-prov__card-body">
+                                            <div class="cn-prov__card-top">
+                                                <h2 class="cn-prov__card-name">@p.Nombre</h2>
+                                                @if (!string.IsNullOrWhiteSpace(p.Tipo))
+                                                {
+                                                    <span class="cn-prov__badge">@p.Tipo</span>
+                                                }
+                                            </div>
+                                            <p class="cn-prov__card-meta">
+                                                <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                                                @FormatUbicacion(p)
+                                            </p>
+                                            <div class="cn-prov__card-actions">
+                                                @if (!string.IsNullOrWhiteSpace(p.Telefono))
+                                                {
+                                                    <a class="cn-prov__action cn-prov__action--call" href="tel:@DigitsOnly(p.Telefono)">
+                                                        <i class="bi bi-telephone-fill" aria-hidden="true"></i>
+                                                        Llamar
+                                                    </a>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(p.ContactoWhatsApp))
+                                                {
+                                                    <a class="cn-prov__action cn-prov__action--wa"
+                                                       href="@WhatsAppUrl(p.ContactoWhatsApp)"
+                                                       target="_blank"
+                                                       rel="noopener noreferrer">
+                                                        <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                                                        WhatsApp
+                                                    </a>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(p.Direccion))
+                                                {
+                                                    <a class="cn-prov__action cn-prov__action--map"
+                                                       href="@MapUrl(p)"
+                                                       target="_blank"
+                                                       rel="noopener noreferrer">
+                                                        <i class="bi bi-map" aria-hidden="true"></i>
+                                                        Ver mapa
+                                                    </a>
+                                                }
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    }
                 </section>
             </div>
         </div>
@@ -118,45 +167,101 @@
 </AuthorizeView>
 
 @code {
+    private string cedulaUsuario = string.Empty;
     private string searchQuery = string.Empty;
-    private string filtroActivo = "todos";
+    private string filtroEstado = string.Empty;
+    private string filtroCiudad = string.Empty;
+    private string filtroTipo = string.Empty;
+    private bool isLoading = true;
+    private string? errorMessage;
 
-    private readonly List<FiltroItem> filtros = new()
+    private List<ProveedorRedDto> proveedores = new();
+    private ProveedorRedFiltrosDto filtros = new();
+
+    private IEnumerable<ProveedorRedDto> FilteredProveedores =>
+        proveedores.Where(p =>
+        {
+            if (string.IsNullOrWhiteSpace(searchQuery)) return true;
+            var q = searchQuery.Trim();
+            return Contains(p.Nombre, q)
+                || Contains(p.Direccion, q)
+                || Contains(p.Ciudad, q)
+                || Contains(p.Estado, q)
+                || Contains(p.Tipo, q);
+        });
+
+    protected override async Task OnInitializedAsync()
     {
-        new("todos", "Todos", "bi-grid"),
-        new("clinica", "Clínicas", "bi-hospital"),
-        new("laboratorio", "Labs", "bi-eyedropper"),
-        new("farmacia", "Farmacias", "bi-capsule"),
-        new("odontologia", "Dental", "bi-emoji-smile"),
-    };
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
 
-    private readonly List<ProveedorItem> proveedores = new()
+        if (user.Identity is not { IsAuthenticated: true })
+            return;
+
+        cedulaUsuario = user.Identity.Name ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(cedulaUsuario))
+        {
+            errorMessage = "No se encontró la cédula de sesión.";
+            isLoading = false;
+            return;
+        }
+
+        await LoadFiltrosAsync();
+        await LoadProveedoresAsync();
+    }
+
+    private async Task LoadFiltrosAsync()
     {
-        new("Centro Médico CuidaNet Caracas", "clinica", "Medicina general y especialistas", "Caracas", "Av. Francisco de Miranda, Chacao", "+582129991100"),
-        new("Clínica El Ávila", "clinica", "Traumatología y cardiología", "Caracas", "Los Palos Grandes", "+582122851200"),
-        new("Lab Diagnóstico Plus", "laboratorio", "Análisis clínicos y PCR", "Caracas", "Sabana Grande", "+582127774433"),
-        new("Laboratorio BioSalud", "laboratorio", "Hematología y bioquímica", "Valencia", "Av. Bolívar Norte", "+582418882200"),
-        new("Farmacia FarmaSalud 24h", "farmacia", "Medicamentos y cuidado personal", "Caracas", "Las Mercedes", "+582129933445"),
-        new("Farmacia Comunitaria Oriente", "farmacia", "Genéricos y OTC", "Barcelona", "Calle Principal", "+582812556677"),
-        new("Dental Care Plaza", "odontologia", "Odontología general y ortodoncia", "Caracas", "CC Sambil Chacao", "+582122667788"),
-        new("Sonrisas IPS", "odontologia", "Endodoncia y estética dental", "Maracaibo", "Av. 5 de Julio", "+582614445566"),
-        new("Policlínica Los Andes", "clinica", "Pediatría y ginecología", "Mérida", "Av. Las Américas", "+582744112233"),
-        new("Lab Norte Express", "laboratorio", "Resultados en 24 horas", "Maracay", "Centro", "+582435556677"),
-    };
+        try
+        {
+            filtros = await CuidanetService.GetRedProveedoresFiltrosAsync(cedulaUsuario);
+        }
+        catch
+        {
+            filtros = new ProveedorRedFiltrosDto();
+        }
+    }
 
-    private IEnumerable<ProveedorItem> FilteredProveedores =>
-        proveedores
-            .Where(p => filtroActivo == "todos" || p.Tipo == filtroActivo)
-            .Where(p =>
-            {
-                if (string.IsNullOrWhiteSpace(searchQuery)) return true;
-                var q = searchQuery.Trim();
-                return Contains(p.Nombre, q)
-                    || Contains(p.Ciudad, q)
-                    || Contains(p.Especialidad, q)
-                    || Contains(p.Direccion, q)
-                    || Contains(EtiquetaTipo(p.Tipo), q);
-            });
+    private async Task LoadProveedoresAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            proveedores = await CuidanetService.GetRedProveedoresAsync(
+                cedulaUsuario,
+                string.IsNullOrWhiteSpace(filtroEstado) ? null : filtroEstado,
+                string.IsNullOrWhiteSpace(filtroCiudad) ? null : filtroCiudad,
+                string.IsNullOrWhiteSpace(filtroTipo) ? null : filtroTipo);
+        }
+        catch (Exception ex)
+        {
+            proveedores = new();
+            errorMessage = "No se pudo cargar la red de proveedores. Intenta de nuevo.";
+            Console.WriteLine($"Red proveedores: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Task OnFiltroChangedAsync() => LoadProveedoresAsync();
+
+    private async Task ReloadAsync()
+    {
+        await LoadFiltrosAsync();
+        await LoadProveedoresAsync();
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        searchQuery = string.Empty;
+        filtroEstado = string.Empty;
+        filtroCiudad = string.Empty;
+        filtroTipo = string.Empty;
+        await LoadProveedoresAsync();
+    }
 
     private void GoHome() => Navigation.NavigateTo("/Home");
 
@@ -164,45 +269,40 @@
 
     private void ClearSearch() => searchQuery = string.Empty;
 
-    private void SetFiltro(string id) => filtroActivo = id;
+    private static bool Contains(string? source, string query) =>
+        !string.IsNullOrEmpty(source) && source.Contains(query, StringComparison.OrdinalIgnoreCase);
 
-    private void ResetFilters()
+    private static string FormatUbicacion(ProveedorRedDto p)
     {
-        searchQuery = string.Empty;
-        filtroActivo = "todos";
+        var parts = new[] { p.Estado, p.Ciudad, p.Direccion }
+            .Where(s => !string.IsNullOrWhiteSpace(s));
+        return string.Join(" · ", parts);
     }
 
-    private static bool Contains(string source, string query) =>
-        source.Contains(query, StringComparison.OrdinalIgnoreCase);
-
-    private static string EtiquetaTipo(string tipo) => tipo switch
+    private static string IconoPorTipo(string? tipo)
     {
-        "clinica" => "Clínica",
-        "laboratorio" => "Laboratorio",
-        "farmacia" => "Farmacia",
-        "odontologia" => "Odontología",
-        _ => "Proveedor"
-    };
+        if (string.IsNullOrWhiteSpace(tipo)) return "bi-geo-alt-fill";
+        var t = tipo.Trim().ToLowerInvariant();
+        if (t.Contains("lab")) return "bi-eyedropper";
+        if (t.Contains("farm")) return "bi-capsule";
+        if (t.Contains("odon") || t.Contains("dental")) return "bi-emoji-smile";
+        if (t.Contains("clin") || t.Contains("centr") || t.Contains("hosp")) return "bi-hospital";
+        return "bi-geo-alt-fill";
+    }
 
-    private static string IconoPorTipo(string tipo) => tipo switch
+    private static string DigitsOnly(string value) =>
+        new string(value.Where(char.IsDigit).ToArray());
+
+    private static string WhatsAppUrl(string contacto)
     {
-        "clinica" => "bi-hospital",
-        "laboratorio" => "bi-eyedropper",
-        "farmacia" => "bi-capsule",
-        "odontologia" => "bi-emoji-smile",
-        _ => "bi-geo-alt-fill"
-    };
+        var digits = DigitsOnly(contacto);
+        if (digits.Length == 10 && digits.StartsWith('0'))
+            digits = "58" + digits[1..];
+        else if (digits.Length == 11 && digits.StartsWith("58") == false && digits.StartsWith('0') == false)
+            digits = "58" + digits;
+        return $"https://wa.me/{digits}";
+    }
 
-    private static string MapUrl(ProveedorItem p) =>
+    private static string MapUrl(ProveedorRedDto p) =>
         $"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString($"{p.Nombre} {p.Direccion} {p.Ciudad}")}";
-
-    private sealed record FiltroItem(string Id, string Etiqueta, string Icono);
-
-    private sealed record ProveedorItem(
-        string Nombre,
-        string Tipo,
-        string Especialidad,
-        string Ciudad,
-        string Direccion,
-        string Telefono);
 }
