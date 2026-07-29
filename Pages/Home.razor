@@ -204,7 +204,8 @@
 
     private void ToggleSidebar() => isSidebarOpen = !isSidebarOpen;
 
-    private void NavigateTo(string page) => Navigation.NavigateTo($"/{page}");
+    private void NavigateTo(string page) =>
+        Navigation.NavigateTo(page.TrimStart('/'));
 
     private void NavigateFromDrawer(string page)
     {

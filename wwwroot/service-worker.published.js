@@ -45,16 +45,32 @@ async function onFetch(event) {
         return fetch(event.request, { cache: 'no-store' });
     }
 
-    // Navigations: network-first so deploys (new Home/login) show up without stuck PWA cache
+    // Navigations: network-first so deploys (new Home/login) show up without stuck PWA cache.
+    // If the host returns 404 for a client route (no SPA rewrite), fall back to index.html.
     if (event.request.method === 'GET' && event.request.mode === 'navigate') {
         try {
             const networkResponse = await fetch(event.request);
-            const cache = await caches.open(cacheName);
-            cache.put('index.html', networkResponse.clone());
-            return networkResponse;
+            if (networkResponse && networkResponse.ok) {
+                const cache = await caches.open(cacheName);
+                cache.put('index.html', networkResponse.clone());
+                return networkResponse;
+            }
         } catch {
-            const cache = await caches.open(cacheName);
-            return (await cache.match('index.html')) || Response.error();
+            // fall through to cached index.html
+        }
+
+        const cache = await caches.open(cacheName);
+        const cachedIndex = await cache.match('index.html')
+            || await cache.match(new URL('index.html', baseUrl).href)
+            || await cache.match('./index.html');
+        if (cachedIndex) {
+            return cachedIndex;
+        }
+
+        try {
+            return await fetch(new URL('index.html', baseUrl).href, { cache: 'no-store' });
+        } catch {
+            return Response.error();
         }
     }
 
