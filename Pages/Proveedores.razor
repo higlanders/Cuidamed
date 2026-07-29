@@ -28,9 +28,9 @@
                     <div class="cn-prov__filters-form">
                         <label class="cn-prov__field">
                             <span>Estado</span>
-                            <select class="cn-prov__select" @bind="filtroEstado" @bind:after="OnFiltroChangedAsync">
+                            <select class="cn-prov__select" value="@filtroEstado" @onchange="OnEstadoChangedAsync">
                                 <option value="">Todos</option>
-                                @foreach (var e in filtros.Estados)
+                                @foreach (var e in EstadosDisponibles)
                                 {
                                     <option value="@e">@e</option>
                                 }
@@ -38,9 +38,12 @@
                         </label>
                         <label class="cn-prov__field">
                             <span>Ciudad</span>
-                            <select class="cn-prov__select" @bind="filtroCiudad" @bind:after="OnFiltroChangedAsync">
-                                <option value="">Todas</option>
-                                @foreach (var c in filtros.Ciudades)
+                            <select class="cn-prov__select"
+                                    value="@filtroCiudad"
+                                    @onchange="OnCiudadChanged"
+                                    disabled="@(!CiudadesDisponibles.Any())">
+                                <option value="">@(string.IsNullOrEmpty(filtroEstado) ? "Todas" : "Todas del estado")</option>
+                                @foreach (var c in CiudadesDisponibles)
                                 {
                                     <option value="@c">@c</option>
                                 }
@@ -48,9 +51,9 @@
                         </label>
                         <label class="cn-prov__field">
                             <span>Tipo</span>
-                            <select class="cn-prov__select" @bind="filtroTipo" @bind:after="OnFiltroChangedAsync">
+                            <select class="cn-prov__select" value="@filtroTipo" @onchange="OnTipoChanged">
                                 <option value="">Todos</option>
-                                @foreach (var t in filtros.Tipos)
+                                @foreach (var t in TiposDisponibles)
                                 {
                                     <option value="@t">@t</option>
                                 }
@@ -97,7 +100,7 @@
                             <div class="cn-prov__empty">
                                 <i class="bi bi-geo-alt" aria-hidden="true"></i>
                                 <p>No encontramos proveedores con esos criterios.</p>
-                                <button type="button" class="cn-prov__empty-btn" @onclick="ResetFiltersAsync">Ver todos</button>
+                                <button type="button" class="cn-prov__empty-btn" @onclick="ResetFilters">Ver todos</button>
                             </div>
                         }
                         else
@@ -175,20 +178,69 @@
     private bool isLoading = true;
     private string? errorMessage;
 
-    private List<ProveedorRedDto> proveedores = new();
-    private ProveedorRedFiltrosDto filtros = new();
+    private List<ProveedorRedDto> todosProveedores = new();
 
-    private IEnumerable<ProveedorRedDto> FilteredProveedores =>
-        proveedores.Where(p =>
+    private IEnumerable<string> EstadosDisponibles =>
+        todosProveedores
+            .Select(p => p.Estado)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)!;
+
+    private IEnumerable<string> CiudadesDisponibles
+    {
+        get
         {
-            if (string.IsNullOrWhiteSpace(searchQuery)) return true;
-            var q = searchQuery.Trim();
-            return Contains(p.Nombre, q)
-                || Contains(p.Direccion, q)
-                || Contains(p.Ciudad, q)
-                || Contains(p.Estado, q)
-                || Contains(p.Tipo, q);
-        });
+            var q = todosProveedores.AsEnumerable();
+            if (!string.IsNullOrWhiteSpace(filtroEstado))
+            {
+                q = q.Where(p => string.Equals(p.Estado, filtroEstado, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return q
+                .Select(p => p.Ciudad)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)!;
+        }
+    }
+
+    private IEnumerable<string> TiposDisponibles =>
+        todosProveedores
+            .Select(p => p.Tipo)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)!;
+
+    private IEnumerable<ProveedorRedDto> FilteredProveedores
+    {
+        get
+        {
+            IEnumerable<ProveedorRedDto> q = todosProveedores;
+
+            if (!string.IsNullOrWhiteSpace(filtroEstado))
+                q = q.Where(p => string.Equals(p.Estado, filtroEstado, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(filtroCiudad))
+                q = q.Where(p => string.Equals(p.Ciudad, filtroCiudad, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(filtroTipo))
+                q = q.Where(p => string.Equals(p.Tipo, filtroTipo, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                var term = searchQuery.Trim();
+                q = q.Where(p =>
+                    Contains(p.Nombre, term)
+                    || Contains(p.Direccion, term)
+                    || Contains(p.Ciudad, term)
+                    || Contains(p.Estado, term)
+                    || Contains(p.Tipo, term));
+            }
+
+            return q;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -206,20 +258,7 @@
             return;
         }
 
-        await LoadFiltrosAsync();
         await LoadProveedoresAsync();
-    }
-
-    private async Task LoadFiltrosAsync()
-    {
-        try
-        {
-            filtros = await CuidanetService.GetRedProveedoresFiltrosAsync(cedulaUsuario);
-        }
-        catch
-        {
-            filtros = new ProveedorRedFiltrosDto();
-        }
     }
 
     private async Task LoadProveedoresAsync()
@@ -228,15 +267,11 @@
         errorMessage = null;
         try
         {
-            proveedores = await CuidanetService.GetRedProveedoresAsync(
-                cedulaUsuario,
-                string.IsNullOrWhiteSpace(filtroEstado) ? null : filtroEstado,
-                string.IsNullOrWhiteSpace(filtroCiudad) ? null : filtroCiudad,
-                string.IsNullOrWhiteSpace(filtroTipo) ? null : filtroTipo);
+            todosProveedores = await CuidanetService.GetRedProveedoresAsync(cedulaUsuario);
         }
         catch (Exception ex)
         {
-            proveedores = new();
+            todosProveedores = new();
             errorMessage = "No se pudo cargar la red de proveedores. Intenta de nuevo.";
             Console.WriteLine($"Red proveedores: {ex.Message}");
         }
@@ -246,24 +281,36 @@
         }
     }
 
-    private Task OnFiltroChangedAsync() => LoadProveedoresAsync();
-
-    private async Task ReloadAsync()
+    private Task OnEstadoChangedAsync(ChangeEventArgs e)
     {
-        await LoadFiltrosAsync();
-        await LoadProveedoresAsync();
+        filtroEstado = e.Value?.ToString() ?? string.Empty;
+        // Al cambiar estado, limpiar ciudad si ya no pertenece al estado.
+        if (!string.IsNullOrEmpty(filtroCiudad)
+            && !CiudadesDisponibles.Contains(filtroCiudad, StringComparer.OrdinalIgnoreCase))
+        {
+            filtroCiudad = string.Empty;
+        }
+
+        return Task.CompletedTask;
     }
 
-    private async Task ResetFiltersAsync()
+    private void OnCiudadChanged(ChangeEventArgs e) =>
+        filtroCiudad = e.Value?.ToString() ?? string.Empty;
+
+    private void OnTipoChanged(ChangeEventArgs e) =>
+        filtroTipo = e.Value?.ToString() ?? string.Empty;
+
+    private async Task ReloadAsync() => await LoadProveedoresAsync();
+
+    private void ResetFilters()
     {
         searchQuery = string.Empty;
         filtroEstado = string.Empty;
         filtroCiudad = string.Empty;
         filtroTipo = string.Empty;
-        await LoadProveedoresAsync();
     }
 
-    private void GoHome() => Navigation.NavigateTo("/Home");
+    private void GoHome() => Navigation.NavigateTo("Home");
 
     private void OnSearchInput(ChangeEventArgs e) => searchQuery = e.Value?.ToString() ?? string.Empty;
 

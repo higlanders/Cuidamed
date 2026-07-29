@@ -33,13 +33,19 @@
 
 .cn-home__shell {
     width: 100%;
-    max-width: 440px;
+    max-width: 480px;
     min-height: 100dvh;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     position: relative;
     overflow: hidden;
+}
+
+@media (max-width: 480px) {
+    .cn-home__shell {
+        max-width: none;
+    }
 }
 
 /* —— Hero —— */
