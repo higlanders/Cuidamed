@@ -2,7 +2,7 @@
 @layout FrameWork
 @inject NavigationManager Navigation
 
-<PageTitle>Cuidanet</PageTitle>
+<PageTitle>Cuidanet — Inicio</PageTitle>
 
 <div class="dashboard-container pt-1">
     <div class="dashboard-grid">
@@ -111,6 +111,8 @@
 @code {
     private void NavigateTo(string page)
     {
-        Navigation.NavigateTo($"./{page}", forceLoad: true);
+        if (string.IsNullOrWhiteSpace(cedula) || cedula.Length < 2)
+            return "?";
+        return cedula[^2..].ToUpperInvariant();
     }
 }

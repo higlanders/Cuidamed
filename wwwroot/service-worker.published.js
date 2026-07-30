@@ -1,4 +1,4 @@
-// Caution! Be sure you understand the caveats before publishing an application with
+﻿// Caution! Be sure you understand the caveats before publishing an application with
 // offline support. See https://aka.ms/blazor-offline-considerations
 
 self.importScripts('./service-worker-assets.js');
@@ -8,8 +8,9 @@ self.addEventListener('fetch', event => event.respondWith(onFetch(event)));
 
 const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}`;
-const offlineAssetsInclude = [ /\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/, /\.webmanifest$/ ];
-const offlineAssetsExclude = [ /^service-worker\.js$/ ];
+const offlineAssetsInclude = [ /\.dll$/, /\.pdb$/, /\.wasm$/, /\.html$/, /\.js$/, /\.json$/, /\.css$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/, /\.webmanifest$/ ];
+// Nunca cachear appsettings: credenciales/endpoints desactualizados provocan 401 fantasma.
+const offlineAssetsExclude = [ /^service-worker\.js$/, /appsettings/i ];
 
 // Replace with your base path if you are hosting on a subfolder. Ensure there is a trailing '/'.
 const base = "/";
@@ -18,8 +19,9 @@ const manifestUrlList = self.assetsManifest.assets.map(asset => new URL(asset.ur
 
 async function onInstall(event) {
     console.info('Service worker: Install');
+    // Activate updated SW immediately so users leave the old Home/login cache behind
+    self.skipWaiting();
 
-    // Fetch and cache all matching items from the assets manifest
     const assetsRequests = self.assetsManifest.assets
         .filter(asset => offlineAssetsInclude.some(pattern => pattern.test(asset.url)))
         .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)))
@@ -29,8 +31,8 @@ async function onInstall(event) {
 
 async function onActivate(event) {
     console.info('Service worker: Activate');
+    await self.clients.claim();
 
-    // Delete unused caches
     const cacheKeys = await caches.keys();
     await Promise.all(cacheKeys
         .filter(key => key.startsWith(cacheNamePrefix) && key !== cacheName)
@@ -38,18 +40,65 @@ async function onActivate(event) {
 }
 
 async function onFetch(event) {
-    let cachedResponse = null;
-    if (event.request.method === 'GET') {
-        // For all navigation requests, try to serve index.html from cache,
-        // unless that request is for an offline resource.
-        // If you need some URLs to be server-rendered, edit the following check to exclude those URLs
-        const shouldServeIndexHtml = event.request.mode === 'navigate'
-            && !manifestUrlList.some(url => url === event.request.url);
-
-        const request = shouldServeIndexHtml ? 'index.html' : event.request;
-        const cache = await caches.open(cacheName);
-        cachedResponse = await cache.match(request);
+    // appsettings siempre desde red (nunca caché): credenciales/endpoints
+    if (event.request.method === 'GET' && /appsettings/i.test(event.request.url)) {
+        return fetch(event.request, { cache: 'no-store' });
     }
 
-    return cachedResponse || fetch(event.request);
+    // Navigations: network-first so deploys (new Home/login) show up without stuck PWA cache.
+    // If the host returns 404 for a client route (no SPA rewrite), fall back to index.html.
+    if (event.request.method === 'GET' && event.request.mode === 'navigate') {
+        try {
+            const networkResponse = await fetch(event.request);
+            if (networkResponse && networkResponse.ok) {
+                const cache = await caches.open(cacheName);
+                cache.put('index.html', networkResponse.clone());
+                return networkResponse;
+            }
+        } catch {
+            // fall through to cached index.html
+        }
+
+        const cache = await caches.open(cacheName);
+        const cachedIndex = await cache.match('index.html')
+            || await cache.match(new URL('index.html', baseUrl).href)
+            || await cache.match('./index.html');
+        if (cachedIndex) {
+            return cachedIndex;
+        }
+
+        try {
+            return await fetch(new URL('index.html', baseUrl).href, { cache: 'no-store' });
+        } catch {
+            return Response.error();
+        }
+    }
+
+    if (event.request.method === 'GET') {
+        const cache = await caches.open(cacheName);
+        const cachedResponse = await cache.match(event.request);
+        if (cachedResponse) {
+            // Revalidate in background
+            event.waitUntil(
+                fetch(event.request).then(networkResponse => {
+                    if (networkResponse && networkResponse.ok) {
+                        return cache.put(event.request, networkResponse.clone());
+                    }
+                }).catch(() => { })
+            );
+            return cachedResponse;
+        }
+
+        try {
+            const networkResponse = await fetch(event.request);
+            if (networkResponse && networkResponse.ok) {
+                cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+        } catch {
+            return Response.error();
+        }
+    }
+
+    return fetch(event.request);
 }

@@ -317,6 +317,14 @@ Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los sig
 </style>
 
 @code {
+    private enum LoginStep
+    {
+        Cedula = 1,
+        Telefono = 2,
+        SmsCodigo = 3,
+        Afiliado = 4
+    }
+
     private LoginViewModel loginModel = new();
     private bool isSmsStep = false;
     private bool isSmsOk = false;
@@ -332,8 +340,8 @@ Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los sig
     private System.Threading.Timer? countdownTimer;
     private int timeLeft = 120;
     private BeneficiarioDto? afiliadoDetalle;
-
     private string _afiliadoSeleccionado = string.Empty;
+
     private string AfiliadoSeleccionadoValue
     {
         get => _afiliadoSeleccionado;
@@ -467,6 +475,7 @@ Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los sig
 
     private void StartCountdown()
     {
+        StopTimer();
         timeLeft = 120;
         countdownTimer = new System.Threading.Timer(async _ =>
         {
@@ -477,21 +486,11 @@ Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los sig
             }
             else
             {
-                await ResetForm();
+                StopTimer();
+                errorMessage = "El código SMS expiró. Solicita uno nuevo.";
+                await InvokeAsync(StateHasChanged);
             }
         }, null, 0, 1000);
-    }
-
-    private async Task ResetForm()
-    {
-        StopTimer();
-        isSmsStep = false;
-        loginModel.CodigoSms = null;
-        loginModel.Cedula = null;
-        listaAfiliados.Clear();
-        errorMessage = string.Empty;
-
-        await InvokeAsync(StateHasChanged);
     }
 
     private void StopTimer()
@@ -532,7 +531,8 @@ Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los sig
     public class LoginViewModel
     {
         public long? Cedula { get; set; }
-        public long? CodigoSms { get; set; }
+        public string Telefono { get; set; } = string.Empty;
+        public string CodigoSms { get; set; } = string.Empty;
     }
 
     private async Task NavigateTo(string page)
