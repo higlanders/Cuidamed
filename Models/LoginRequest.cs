@@ -36,6 +36,10 @@ namespace Cuidamed.Models
 
         [JsonPropertyName("telefono")]
         public string Telefono { get; set; } = string.Empty;
+
+        /// <summary>Hostname de la página (Web OTP).</summary>
+        [JsonPropertyName("origen")]
+        public string? Origen { get; set; }
     }
 
     public class VerificarSmsRequest

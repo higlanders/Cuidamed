@@ -6,6 +6,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject CuidanetApiClient CuidanetService
+@inject IJSRuntime JS
 @implements IDisposable
 
 <PageTitle>Cuidanet</PageTitle>
@@ -159,7 +160,9 @@
                                            placeholder="••••"
                                            inputmode="numeric"
                                            maxlength="8"
-                                           autocomplete="one-time-code" />
+                                           name="one-time-code"
+                                           autocomplete="one-time-code"
+                                           autofocus="true" />
                                 <div class="cn-login-timer" role="status">
                                     <span>Expira en <strong>@FormatTime(timeLeft)</strong></span>
                                     <button type="button"
@@ -364,9 +367,22 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
 
         try
         {
+            await AbortWebOtpAsync();
+
+            string? origen = null;
+            try
+            {
+                origen = await JS.InvokeAsync<string>("BlazorSmsOtp.hostname");
+            }
+            catch
+            {
+                // Sin JS: el SMS se envía sin línea Web OTP
+            }
+
             var response = await CuidanetService.EnviarSmsAsync(
                 loginModel.Cedula!.Value.ToString(),
-                telefono);
+                telefono,
+                origen);
 
             if (response.IsExplicitFailure)
             {
@@ -377,6 +393,7 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
             loginModel.CodigoSms = string.Empty;
             CurrentStep = LoginStep.SmsCodigo;
             StartCountdown();
+            _ = ListenAndVerifyWebOtpAsync();
         }
         catch (Exception ex)
         {
@@ -395,6 +412,8 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
 
         try
         {
+            await AbortWebOtpAsync();
+
             var response = await CuidanetService.VerificarSmsAsync(
                 loginModel.Cedula!.Value.ToString(),
                 loginModel.Telefono ?? string.Empty,
@@ -403,6 +422,9 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
             if (response.IsExplicitFailure)
             {
                 errorMessage = response.UserMessage ?? "El código SMS es incorrecto o ha expirado.";
+                // Si falló, volver a escuchar por si llega otro SMS / reintento
+                if (CurrentStep == LoginStep.SmsCodigo)
+                    _ = ListenAndVerifyWebOtpAsync();
                 return;
             }
 
@@ -413,6 +435,47 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
         catch (Exception ex)
         {
             errorMessage = $"No se pudo verificar el SMS: {ex.Message}";
+        }
+    }
+
+    private async Task ListenAndVerifyWebOtpAsync()
+    {
+        try
+        {
+            var code = await JS.InvokeAsync<string?>("BlazorSmsOtp.listen");
+            if (string.IsNullOrWhiteSpace(code) || CurrentStep != LoginStep.SmsCodigo || isLoading)
+                return;
+
+            loginModel.CodigoSms = code.Trim();
+            await InvokeAsync(StateHasChanged);
+
+            isLoading = true;
+            errorMessage = string.Empty;
+            try
+            {
+                await VerificarSmsAsync();
+            }
+            finally
+            {
+                isLoading = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch
+        {
+            // Navegador sin Web OTP o listener abortado: el usuario digita manualmente
+        }
+    }
+
+    private async Task AbortWebOtpAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("BlazorSmsOtp.abort");
+        }
+        catch
+        {
+            // ignore
         }
     }
 
@@ -449,6 +512,7 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
         }
         else if (CurrentStep == LoginStep.SmsCodigo)
         {
+            _ = AbortWebOtpAsync();
             StopTimer();
             loginModel.CodigoSms = string.Empty;
             CurrentStep = LoginStep.Telefono;
@@ -509,7 +573,19 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
         return $"•••{digits[^4..]}";
     }
 
-    public void Dispose() => StopTimer();
+    public void Dispose()
+    {
+        try
+        {
+            _ = AbortWebOtpAsync();
+        }
+        catch
+        {
+            // ignore on dispose
+        }
+
+        StopTimer();
+    }
 
     private async Task SelectAfiliadoAsync(int beneficiarioId)
     {
