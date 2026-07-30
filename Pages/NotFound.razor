@@ -1,5 +1,119 @@
 ﻿@page "/not-found"
-@layout MainLayout
+@layout FrameWork
 
-<h3>Not Found</h3>
-<p>Sorry, the content you are looking for does not exist.</p>
+<div class="container-fluid d-flex justify-content-center align-items-center not-found-container">
+    <div class="card shadow-lg not-found-card text-center p-5">
+        <div class="card-body">
+
+            <!-- Icono Visual Grande con el color de Cuidanet -->
+            <div class="icon-container mb-4">
+                <span class="display-1 text-info-custom">🔍</span>
+                <div class="error-code text-muted">404</div>
+            </div>
+
+            <!-- Título Principal -->
+            <h2 class="fw-bold text-dark mb-3">Página No Encontrada</h2>
+
+            <!-- Mensaje Descriptivo -->
+            <p class="text-muted mb-4 px-3" style="font-size: 1.05rem;">
+                Lo sentimos, el contenido que estás buscando no existe o ha sido movido.
+                Verifica la dirección o intenta navegar desde el menú principal.
+            </p>
+
+            <!-- Divisor decorativo con el logo pequeño -->
+            <div class="d-flex align-items-center justify-content-center my-4">
+                <div class="line-divider"></div>
+                <img src="logo.png" alt="Cuidanet" class="mx-3 not-found-logo" />
+                <div class="line-divider"></div>
+            </div>
+
+            <!-- Botón de Acción Principal (Estilo Cuidanet) -->
+            <div class="d-grid gap-2 col-lg-8 mx-auto">
+                <a href="./Home" class="btn btn-info-custom text-white btn-lg fw-bold shadow-sm">
+                    🏠 Volver al Inicio
+                </a>
+            </div>
+
+            <!-- Texto secundario o eslogan (Opcional) -->
+            <p class="slogan fst-italic mt-4 mb-0" style="font-size: 11px;">"Cuidamos tu bienestar, incluso cuando algo sale mal"</p>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Asegurar que el contenedor ocupe el alto disponible, restando la barra superior si es necesario */
+    .not-found-container {
+        min-height: calc(100vh - 80px); /* Ajusta este valor según el alto de tu top bar */
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        background-color: #f7f9fa; /* Un fondo gris muy sutil para que resalte la tarjeta */
+    }
+
+    /* Estilos de la Tarjeta Principal */
+    .not-found-card {
+        border-radius: 20px; /* Bordes redondeados como tus menús */
+        border: 2px solid #e0f2f1; /* Un borde muy suave */
+        max-width: 600px;
+        width: 100%;
+        background-color: #ffffff;
+    }
+
+    /* Contenedor del icono y el código de error */
+    .icon-container {
+        position: relative;
+    }
+
+    .error-code {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-top: -15px;
+        opacity: 0.7;
+    }
+
+    /* Divisor decorativo */
+    .line-divider {
+        flex: 1;
+        height: 1px;
+        background-color: #dee2e6;
+    }
+
+    .not-found-logo {
+        max-width: 40px;
+        height: auto;
+    }
+
+    /* Reutilización y adaptación de tus estilos existentes en FrameWork */
+    .text-info-custom, .slogan {
+        color: #00a4ba !important;
+    }
+
+    /* Estilo para el botón principal utilizando tu color info */
+    .btn-info-custom {
+        background-color: #00a4ba;
+        border-color: #00a4ba;
+        transition: all 0.2s ease-in-out;
+    }
+
+        .btn-info-custom:hover, .btn-info-custom:focus {
+            background-color: #008c9e; /* Un tono un poco más oscuro para el hover */
+            border-color: #008c9e;
+            color: white;
+            transform: translateY(-2px); /* Pequeño efecto de elevación */
+        }
+
+    /* Ajustes para pantallas pequeñas */
+    @@media (max-width: 576px) {
+        .not-found-card {
+            padding: 2rem !important; /* Menos padding en móviles */
+        }
+
+        .display-1 {
+            font-size: 4rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+        }
+    }
+</style>

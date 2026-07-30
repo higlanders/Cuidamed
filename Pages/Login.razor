@@ -404,8 +404,8 @@ Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los sig
                     {
                         var infoUsuario = resultado.First();
 
-                        isSmsStep = false;
-                        isSmsOk = true;
+                        isSmsStep = true;
+                        isSmsOk = false;
                         try
                         {
                             var busquedaInicial = await CuidanetService.GetBeneficiariosAsync(cedula: loginModel.Cedula.ToString());
@@ -415,7 +415,7 @@ Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los sig
                                 listaAfiliados = await CuidanetService.GetBeneficiariosAsync(titularId: titularId);
                             }
 
-                            isSmsOk = true;
+                            StartCountdown();
                         }
                         catch (Exception ex)
                         {
@@ -515,6 +515,7 @@ Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los sig
 
     private async Task OnAfiliadoCambiado()
     {
+        AceptoTerminos = false;
         if (int.TryParse(_afiliadoSeleccionado, out int beneficiarioId))
         {
             try
