@@ -56,14 +56,8 @@
                                          src="data:image/jpeg;base64,@afiliadoDetalle.FotoBase64"
                                          alt="" />
                                 }
-                                else
-                                {
-                                    <span class="cn-login-afiliado__avatar" aria-hidden="true">
-                                        @GetCedulaInitials(afiliado.Cedula)
-                                    </span>
-                                }
                                 <span class="cn-login-afiliado__meta">
-                                    <span class="cn-login-afiliado__id">Afiliado #@afiliado.BeneficiarioId</span>
+                                    <span class="cn-login-afiliado__id">@afiliado.NombreCompleto</span>
                                     <span class="cn-login-afiliado__cedula">Cédula @afiliado.Cedula</span>
                                 </span>
                                 <span class="cn-login-afiliado__radio" aria-hidden="true"></span>
@@ -492,15 +486,6 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
         int minutes = seconds / 60;
         int remainingSeconds = seconds % 60;
         return $"{minutes:D2}:{remainingSeconds:D2}";
-    }
-
-    private static string GetCedulaInitials(string? cedula)
-    {
-        if (string.IsNullOrWhiteSpace(cedula))
-            return "?";
-
-        var trimmed = cedula.Trim();
-        return trimmed.Length <= 2 ? trimmed : trimmed[..2];
     }
 
     private static string NormalizePhone(string? phone)
