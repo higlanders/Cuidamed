@@ -40,286 +40,172 @@
     </div>
 }
 
-<div class="text-center">
-    <header class="cn-login-card__head">
-        <span class="cn-login-card__badge">Acceso seguro</span>
-        <img src="LogoCuidaNet.png" alt="CuidaNet" class="cn-login-card__logo">
-    </header>
+<div class="cn-login-page">
+    <div class="cn-login-shell">
+        <header class="cn-login-hero">
+            <div class="cn-login-hero__glow" aria-hidden="true"></div>
+            <img src="LogoCuidaNet.png" alt="CuidaNet" class="cn-login-hero__logo" />
+            <p class="cn-login-hero__slogan">"Cuidarte nos mueve"</p>
+        </header>
 
-    @if (isSmsOk)
-    {
-        <div class="d-flex align-items-center justify-content-center mb-3">
-            <div class="checkmark-icon">✓</div>
-        </div>
+        <section class="cn-login-sheet">
+            <div class="cn-login-progress" role="progressbar"
+                 aria-valuemin="1" aria-valuemax="3" aria-valuenow="@CurrentStep"
+                 aria-label="Progreso de acceso">
+                <span class="cn-login-progress__seg @(CurrentStep > 1 ? "is-done" : CurrentStep == 1 ? "is-active" : "")"></span>
+                <span class="cn-login-progress__seg @(CurrentStep > 2 ? "is-done" : CurrentStep == 2 ? "is-active" : "")"></span>
+                <span class="cn-login-progress__seg @(CurrentStep == 3 ? "is-active" : "")"></span>
+            </div>
 
-        <p class="text-muted mb-3" style="font-size: 15px;">Verificación realizada con éxito</p>
-        <p class="slogan fst-italic mb-5">"Cuidarte nos mueve"</p>
-
-        <div class="text-start w-100 px-3">
-            <select id="afiliadoSelect" class="form-select afiliado-box mb-2"
-                    @bind="AfiliadoSeleccionadoValue" @bind:after="OnAfiliadoCambiado">
-                <option value="" disabled selected hidden>Selecciona al afiliado...</option>
-                @foreach (var afiliado in listaAfiliados)
-                {
-                    <option value="@afiliado.BeneficiarioId">ID: @afiliado.BeneficiarioId - Cédula: @afiliado.Cedula</option>
-                }
-            </select>
-
-            @if (afiliadoDetalle != null && !string.IsNullOrEmpty(afiliadoDetalle.FotoBase64))
+ 
+            @if (isSmsOk)
             {
-                <div class="text-center my-3">
-                    <img src="data:image/jpeg;base64,@afiliadoDetalle.FotoBase64"
-                         alt="Foto Afiliado"
-                         class="rounded-circle border border-info"
-                         style="width: 90px; height: 90px; object-fit: cover;" />
-                </div>
-            }
+                <div class="cn-login-step" @key="@("afiliado")">
+                    <div class="cn-login-success">
+                        <span class="cn-login-success__icon" aria-hidden="true">✓</span>
+                        <span>Verificación realizada con éxito</span>
+                    </div>
 
-            <div class="w-100 mb-4">
-                <textarea class="form-control terms-textarea" readonly rows="5">
-CONTRATO DE TÉRMINOS Y CONDICIONES DEL SERVICIO
+                    <h1 class="cn-login-step__title">Selecciona afiliado</h1>
+                    <p class="cn-login-step__subtitle">Elige quién ingresará y acepta los términos para continuar.</p>
 
-1. ACEPTACIÓN DE LOS TÉRMINOS
-Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los siguientes términos y condiciones de uso. Si no está de acuerdo con alguna parte de estos términos, no deberá acceder al servicio.
-                </textarea>
-            </div>
+                    <div class="cn-login-afiliados" role="listbox" aria-label="Grupo familiar">
+                        @foreach (var afiliado in listaAfiliados)
+                        {
+                            var idStr = afiliado.BeneficiarioId.ToString();
+                            var selected = AfiliadoSeleccionadoValue == idStr;
+                            <button type="button"
+                                    role="option"
+                                    aria-selected="@selected"
+                                    class="cn-login-afiliado @(selected ? "is-selected" : "")"
+                                    @onclick="() => SelectAfiliadoAsync(afiliado.BeneficiarioId)">
+                                @if (selected && afiliadoDetalle != null && !string.IsNullOrEmpty(afiliadoDetalle.FotoBase64)
+                                    && afiliadoDetalle.BeneficiarioId == afiliado.BeneficiarioId)
+                                {
+                                    <img class="cn-login-afiliado__avatar"
+                                         src="data:image/jpeg;base64,@afiliadoDetalle.FotoBase64"
+                                         alt="" />
+                                }
+                                else
+                                {
+                                    <span class="cn-login-afiliado__avatar" aria-hidden="true">
+                                        @GetCedulaInitials(afiliado.Cedula)
+                                    </span>
+                                }
+                                <span class="cn-login-afiliado__meta">
+                                    <span class="cn-login-afiliado__id">Afiliado #@afiliado.BeneficiarioId</span>
+                                    <span class="cn-login-afiliado__cedula">Cédula @afiliado.Cedula</span>
+                                </span>
+                                <span class="cn-login-afiliado__radio" aria-hidden="true"></span>
+                            </button>
+                        }
+                    </div>
 
-            <div class="form-check d-flex align-items-center text-info-custom">
-                <input class="form-check-input custom-checkbox me-2" type="checkbox" id="termsCheck" @bind="AceptoTerminos" @onclick='() => NavigateTo("Home")' />
-                <label class="form-check-label fst-italic user-select-none" for="termsCheck">
-                    Acepto los Términos y Condiciones
-                </label>
-            </div>
-        </div>
-    }
-    else
-    {
-        <p class="slogan fst-italic mb-4">"Lo que necesitas en un solo lugar"</p>
-        @if (isSmsStep)
-        {
-            <p class="placeholder-text text-muted small mb-4">Hemos enviado un SMS con un código para validar la información. Ingresa los números recibidos</p>
-        }
+                    @if (afiliadoDetalle != null && !string.IsNullOrEmpty(afiliadoDetalle.FotoBase64))
+                    {
+                        <div class="cn-login-photo-preview">
+                            <img src="data:image/jpeg;base64,@afiliadoDetalle.FotoBase64" alt="Foto del afiliado seleccionado" />
+                        </div>
+                    }
 
-        <br />
-        <h1 class="fw-normal text-secondary mb-2" style="font-size: 26px;">Bienvenido</h1>
-        <p class="fuente-gris">Por favor ingresa los datos solicitados</p>
+                    <div class="cn-login-terms">
+                        <div class="cn-login-terms__panel" tabindex="0">@TermsText</div>
+                        <label class="cn-login-check">
+                            <input type="checkbox" @bind="AceptoTerminos" />
+                            <span class="cn-login-check__box" aria-hidden="true"></span>
+                            <span class="cn-login-check__label">Acepto los Términos y Condiciones</span>
+                        </label>
+                    </div>
 
-        <EditForm Model="loginModel" OnValidSubmit="HandleSubmit" class="d-flex flex-column align-items-center w-100">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger small mb-3" />
-
-            <div class="mb-3">
-                <InputNumber id="cedula"
-                             class="form-control-custom"
-                             @bind-Value="loginModel.Cedula"
-                             placeholder="Cédula"
-                             readonly="@(isSmsStep)" />
-            </div>
-
-            @if (isSmsStep)
-            {
-                <div class="mb-3">
-                    <InputNumber id="codigoSms"
-                                 class="form-control-custom"
-                                 @bind-Value="loginModel.CodigoSms"
-                                 placeholder="Código SMS" />
-
-                    <div class="text-center small" role="alert">
-                        Expira en: <span class="fw-bold">@FormatTime(timeLeft)</span>
+                    <div class="cn-login-footer-space">
+                        <button type="button"
+                                class="cn-login-cta"
+                                disabled="@(!CanEnter || isLoading)"
+                                @onclick='() => NavigateTo("Home")'>
+                            @if (isLoading)
+                            {
+                                <span class="cn-login-cta__spinner" aria-hidden="true"></span>
+                                <span>Ingresando…</span>
+                            }
+                            else
+                            {
+                                <span>Entrar</span>
+                            }
+                        </button>
                     </div>
                 </div>
             }
-
-            <div class="d-grid mt-4">
-                <button type="submit" class="btn btn-link btn-submit text-decoration-none fw-bold text-secondary tracking-wide">
-                    @(isSmsStep ? "Verificar código SMS" : "Continuar")
-                </button>
-            </div>
-            @if (!string.IsNullOrEmpty(errorMessage))
+            else
             {
-                <div class="alert alert-danger small w-100 text-center my-2" role="alert">
-                    @errorMessage
+                <div class="cn-login-step" @key="@(isSmsStep ? "sms" : "cedula")">
+                    <h1 class="cn-login-step__title">@(isSmsStep ? "Código SMS" : "Bienvenido")</h1>
+                    <p class="cn-login-step__subtitle">
+                        @(isSmsStep
+                            ? "Hemos enviado un SMS con un código para validar la información. Ingresa los números recibidos."
+                            : "Ingresa tu cédula para acceder a tu portal de salud.")
+                    </p>
+
+                    <EditForm Model="loginModel" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+
+                        <div class="cn-login-field">
+                            <label class="cn-login-label" for="cedula">Cédula</label>
+                            <InputNumber id="cedula"
+                                         class="cn-login-input"
+                                         @bind-Value="loginModel.Cedula"
+                                         placeholder="Ej. 12345678"
+                                         inputmode="numeric"
+                                         autocomplete="username"
+                                         readonly="@isSmsStep" />
+                        </div>
+
+                        @if (isSmsStep)
+                        {
+                            <div class="cn-login-field">
+                                <label class="cn-login-label" for="codigoSms">Código de verificación</label>
+                                <InputNumber id="codigoSms"
+                                             class="cn-login-input cn-login-input--otp"
+                                             @bind-Value="loginModel.CodigoSms"
+                                             placeholder="••••"
+                                             inputmode="numeric"
+                                             autocomplete="one-time-code" />
+                                <div class="cn-login-timer" role="status">
+                                    <span>Expira en <strong>@FormatTime(timeLeft)</strong></span>
+                                    <button type="button" class="cn-login-link" disabled title="Próximamente">
+                                        Reenviar código
+                                    </button>
+                                </div>
+                            </div>
+                        }
+
+                        <button type="submit" class="cn-login-cta" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="cn-login-cta__spinner" aria-hidden="true"></span>
+                                <span>@(isSmsStep ? "Verificando…" : "Validando…")</span>
+                            }
+                            else
+                            {
+                                <span>@(isSmsStep ? "Verificar código SMS" : "Continuar")</span>
+                            }
+                        </button>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="cn-login-error" role="alert">@errorMessage</div>
+                        }
+                    </EditForm>
                 </div>
             }
-        </EditForm>
-    }
+        </section>
+    </div>
 </div>
-
-<style>
-    /* Estilos para el Banner Emergente de Instalación */
-    .install-banner-overlay {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 90%;
-        max-width: 400px;
-        z-index: 2000;
-        animation: slideUp 0.3s ease-out;
-    }
-
-    .install-banner-card {
-        background-color: #ffffff;
-        border: 2px solid #00a4ba;
-        border-radius: 12px;
-    }
-
-    @@keyframes slideUp {
-        from {
-            transform: translate(-50%, 100%);
-            opacity: 0;
-        }
-
-        to {
-            transform: translate(-50%, 0);
-            opacity: 1;
-        }
-    }
-
-    :root {
-        --cn-primary: #0170a0;
-    }
-
-    .top-bar {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 8px;
-        background-color: #ff6600;
-    }
-
-    .slogan {
-        color: #00a4ba;
-        font-size: 15px;
-    }
-
-    .form-control-custom {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #e06d11;
-        font-size: 14px;
-        color: #333333;
-        outline: none;
-    }
-
-        .form-control-custom:focus {
-            border-color: #ff6600;
-            box-shadow: 0 0 0 0.2rem rgba(244, 129, 33, 0.25);
-        }
-
-    .btn-submit {
-        font-size: 14px;
-        letter-spacing: 1px;
-    }
-
-        .btn-submit:hover {
-            color: #000000 !important;
-        }
-
-    .fuente-gris {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 300;
-        color: #808080;
-    }
-
-    .checkmark-icon {
-        color: #00a4ba;
-        font-size: 30px;
-        font-family: sans-serif;
-        line-height: 0;
-    }
-
-    .afiliado-box {
-        width: 100%;
-        padding: 12px;
-        border: 2px solid #f6e093;
-        background-color: #ffffff;
-        border-radius: 4px;
-        font-size: 15px;
-        color: #333333;
-        outline: none;
-        cursor: pointer;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e06d11' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-    }
-
-        .afiliado-box:focus {
-            border-color: #f4b41a;
-            box-shadow: 0 0 0 0.2rem rgba(246, 224, 147, 0.4);
-        }
-
-    .text-info-custom {
-        color: #00a4ba !important;
-        font-size: 15px;
-    }
-
-    .custom-checkbox {
-        border-color: #00a4ba;
-        cursor: pointer;
-    }
-
-        .custom-checkbox:checked {
-            background-color: #00a4ba;
-            border-color: #00a4ba;
-        }
-
-    .terms-textarea {
-        width: 100%;
-        background-color: #f9f9f9;
-        border: 1px solid #dcdcdc;
-        border-radius: 4px;
-        font-size: 13px;
-        color: #555555;
-        line-height: 1.5;
-        padding: 12px;
-        resize: vertical;
-        overflow-y: auto;
-    }
-
-        .terms-textarea:focus {
-            background-color: #f9f9f9;
-            border-color: #cccccc;
-            box-shadow: none;
-        }
-
-    .cn-login-card__head {
-        padding: 28px 24px 22px;
-        text-align: center;
-        background: linear-gradient(125deg, #0a4180 0%, var(--cn-primary) 48%, #1a9a9e 100%);
-        color: #fff;
-        position: relative;
-        overflow: hidden;
-        border-radius: 8px 8px 0 0;
-    }
-
-    .cn-login-card__logo {
-        position: relative;
-        z-index: 1;
-        display: block;
-        max-height: 52px;
-        width: auto;
-        margin: 0 auto 14px;
-    }
-
-    .cn-login-card__badge {
-        position: relative;
-        z-index: 1;
-        display: inline-block;
-        margin-bottom: 10px;
-        padding: 3px 10px;
-        border-radius: 20px;
-        background: rgba(255, 255, 255, 0.18);
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-    }
-</style>
 
 @code {
     private LoginViewModel loginModel = new();
     private bool isSmsStep = false;
     private bool isSmsOk = false;
+    private bool isLoading = false;
     private string AfiliadoSeleccionado { get; set; } = string.Empty;
     private bool AceptoTerminos { get; set; } = false;
     private string errorMessage = string.Empty;
@@ -339,6 +225,31 @@ Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los sig
         get => _afiliadoSeleccionado;
         set => _afiliadoSeleccionado = value;
     }
+
+    private int CurrentStep => isSmsOk ? 3 : isSmsStep ? 2 : 1;
+    private bool CanEnter => !string.IsNullOrEmpty(AfiliadoSeleccionadoValue) && AceptoTerminos;
+
+    private const string TermsText =
+@"CONTRATO DE TÉRMINOS Y CONDICIONES DEL SERVICIO
+
+1. ACEPTACIÓN DE LOS TÉRMINOS
+Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los siguientes términos y condiciones de uso. Si no está de acuerdo con alguna parte de estos términos, no deberá acceder al servicio.
+
+2. DESCRIPCIÓN DEL SERVICIO
+El portal provee una plataforma de verificación y gestión para los afiliados y su grupo familiar, permitiendo agilizar los trámites correspondientes a su cobertura de salud y beneficios integrales.
+
+3. OBLIGACIONES DEL USUARIO
+El usuario se compromete a proporcionar información verídica, exacta y actualizada durante el proceso de validación. Queda estrictamente prohibido el uso de identidades falsas o información de terceros sin su debida autorización legal.
+
+4. PRIVACIDAD Y PROTECCIÓN DE DATOS
+Toda la información recolectada a través de este portal será tratada bajo estrictas políticas de confidencialidad y de conformidad con las leyes vigentes de protección de datos personales. Los datos del titular y su grupo familiar se procesan únicamente con fines de autenticación y servicio.
+
+5. MODIFICACIONES AL ACUERDO
+Nos reservamos el derecho de modificar estos términos en cualquier momento. Las modificaciones entrarán en vigencia inmediatamente después de su publicación en el portal. Su uso continuo del servicio constituirá su aceptación de tales cambios.
+
+6. LIMITACIÓN DE RESPONSABILIDAD
+La entidad no se hace responsable por interrupciones temporales del servicio debidas a mantenimiento técnico, fallas de conectividad externas o causas de fuerza mayor. El usuario es responsable de salvaguardar sus datos de acceso.";
+
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthState { get; set; }
@@ -507,10 +418,25 @@ Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los sig
         return $"{minutes:D2}:{remainingSeconds:D2}";
     }
 
+    private static string GetCedulaInitials(string? cedula)
+    {
+        if (string.IsNullOrWhiteSpace(cedula))
+            return "?";
+
+        var trimmed = cedula.Trim();
+        return trimmed.Length <= 2 ? trimmed : trimmed[..2];
+    }
+
     public void Dispose()
     {
         StopTimer();
         dotNetHelper?.Dispose();
+    }
+
+    private async Task SelectAfiliadoAsync(int beneficiarioId)
+    {
+        AfiliadoSeleccionadoValue = beneficiarioId.ToString();
+        await OnAfiliadoCambiado();
     }
 
     private async Task OnAfiliadoCambiado()
