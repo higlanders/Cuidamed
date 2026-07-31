@@ -202,14 +202,6 @@
 </div>
 
 @code {
-    private enum LoginStep
-    {
-        Cedula = 1,
-        Telefono = 2,
-        SmsCodigo = 3,
-        Afiliado = 4
-    }
-
     private LoginViewModel loginModel = new();
     private bool isSmsStep = false;
     private bool isSmsOk = false;
@@ -226,8 +218,8 @@
     private System.Threading.Timer? countdownTimer;
     private int timeLeft = 120;
     private BeneficiarioDto? afiliadoDetalle;
-    private string _afiliadoSeleccionado = string.Empty;
 
+    private string _afiliadoSeleccionado = string.Empty;
     private string AfiliadoSeleccionadoValue
     {
         get => _afiliadoSeleccionado;
@@ -386,7 +378,6 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
 
     private void StartCountdown()
     {
-        StopTimer();
         timeLeft = 120;
         countdownTimer = new System.Threading.Timer(async _ =>
         {
@@ -397,11 +388,21 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
             }
             else
             {
-                StopTimer();
-                errorMessage = "El código SMS expiró. Solicita uno nuevo.";
-                await InvokeAsync(StateHasChanged);
+                await ResetForm();
             }
         }, null, 0, 1000);
+    }
+
+    private async Task ResetForm()
+    {
+        StopTimer();
+        isSmsStep = false;
+        loginModel.CodigoSms = null;
+        loginModel.Cedula = null;
+        listaAfiliados.Clear();
+        errorMessage = string.Empty;
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private void StopTimer()
@@ -457,8 +458,7 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
     public class LoginViewModel
     {
         public long? Cedula { get; set; }
-        public string Telefono { get; set; } = string.Empty;
-        public string CodigoSms { get; set; } = string.Empty;
+        public long? CodigoSms { get; set; }
     }
 
     private async Task NavigateTo(string page)

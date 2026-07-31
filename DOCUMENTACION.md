@@ -553,19 +553,6 @@ Cualquier petición HTTP
 - Service worker de producción habilita modo offline.
 - Base path configurable en `service-worker.published.js` (actualmente `/`).
 
-#### Netlify (recomendado)
-
-Archivos: `netlify.toml`, `scripts/netlify-build.sh`, `scripts/generate-appsettings.js`.
-
-1. Conectar el repo en Netlify (build y publish salen de `netlify.toml`).
-2. En **Site configuration → Environment variables** definir:
-   - `CUIDANET_USER` — usuario de servicio API (obligatorio)
-   - `CUIDANET_PASS` — contraseña de servicio API (obligatorio)
-   - `CUIDANET_LOGIN_URL` / `CUIDANET_BASE_URL` — opcionales
-3. Redeploy. El build genera `wwwroot/appsettings.json` en CI (no se sube al Git).
-
-> En Blazor WASM las credenciales terminan en el navegador. Esto evita secretos en el repo, pero no es un backend seguro; a medio plazo conviene un proxy server-side.
-
 ---
 
 ## Referencias externas

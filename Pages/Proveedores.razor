@@ -11,7 +11,7 @@
         <div>
             <h5 class="fw-bold text-info-custom mb-0">Red de Proveedores</h5>
             <p class="text-muted small mb-0">Encuentra centros médicos, especialistas y servicios en tu zona.</p>
-                    </div>
+        </div>
     </div>
 
     <!-- Filtros de Búsqueda -->
@@ -39,7 +39,7 @@
                     <option value="Miranda">Miranda</option>
                     <option value="Aragua">Aragua</option>
                     <option value="Zulia">Zulia</option>
-                            </select>
+                </select>
             </div>
 
             <!-- Selección de Especialidad -->
@@ -52,19 +52,8 @@
                     <option value="Odontología">Odontología</option>
                     <option value="Laboratorio">Laboratorio</option>
                     <option value="Oftalmología">Oftalmología</option>
-                            </select>
-                        </label>
-                        <label class="cn-prov__field">
-                            <span>Tipo</span>
-                            <select class="cn-prov__select" value="@filtroTipo" @onchange="OnTipoChanged">
-                                <option value="">Todos</option>
-                                @foreach (var t in TiposDisponibles)
-                                {
-                                    <option value="@t">@t</option>
-                                }
-                            </select>
-                        </label>
-                    </div>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -78,35 +67,18 @@
                     class="btn @(vistaMapa ? "btn-outline-info" : "btn-info text-white") fw-bold"
                     @onclick="() => ToggleVista(false)">
                 📋 Lista
-                            </button>
+            </button>
             <button type="button"
                     class="btn @(vistaMapa ? "btn-info text-white" : "btn-outline-info") fw-bold"
                     @onclick="() => ToggleVista(true)">
                 🗺️ Mapa
             </button>
-                    </div>
-
-                    @if (isLoading)
-                    {
-                        <p class="cn-prov__count">Cargando proveedores…</p>
-                    }
-                    else if (!string.IsNullOrEmpty(errorMessage))
-                    {
-                        <div class="cn-prov__empty">
-                            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
-                            <p>@errorMessage</p>
-                            <button type="button" class="cn-prov__empty-btn" @onclick="ReloadAsync">Reintentar</button>
-                        </div>
-                    }
-                    else
-                    {
-                        <p class="cn-prov__count">
-                            @FilteredProveedores.Count() @(FilteredProveedores.Count() == 1 ? "resultado" : "resultados")
-                        </p>
+        </div>
+    </div>
 
     <!-- CONTENIDO: VISTA DE MAPA -->
     @if (vistaMapa)
-                        {
+    {
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-3">
             <div id="mapaProveedores" class="mapa-container position-relative">
                 <!-- Capa/Placeholder visual del Mapa -->
@@ -117,25 +89,25 @@
                     <button class="btn btn-sm btn-info text-white fw-bold px-3 rounded-pill" @onclick="CentrarUbicacion">
                         🎯 Usar mi ubicación actual
                     </button>
-                            </div>
+                </div>
             </div>
         </div>
-                        }
-                        else
-                        {
+    }
+    else
+    {
         <!-- CONTENIDO: VISTA DE LISTA DE PRESTADORES -->
         <div class="d-flex flex-column gap-2 mb-4">
             @if (ProveedoresFiltrados.Any())
-                                {
+            {
                 @foreach (var prov in ProveedoresFiltrados)
-                                                {
+                {
                     <div class="card border-0 shadow-sm rounded-4 p-3 bg-white tarjet-proveedor">
                         <div class="d-flex align-items-start gap-3">
                             <!-- Icono o Imagen del Prestador -->
                             <div class="rounded-circle bg-light d-flex align-items-center justify-content-center flex-shrink-0"
                                  style="width: 50px; height: 50px; border: 1px solid #00a4ba;">
                                 <span style="font-size: 1.5rem;">@(prov.Tipo == "Clínica" ? "🏥" : "👨‍⚕️")</span>
-                                            </div>
+                            </div>
 
                             <!-- Información Principal -->
                             <div class="flex-grow-1">
@@ -150,74 +122,28 @@
 
                                 <p class="text-muted small mb-1 d-flex align-items-center gap-1" style="font-size: 11px;">
                                     <span>📍</span> @prov.Direccion, <strong>@prov.Ciudad</strong>
-                                            </p>
+                                </p>
 
                                 <div class="d-flex align-items-center gap-3 mt-2 pt-2 border-top">
                                     <a href="tel:@prov.Telefono" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2 font-montserrat" style="font-size: 11px;">
                                         📞 @prov.Telefono
-                                                    </a>
+                                    </a>
                                     <button class="btn btn-sm btn-info text-white rounded-pill py-0 px-2 font-montserrat ms-auto" style="font-size: 11px;" @onclick="() => VerDetalle(prov)">
                                         Ver Más
                                     </button>
-                                            </div>
-                                        </div>
-                                    </li>
-                                }
-                            </ul>
-                        }
-                    }
-                </section>
-            </div>
-        </div>
-    </Authorized>
-
-    <NotAuthorized>
-        <RedirectToLogin />
-    </NotAuthorized>
-</AuthorizeView>
-
-@code {
-    private string cedulaUsuario = string.Empty;
-    private string searchQuery = string.Empty;
-    private string filtroEstado = string.Empty;
-    private string filtroCiudad = string.Empty;
-    private string filtroTipo = string.Empty;
-    private bool isLoading = true;
-    private string? errorMessage;
-
-    private List<ProveedorRedDto> todosProveedores = new();
-
-    private IEnumerable<string> EstadosDisponibles =>
-        todosProveedores
-            .Select(p => p.Estado)
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)!;
-
-    private IEnumerable<string> CiudadesDisponibles
-    {
-        get
-        {
-            var q = todosProveedores.AsEnumerable();
-            if (!string.IsNullOrWhiteSpace(filtroEstado))
-            {
-                q = q.Where(p => string.Equals(p.Estado, filtroEstado, StringComparison.OrdinalIgnoreCase));
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
             }
-
-            return q
-                .Select(p => p.Ciudad)
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)!;
-        }
-    }
             else
             {
                 <div class="text-center py-5 bg-white rounded-4 shadow-sm">
                     <span style="font-size: 2.5rem;">🔎</span>
                     <p class="text-muted mt-2 mb-0">No se encontraron proveedores con los criterios ingresados.</p>
                 </div>
-        }
+            }
         </div>
     }
 
@@ -227,7 +153,7 @@
 <style>
     .font-montserrat {
         font-family: 'Montserrat', sans-serif;
-        }
+    }
 
     .text-info-custom {
         color: #00a4ba !important;
@@ -242,12 +168,12 @@
     .tarjet-proveedor {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         border-left: 4px solid #00a4ba !important;
-        }
+    }
 
         .tarjet-proveedor:active {
             transform: scale(0.99);
             background-color: #f7f9fa;
-    }
+        }
 
     .form-control:focus, .form-select:focus {
         border-color: #00a4ba;
@@ -302,7 +228,4 @@
     {
         // Lógica de navegación o modal para ver detalle
     }
-
-    private static string MapUrl(ProveedorRedDto p) =>
-        $"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString($"{p.Nombre} {p.Direccion} {p.Ciudad}")}";
 }
