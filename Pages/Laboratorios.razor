@@ -283,7 +283,7 @@
             using var stream = file.OpenReadStream(MaxFileSizeBytes);
 
             // Usamos la carpeta según el tipo seleccionado para categorizar la subida
-            string carpetaDestino = tipoEstudio == TipoGestion.Laboratorios ? "Laboratorios" : "Consultas";
+            string carpetaDestino = tipoEstudio == TipoGestion.Laboratorios ? "Servicio" : "Consulta";
 
             using var stream = file.OpenReadStream(MaxFileSizeBytes);
             ultimoRegistroUploaded = await CuidanetService.UploadImagenAsync(
@@ -328,7 +328,7 @@
             using var memoryStream = new MemoryStream(imageBytes);
             string nombreArchivo = $"{tipoEstudio}_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
-            string carpetaDestino = tipoEstudio == TipoGestion.Laboratorios ? "Laboratorios" : "Consultas";
+            string carpetaDestino = tipoEstudio == TipoGestion.Laboratorios ? "Servicio" : "Consulta";
 
             ultimoRegistroUploaded = await CuidanetService.UploadImagenAsync(
                 fileStream: memoryStream,
