@@ -271,13 +271,6 @@
         }
     }
 
-    public class OcrResult
-    {
-        public bool Exito { get; set; }
-        public string TextoExtraido { get; set; } = string.Empty;
-        public bool EsDocumentoValido { get; set; }
-    }
-
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
         try
@@ -295,29 +288,9 @@
             }
 
             isUploading = true;
-            statusMessage = "Analizando contenido del documento (OCR)…";
+            statusMessage = "Enviando archivo a CuidaNet…";
             statusTone = "info";
             ultimoRegistroUploaded = null;
-            StateHasChanged();
-
-            if (file.ContentType.StartsWith("image/"))
-            {
-                using var memoryStream = new MemoryStream();
-                await file.OpenReadStream(MaxFileSizeBytes).CopyToAsync(memoryStream);
-                var buffer = memoryStream.ToArray();
-                string base64Image = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
-
-                var resultadoOcr = await JS.InvokeAsync<OcrResult>("BlazorOcr.analizarDocumento", base64Image);
-
-                if (!resultadoOcr.Exito || !resultadoOcr.EsDocumentoValido)
-                {
-                    statusMessage = "Validación rechazada: el documento no parece un récipe o diagnóstico válido.";
-                    statusTone = "warning";
-                    return;
-                }
-            }
-
-            statusMessage = "Enviando archivo a CuidaNet…";
             StateHasChanged();
 
             using var stream = file.OpenReadStream(MaxFileSizeBytes);
@@ -328,7 +301,7 @@
                 servicioId: servicioContextoId
             );
 
-            statusMessage = "Archivo validado y subido correctamente.";
+            statusMessage = "Archivo subido correctamente.";
             statusTone = "success";
         }
         catch (Exception ex)
