@@ -192,7 +192,7 @@
                     }
 
                     <p class="cn-lab__footnote">
-                        Validamos el documento con OCR antes de enviarlo. Usa buena luz y enfoca el texto.
+                        Usa buena luz y enfoca el documento para una captura nítida.
                     </p>
                 </section>
             </div>
@@ -358,18 +358,6 @@
                 throw new Exception("La captura falló o el video está vacío.");
             }
 
-            statusMessage = "Validando texto de la captura…";
-            StateHasChanged();
-
-            var resultadoOcr = await JS.InvokeAsync<OcrResult>("BlazorOcr.analizarDocumento", base64DataUrl);
-
-            if (!resultadoOcr.Exito || !resultadoOcr.EsDocumentoValido)
-            {
-                statusMessage = "Validación fallida: enfoca bien el récipe o diagnóstico.";
-                statusTone = "warning";
-                return;
-            }
-
             string base64Data = base64DataUrl.Split(',')[1];
             byte[] imageBytes = Convert.FromBase64String(base64Data);
             using var memoryStream = new MemoryStream(imageBytes);
@@ -385,7 +373,7 @@
                 servicioId: servicioContextoId
             );
 
-            statusMessage = "Captura validada y guardada correctamente.";
+            statusMessage = "Captura guardada correctamente.";
             statusTone = "success";
         }
         catch (Exception ex)
