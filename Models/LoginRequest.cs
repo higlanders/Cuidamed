@@ -36,6 +36,10 @@ namespace Cuidanet.Models
 
         [JsonPropertyName("telefono")]
         public string Telefono { get; set; } = string.Empty;
+
+        /// <summary>Hostname de la página (Web OTP).</summary>
+        [JsonPropertyName("origen")]
+        public string? Origen { get; set; }
     }
 
     public class VerificarSmsRequest
@@ -91,8 +95,27 @@ namespace Cuidanet.Models
         [JsonPropertyName("cedula")]
         public string Cedula { get; set; } = string.Empty;
 
+        [JsonPropertyName("nombre")]
+        public string? Nombre { get; set; }
+
+        [JsonPropertyName("apellido")]
+        public string? Apellido { get; set; }
+
         [JsonPropertyName("foto")]
         public string? FotoBase64 { get; set; } // Solo vendrá en el detalle unitario
+
+        /// <summary>Nombre y apellido del asegurado, o etiqueta de respaldo si la API no los envía.</summary>
+        [JsonIgnore]
+        public string NombreCompleto
+        {
+            get
+            {
+                var full = $"{Nombre} {Apellido}".Trim();
+                return string.IsNullOrWhiteSpace(full)
+                    ? $"Afiliado #{BeneficiarioId}"
+                    : full;
+            }
+        }
     }
 
     /// <summary>Proveedor de la red CuidaNet (GET Afiliado/red).</summary>

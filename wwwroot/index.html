@@ -55,6 +55,41 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <script>
+        window.BlazorSmsOtp = {
+            _controller: null,
+            hostname: function () {
+                return window.location.hostname || '';
+            },
+            listen: async function () {
+                this.abort();
+                if (!('OTPCredential' in window) || !navigator.credentials || !navigator.credentials.get) {
+                    return null;
+                }
+                this._controller = new AbortController();
+                try {
+                    const cred = await navigator.credentials.get({
+                        otp: { transport: ['sms'] },
+                        signal: this._controller.signal
+                    });
+                    return (cred && cred.code) ? String(cred.code) : null;
+                } catch (err) {
+                    if (err && err.name === 'AbortError') {
+                        return null;
+                    }
+                    console.warn('Web OTP no disponible:', err);
+                    return null;
+                } finally {
+                    this._controller = null;
+                }
+            },
+            abort: function () {
+                if (this._controller) {
+                    try { this._controller.abort(); } catch (_) { /* ignore */ }
+                    this._controller = null;
+                }
+            }
+        };
+
         window.BlazorCamera = {
             start: async (videoId) => {
                 try {

@@ -49,9 +49,15 @@ namespace Cuidanet.Services
         /// Envía OTP SMS: mismo flujo que EnvioSmsGateway (INSERT MensajesSmsNube vía APILIS).
         /// Endpoint: POST api/sms/enviar-codigo
         /// </summary>
-        public async Task<SmsApiResponse> EnviarSmsAsync(string cedula, string telefono)
+        /// <param name="origen">Hostname de la app para Web OTP (p. ej. window.location.hostname).</param>
+        public async Task<SmsApiResponse> EnviarSmsAsync(string cedula, string telefono, string? origen = null)
         {
-            var payload = new EnviarSmsRequest { Cedula = cedula, Telefono = telefono };
+            var payload = new EnviarSmsRequest
+            {
+                Cedula = cedula,
+                Telefono = telefono,
+                Origen = origen
+            };
             var response = await _httpClient.PostAsJsonAsync(_enviarSmsUrl, payload);
             var body = await response.Content.ReadAsStringAsync();
             var parsed = ParseSmsResponse(body);
