@@ -1,4 +1,4 @@
-// Caution! Be sure you understand the caveats before publishing an application with
+﻿// Caution! Be sure you understand the caveats before publishing an application with
 // offline support. See https://aka.ms/blazor-offline-considerations
 
 self.importScripts('./service-worker-assets.js');
@@ -9,7 +9,7 @@ self.addEventListener('fetch', event => event.respondWith(onFetch(event)));
 const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}`;
 const offlineAssetsInclude = [ /\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/, /\.webmanifest$/ ];
-const offlineAssetsExclude = [ /^service-worker\.js$/ ];
+const offlineAssetsExclude = [ /^service-worker\.js$/, /appsettings/i ];
 
 // Replace with your base path if you are hosting on a subfolder. Ensure there is a trailing '/'.
 const base = "/";
@@ -38,6 +38,12 @@ async function onActivate(event) {
 }
 
 async function onFetch(event) {
+    const requestUrl = new URL(event.request.url);
+    // Credenciales / config de entorno: siempre red, nunca caché offline
+    if (event.request.method === 'GET' && /appsettings[^/]*\.json$/i.test(requestUrl.pathname)) {
+        return fetch(event.request, { cache: 'no-store' });
+    }
+
     let cachedResponse = null;
     if (event.request.method === 'GET') {
         // For all navigation requests, try to serve index.html from cache,

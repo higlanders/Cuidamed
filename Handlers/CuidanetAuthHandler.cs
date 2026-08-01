@@ -72,7 +72,13 @@ namespace Cuidanet.Handlers
                     return _cachedToken;
                 }
 
-                // Usamos un HttpClient interno aislado exclusivamente para el Login y evitar bucles infinitos
+                if (string.IsNullOrWhiteSpace(_usuario) || string.IsNullOrWhiteSpace(_password))
+                {
+                    throw new InvalidOperationException(
+                        "Faltan credenciales de API (CuidanetServices:user/pass). Borra los datos del sitio y recarga.");
+                }
+
+                // HttpClient aislado para login (evita bucles con este mismo handler)
                 using var authClient = new HttpClient();
                 var payload = new LoginRequest { Usuario = _usuario, Password = _password };
 
@@ -81,10 +87,22 @@ namespace Cuidanet.Handlers
                 {
                     var loginData = await response.Content.ReadFromJsonAsync<LoginResponse>();
                     _cachedToken = loginData?.Token;
+                    if (string.IsNullOrWhiteSpace(_cachedToken))
+                    {
+                        throw new InvalidOperationException(
+                            "El login de API no devolvió token. Revisa la respuesta de Auth/login.");
+                    }
+
                     return _cachedToken;
                 }
 
-                return null;
+                var detail = await response.Content.ReadAsStringAsync();
+                detail = string.IsNullOrWhiteSpace(detail)
+                    ? string.Empty
+                    : (detail.Length <= 160 ? detail.Trim() : detail.Trim()[..160] + "…");
+
+                throw new HttpRequestException(
+                    $"No se pudo autenticar el servicio API ({(int)response.StatusCode}). {detail}".Trim());
             }
             finally
             {

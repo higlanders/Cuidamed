@@ -1,4 +1,4 @@
-html, body {
+﻿html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
@@ -314,50 +314,65 @@ code {
     letter-spacing: 0.02em;
 }
 
-::deep .cn-login-input {
+.cn-login-input {
+    display: block;
     width: 100%;
-    min-height: 52px;
-    padding: 0.85rem 1rem;
-    border: 1.5px solid #d5e0e6;
-    border-radius: var(--cn-radius-ctrl);
+    min-height: 54px;
+    padding: 0.9rem 1.1rem;
+    border: 1.5px solid #c5d5dc;
+    border-radius: 14px;
     font-family: var(--cn-font);
-    font-size: 1.0625rem;
+    font-size: 1.125rem;
     font-weight: 500;
-    color: var(--cn-text);
-    background: var(--cn-sheet-bg);
+    letter-spacing: 0.04em;
+    color: var(--cn-deep);
+    background: linear-gradient(180deg, #ffffff 0%, #f4fafb 100%);
+    box-shadow: inset 0 1px 2px rgba(15, 61, 82, 0.04);
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
-    ::deep .cn-login-input::-webkit-outer-spin-button,
-    ::deep .cn-login-input::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
+.cn-login-input::-webkit-outer-spin-button,
+.cn-login-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
 
-    ::deep .cn-login-input::placeholder {
-        color: #9aadb6;
-        font-weight: 400;
-    }
+.cn-login-input::placeholder {
+    color: #9aadb6;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+}
 
-    ::deep .cn-login-input:focus {
-        border-color: var(--cn-orange);
-        background: #fff;
-        box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.18);
-    }
+.cn-login-input:hover {
+    border-color: #9ec4cb;
+}
 
-    ::deep .cn-login-input:read-only {
-        opacity: 0.75;
-        background: #eef3f5;
-    }
+.cn-login-input:focus {
+    border-color: var(--cn-teal);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(26, 154, 158, 0.16), inset 0 1px 2px rgba(15, 61, 82, 0.03);
+}
 
-::deep .cn-login-input--otp {
+.cn-login-input:read-only {
+    opacity: 0.75;
+    background: #eef3f5;
+    box-shadow: none;
+}
+
+.cn-login-input--otp {
     text-align: center;
     font-size: 1.5rem;
     font-weight: 600;
     letter-spacing: 0.35em;
     padding-left: 1.15rem;
+}
+
+.cn-login-input.valid.modified,
+.cn-login-input.invalid {
+    outline: none;
 }
 
 .cn-login-timer {
