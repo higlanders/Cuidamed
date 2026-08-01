@@ -44,7 +44,7 @@ jobs:
           sed -i 's|const base = "/";|const base = "/Cuidamed/";|' wwwroot/service-worker.published.js
 
           # Publish the project (not the solution) to avoid NETSDK1194 output issues
-          dotnet publish Cuidamed.csproj -c Release -o publish
+          dotnet publish Cuidanet.csproj -c Release -o publish
 
           # Jekyll ignores _* folders; without this, _framework 404s on GitHub Pages
           touch publish/wwwroot/.nojekyll
