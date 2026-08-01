@@ -375,6 +375,42 @@ code {
     outline: none;
 }
 
+.cn-login-hint {
+    margin: 0.45rem 0 0;
+    font-size: 0.78rem;
+    color: var(--cn-muted);
+    line-height: 1.4;
+}
+
+.cn-login-back {
+    display: block;
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.65rem;
+    border: none;
+    background: transparent;
+    font-family: var(--cn-font);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--cn-muted);
+    cursor: pointer;
+}
+
+.cn-login-back:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.cn-login-hero--compact {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+}
+
+.cn-login-hero--compact .cn-login-hero__logo {
+    max-height: 48px;
+    margin-bottom: 0.5rem;
+}
+
 .cn-login-timer {
     display: flex;
     align-items: center;

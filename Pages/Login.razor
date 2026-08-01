@@ -6,43 +6,14 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject CuidanetApiClient CuidanetService
-@inject IJSRuntime JSRuntime
+@inject IJSRuntime JS
 @implements IDisposable
 
 <PageTitle>Cuidanet</PageTitle>
 
-<!-- Banner/Modal Emergente de Instalación -->
-@if (mostrarPromptInstalacion)
-{
-    <div class="install-banner-overlay">
-        <div class="install-banner-card p-3 shadow-lg position-relative">
-            <!-- Botón de X para cerrar el mensaje -->
-            <button type="button"
-                    class="btn-close position-absolute top-0 end-0 m-2"
-                    style="font-size: 0.75rem;"
-                    aria-label="Cerrar"
-                    @onclick="CerrarBannerInstalacion">
-            </button>
-
-            <div class="d-flex align-items-center mb-2 pe-3">
-                <img src="logo.png" style="width: 35px; height: auto;" class="me-2" alt="Cuidamed" />
-                <div>
-                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 14px;">Instalar Cuidanet</h6>
-                    <p class="text-muted mb-0" style="font-size: 11px;">Instala la aplicación en tu dispositivo para un acceso rápido y directo.</p>
-                </div>
-            </div>
-            <div class="d-flex justify-content-end gap-2 mt-2">
-                <button class="btn btn-sm btn-info text-white w-100 fw-bold" @onclick="InstalarApp">
-                    📲 Instalar App
-                </button>
-            </div>
-        </div>
-    </div>
-}
-
 <div class="cn-login-page">
     <div class="cn-login-shell">
-        <header class="cn-login-hero">
+        <header class="cn-login-hero @(CurrentStep == LoginStep.Afiliado ? "cn-login-hero--compact" : "")">
             <div class="cn-login-hero__glow" aria-hidden="true"></div>
             <img src="LogoCuidaNet.png" alt="CuidaNet" class="cn-login-hero__logo" />
             <p class="cn-login-hero__slogan">"Cuidarte nos mueve"</p>
@@ -50,20 +21,20 @@
 
         <section class="cn-login-sheet">
             <div class="cn-login-progress" role="progressbar"
-                 aria-valuemin="1" aria-valuemax="3" aria-valuenow="@CurrentStep"
+                 aria-valuemin="1" aria-valuemax="4" aria-valuenow="@((int)CurrentStep)"
                  aria-label="Progreso de acceso">
-                <span class="cn-login-progress__seg @(CurrentStep > 1 ? "is-done" : CurrentStep == 1 ? "is-active" : "")"></span>
-                <span class="cn-login-progress__seg @(CurrentStep > 2 ? "is-done" : CurrentStep == 2 ? "is-active" : "")"></span>
-                <span class="cn-login-progress__seg @(CurrentStep == 3 ? "is-active" : "")"></span>
+                <span class="cn-login-progress__seg @(CurrentStep > LoginStep.Cedula ? "is-done" : CurrentStep == LoginStep.Cedula ? "is-active" : "")"></span>
+                <span class="cn-login-progress__seg @(CurrentStep > LoginStep.Telefono ? "is-done" : CurrentStep == LoginStep.Telefono ? "is-active" : "")"></span>
+                <span class="cn-login-progress__seg @(CurrentStep > LoginStep.SmsCodigo ? "is-done" : CurrentStep == LoginStep.SmsCodigo ? "is-active" : "")"></span>
+                <span class="cn-login-progress__seg @(CurrentStep == LoginStep.Afiliado ? "is-active" : "")"></span>
             </div>
 
- 
-            @if (isSmsOk)
+            @if (CurrentStep == LoginStep.Afiliado)
             {
-                <div class="cn-login-step" @key="@("afiliado")">
+                <div class="cn-login-step cn-login-step--afiliado" @key="@("afiliado")">
                     <div class="cn-login-success">
                         <span class="cn-login-success__icon" aria-hidden="true">✓</span>
-                        <span>Verificación realizada con éxito</span>
+                        <span>Verificación SMS correcta</span>
                     </div>
 
                     <h1 class="cn-login-step__title">Selecciona afiliado</h1>
@@ -93,7 +64,7 @@
                                     </span>
                                 }
                                 <span class="cn-login-afiliado__meta">
-                                    <span class="cn-login-afiliado__id">Afiliado #@afiliado.BeneficiarioId</span>
+                                    <span class="cn-login-afiliado__id">@afiliado.NombreCompleto</span>
                                     <span class="cn-login-afiliado__cedula">Cédula @afiliado.Cedula</span>
                                 </span>
                                 <span class="cn-login-afiliado__radio" aria-hidden="true"></span>
@@ -137,41 +108,73 @@
             }
             else
             {
-                <div class="cn-login-step" @key="@(isSmsStep ? "sms" : "cedula")">
-                    <h1 class="cn-login-step__title">@(isSmsStep ? "Código SMS" : "Bienvenido")</h1>
-                    <p class="cn-login-step__subtitle">
-                        @(isSmsStep
-                            ? "Hemos enviado un SMS con un código para validar la información. Ingresa los números recibidos."
-                            : "Ingresa tu cédula para acceder a tu portal de salud.")
-                    </p>
+                <div class="cn-login-step" @key="@CurrentStep.ToString()">
+                    <h1 class="cn-login-step__title">@StepTitle</h1>
+                    <p class="cn-login-step__subtitle">@StepSubtitle</p>
 
                     <EditForm Model="loginModel" OnValidSubmit="HandleSubmit">
                         <DataAnnotationsValidator />
 
-                        <div class="cn-login-field">
-                            <label class="cn-login-label" for="cedula">Cédula</label>
-                            <InputNumber id="cedula"
-                                         class="cn-login-input"
-                                         @bind-Value="loginModel.Cedula"
-                                         placeholder="Ej. 12345678"
-                                         inputmode="numeric"
-                                         autocomplete="username"
-                                         readonly="@isSmsStep" />
-                        </div>
-
-                        @if (isSmsStep)
+                        @if (CurrentStep == LoginStep.Cedula)
                         {
                             <div class="cn-login-field">
-                                <label class="cn-login-label" for="codigoSms">Código de verificación</label>
-                                <InputNumber id="codigoSms"
-                                             class="cn-login-input cn-login-input--otp"
-                                             @bind-Value="loginModel.CodigoSms"
-                                             placeholder="••••"
+                                <label class="cn-login-label" for="cedula">Cédula</label>
+                                <InputNumber id="cedula"
+                                             class="cn-login-input"
+                                             @bind-Value="loginModel.Cedula"
+                                             placeholder="Ej. 12345678"
                                              inputmode="numeric"
-                                             autocomplete="one-time-code" />
+                                             autocomplete="username" />
+                            </div>
+                        }
+
+                        @if (CurrentStep == LoginStep.Telefono)
+                        {
+                            <div class="cn-login-field">
+                                <label class="cn-login-label" for="cedulaReadonly">Cédula</label>
+                                <InputNumber id="cedulaReadonly"
+                                             class="cn-login-input"
+                                             @bind-Value="loginModel.Cedula"
+                                             readonly="true" />
+                            </div>
+                            <div class="cn-login-field">
+                                <label class="cn-login-label" for="telefono">Celular</label>
+                                <InputText id="telefono"
+                                           class="cn-login-input"
+                                           @bind-Value="loginModel.Telefono"
+                                           placeholder="Ej. 04141234567"
+                                           inputmode="tel"
+                                           autocomplete="tel" />
+                                <p class="cn-login-hint">Te enviaremos un código SMS a este número.</p>
+                            </div>
+                        }
+
+                        @if (CurrentStep == LoginStep.SmsCodigo)
+                        {
+                            <div class="cn-login-field">
+                                <label class="cn-login-label" for="telefonoReadonly">Celular</label>
+                                <InputText id="telefonoReadonly"
+                                           class="cn-login-input"
+                                           @bind-Value="loginModel.Telefono"
+                                           readonly="true" />
+                            </div>
+                            <div class="cn-login-field">
+                                <label class="cn-login-label" for="codigoSms">Código de verificación</label>
+                                <InputText id="codigoSms"
+                                           class="cn-login-input cn-login-input--otp"
+                                           @bind-Value="loginModel.CodigoSms"
+                                           placeholder="••••"
+                                           inputmode="numeric"
+                                           maxlength="8"
+                                           name="one-time-code"
+                                           autocomplete="one-time-code"
+                                           autofocus="true" />
                                 <div class="cn-login-timer" role="status">
                                     <span>Expira en <strong>@FormatTime(timeLeft)</strong></span>
-                                    <button type="button" class="cn-login-link" disabled title="Próximamente">
+                                    <button type="button"
+                                            class="cn-login-link"
+                                            disabled="@(isLoading || timeLeft > 90)"
+                                            @onclick="ResendSmsAsync">
                                         Reenviar código
                                     </button>
                                 </div>
@@ -182,13 +185,20 @@
                             @if (isLoading)
                             {
                                 <span class="cn-login-cta__spinner" aria-hidden="true"></span>
-                                <span>@(isSmsStep ? "Verificando…" : "Validando…")</span>
+                                <span>@CtaLoadingLabel</span>
                             }
                             else
                             {
-                                <span>@(isSmsStep ? "Verificar código SMS" : "Continuar")</span>
+                                <span>@CtaLabel</span>
                             }
                         </button>
+
+                        @if (CurrentStep != LoginStep.Cedula)
+                        {
+                            <button type="button" class="cn-login-back" disabled="@isLoading" @onclick="GoBack">
+                                Volver
+                            </button>
+                        }
 
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
@@ -202,32 +212,64 @@
 </div>
 
 @code {
+    private enum LoginStep
+    {
+        Cedula = 1,
+        Telefono = 2,
+        SmsCodigo = 3,
+        Afiliado = 4
+    }
+
     private LoginViewModel loginModel = new();
-    private bool isSmsStep = false;
-    private bool isSmsOk = false;
+    private LoginStep CurrentStep = LoginStep.Cedula;
     private bool isLoading = false;
-    private string AfiliadoSeleccionado { get; set; } = string.Empty;
     private bool AceptoTerminos { get; set; } = false;
     private string errorMessage = string.Empty;
-
-    // --- Variables de PWA e Interop JS ---
-    private bool mostrarPromptInstalacion = false;
-    private DotNetObjectReference<Login>? dotNetHelper;
-
     private List<BeneficiarioDto> listaAfiliados = new();
     private System.Threading.Timer? countdownTimer;
     private int timeLeft = 120;
     private BeneficiarioDto? afiliadoDetalle;
-
     private string _afiliadoSeleccionado = string.Empty;
+
     private string AfiliadoSeleccionadoValue
     {
         get => _afiliadoSeleccionado;
         set => _afiliadoSeleccionado = value;
     }
 
-    private int CurrentStep => isSmsOk ? 3 : isSmsStep ? 2 : 1;
     private bool CanEnter => !string.IsNullOrEmpty(AfiliadoSeleccionadoValue) && AceptoTerminos;
+
+    private string StepTitle => CurrentStep switch
+    {
+        LoginStep.Cedula => "Bienvenido",
+        LoginStep.Telefono => "Verifica tu celular",
+        LoginStep.SmsCodigo => "Código SMS",
+        _ => "Selecciona afiliado"
+    };
+
+    private string StepSubtitle => CurrentStep switch
+    {
+        LoginStep.Cedula => "Ingresa tu cédula para acceder a tu portal de salud.",
+        LoginStep.Telefono => "Confirma el número donde recibirás el código de verificación.",
+        LoginStep.SmsCodigo => $"Ingresa el código que enviamos a {MaskPhone(loginModel.Telefono)}.",
+        _ => string.Empty
+    };
+
+    private string CtaLabel => CurrentStep switch
+    {
+        LoginStep.Cedula => "Continuar",
+        LoginStep.Telefono => "Enviar SMS",
+        LoginStep.SmsCodigo => "Verificar código",
+        _ => "Entrar"
+    };
+
+    private string CtaLoadingLabel => CurrentStep switch
+    {
+        LoginStep.Cedula => "Validando…",
+        LoginStep.Telefono => "Enviando SMS…",
+        LoginStep.SmsCodigo => "Verificando…",
+        _ => "Ingresando…"
+    };
 
     private const string TermsText =
 @"CONTRATO DE TÉRMINOS Y CONDICIONES DEL SERVICIO
@@ -250,7 +292,6 @@ Nos reservamos el derecho de modificar estos términos en cualquier momento. Las
 6. LIMITACIÓN DE RESPONSABILIDAD
 La entidad no se hace responsable por interrupciones temporales del servicio debidas a mantenimiento técnico, fallas de conectividad externas o causas de fuerza mayor. El usuario es responsable de salvaguardar sus datos de acceso.";
 
-
     [CascadingParameter]
     private Task<AuthenticationState>? AuthState { get; set; }
 
@@ -268,116 +309,225 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
         }
     }
 
-    // REGISTRO OBLIGATORIO DE JS INTEROP TRAS RENDERIZAR
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            dotNetHelper = DotNetObjectReference.Create(this);
-            await JSRuntime.InvokeVoidAsync("registrarHelperInstalacion", dotNetHelper);
-        }
-    }
-
-    [JSInvokable]
-    public void MostrarBannerInstalacion()
-    {
-        mostrarPromptInstalacion = true;
-        StateHasChanged();
-    }
-
-    private async Task InstalarApp()
-    {
-        var exito = await JSRuntime.InvokeAsync<bool>("promptInstalarPwa");
-        if (exito)
-        {
-            mostrarPromptInstalacion = false;
-        }
-    }
-
-    private void CerrarBannerInstalacion()
-    {
-        mostrarPromptInstalacion = false;
-    }
-
     private async Task HandleSubmit()
     {
         errorMessage = string.Empty;
+        isLoading = true;
 
-        if (!isSmsStep)
+        try
         {
-            if (loginModel.Cedula.HasValue && loginModel.Cedula > 0)
+            switch (CurrentStep)
             {
-                try
-                {
-                    var resultado = await CuidanetService.GetBeneficiariosAsync(cedula: loginModel.Cedula.ToString());
-
-                    if (resultado != null && resultado.Any())
-                    {
-                        var infoUsuario = resultado.First();
-
-                        isSmsStep = true;
-                        isSmsOk = false;
-                        try
-                        {
-                            var busquedaInicial = await CuidanetService.GetBeneficiariosAsync(cedula: loginModel.Cedula.ToString());
-                            if (busquedaInicial.Any())
-                            {
-                                int titularId = busquedaInicial.First().TitularId;
-                                listaAfiliados = await CuidanetService.GetBeneficiariosAsync(titularId: titularId);
-                            }
-
-                            StartCountdown();
-                        }
-                        catch (Exception ex)
-                        {
-                            errorMessage = $"Error al recuperar el grupo familiar: {ex.Message}";
-                        }
-                    }
-                    else
-                    {
-                        errorMessage = "La cédula ingresada no se encuentra registrada en el sistema de CuidaNet.";
-                    }
-                }
-                catch (Exception ex)
-                {
-                    errorMessage = $"Error de comunicación con la API: {ex.Message}";
-                }
+                case LoginStep.Cedula:
+                    await ValidateCedulaAsync();
+                    break;
+                case LoginStep.Telefono:
+                    await EnviarSmsAsync();
+                    break;
+                case LoginStep.SmsCodigo:
+                    await VerificarSmsAsync();
+                    break;
             }
         }
-        else
+        finally
         {
-            if (loginModel.CodigoSms.HasValue && loginModel.CodigoSms > 0)
+            isLoading = false;
+        }
+    }
+
+    private async Task ValidateCedulaAsync()
+    {
+        if (!loginModel.Cedula.HasValue || loginModel.Cedula <= 0)
+        {
+            errorMessage = "Ingresa una cédula válida.";
+            return;
+        }
+
+        try
+        {
+            var resultado = await CuidanetService.GetBeneficiariosAsync(cedula: loginModel.Cedula.ToString());
+            if (resultado == null || !resultado.Any())
             {
-                bool isSmsValid = true;
-
-                if (isSmsValid)
-                {
-                    try
-                    {
-                        var busquedaInicial = await CuidanetService.GetBeneficiariosAsync(cedula: loginModel.Cedula.ToString());
-                        if (busquedaInicial.Any())
-                        {
-                            int titularId = busquedaInicial.First().TitularId;
-                            listaAfiliados = await CuidanetService.GetBeneficiariosAsync(titularId: titularId);
-                        }
-
-                        isSmsOk = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        errorMessage = $"Error al recuperar el grupo familiar: {ex.Message}";
-                    }
-                }
-                else
-                {
-                    errorMessage = "El código SMS introducido es incorrecto o ha expirado.";
-                }
+                errorMessage = "La cédula ingresada no se encuentra registrada en el sistema de CuidaNet.";
+                return;
             }
+
+            CurrentStep = LoginStep.Telefono;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error de comunicación con la API: {ex.Message}";
+        }
+    }
+
+    private async Task EnviarSmsAsync()
+    {
+        var telefono = NormalizePhone(loginModel.Telefono);
+        if (!IsValidPhone(telefono))
+        {
+            errorMessage = "Ingresa un celular válido (mínimo 10 dígitos).";
+            return;
+        }
+
+        loginModel.Telefono = telefono;
+
+        try
+        {
+            await AbortWebOtpAsync();
+
+            string? origen = null;
+            try
+            {
+                origen = await JS.InvokeAsync<string>("BlazorSmsOtp.hostname");
+            }
+            catch
+            {
+                // Sin JS: el SMS se envía sin línea Web OTP
+            }
+
+            var response = await CuidanetService.EnviarSmsAsync(
+                loginModel.Cedula!.Value.ToString(),
+                telefono,
+                origen);
+
+            if (response.IsExplicitFailure)
+            {
+                errorMessage = response.UserMessage ?? "No se pudo enviar el SMS. Intenta de nuevo.";
+                return;
+            }
+
+            loginModel.CodigoSms = string.Empty;
+            CurrentStep = LoginStep.SmsCodigo;
+            StartCountdown();
+            _ = ListenAndVerifyWebOtpAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"No se pudo enviar el SMS: {ex.Message}";
+        }
+    }
+
+    private async Task VerificarSmsAsync()
+    {
+        var codigo = (loginModel.CodigoSms ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            errorMessage = "Ingresa el código SMS recibido.";
+            return;
+        }
+
+        try
+        {
+            await AbortWebOtpAsync();
+
+            var response = await CuidanetService.VerificarSmsAsync(
+                loginModel.Cedula!.Value.ToString(),
+                loginModel.Telefono ?? string.Empty,
+                codigo);
+
+            if (response.IsExplicitFailure)
+            {
+                errorMessage = response.UserMessage ?? "El código SMS es incorrecto o ha expirado.";
+                // Si falló, volver a escuchar por si llega otro SMS / reintento
+                if (CurrentStep == LoginStep.SmsCodigo)
+                    _ = ListenAndVerifyWebOtpAsync();
+                return;
+            }
+
+            StopTimer();
+            await LoadGrupoFamiliarAsync();
+            CurrentStep = LoginStep.Afiliado;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"No se pudo verificar el SMS: {ex.Message}";
+        }
+    }
+
+    private async Task ListenAndVerifyWebOtpAsync()
+    {
+        try
+        {
+            var code = await JS.InvokeAsync<string?>("BlazorSmsOtp.listen");
+            if (string.IsNullOrWhiteSpace(code) || CurrentStep != LoginStep.SmsCodigo || isLoading)
+                return;
+
+            loginModel.CodigoSms = code.Trim();
+            await InvokeAsync(StateHasChanged);
+
+            isLoading = true;
+            errorMessage = string.Empty;
+            try
+            {
+                await VerificarSmsAsync();
+            }
+            finally
+            {
+                isLoading = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch
+        {
+            // Navegador sin Web OTP o listener abortado: el usuario digita manualmente
+        }
+    }
+
+    private async Task AbortWebOtpAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("BlazorSmsOtp.abort");
+        }
+        catch
+        {
+            // ignore
+        }
+    }
+
+    private async Task ResendSmsAsync()
+    {
+        errorMessage = string.Empty;
+        isLoading = true;
+        try
+        {
+            await EnviarSmsAsync();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadGrupoFamiliarAsync()
+    {
+        var busquedaInicial = await CuidanetService.GetBeneficiariosAsync(cedula: loginModel.Cedula.ToString());
+        if (busquedaInicial.Any())
+        {
+            int titularId = busquedaInicial.First().TitularId;
+            listaAfiliados = await CuidanetService.GetBeneficiariosAsync(titularId: titularId);
+        }
+    }
+
+    private void GoBack()
+    {
+        errorMessage = string.Empty;
+        if (CurrentStep == LoginStep.Telefono)
+        {
+            CurrentStep = LoginStep.Cedula;
+        }
+        else if (CurrentStep == LoginStep.SmsCodigo)
+        {
+            _ = AbortWebOtpAsync();
+            StopTimer();
+            loginModel.CodigoSms = string.Empty;
+            CurrentStep = LoginStep.Telefono;
         }
     }
 
     private void StartCountdown()
     {
+        StopTimer();
         timeLeft = 120;
         countdownTimer = new System.Threading.Timer(async _ =>
         {
@@ -388,21 +538,11 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
             }
             else
             {
-                await ResetForm();
+                StopTimer();
+                errorMessage = "El código SMS expiró. Solicita uno nuevo.";
+                await InvokeAsync(StateHasChanged);
             }
         }, null, 0, 1000);
-    }
-
-    private async Task ResetForm()
-    {
-        StopTimer();
-        isSmsStep = false;
-        loginModel.CodigoSms = null;
-        loginModel.Cedula = null;
-        listaAfiliados.Clear();
-        errorMessage = string.Empty;
-
-        await InvokeAsync(StateHasChanged);
     }
 
     private void StopTimer()
@@ -418,58 +558,86 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
         return $"{minutes:D2}:{remainingSeconds:D2}";
     }
 
+    private static string NormalizePhone(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+            return string.Empty;
+
+        // Igual que ControladorMensajesSmsGateway.NormalizarCelular (EnvioSmsGateway)
+        return new string(phone.Where(char.IsDigit).ToArray());
+    }
+
+    private static bool IsValidPhone(string phone) =>
+        !string.IsNullOrWhiteSpace(phone) && phone.Length >= 10 && phone.Length <= 15;
+
+    private static string MaskPhone(string? phone)
+    {
+        var digits = NormalizePhone(phone);
+        if (digits.Length < 4)
+            return "tu celular";
+
+        return $"•••{digits[^4..]}";
+    }
+
     private static string GetCedulaInitials(string? cedula)
     {
         if (string.IsNullOrWhiteSpace(cedula))
             return "?";
 
-        var trimmed = cedula.Trim();
-        return trimmed.Length <= 2 ? trimmed : trimmed[..2];
+        var digits = new string(cedula.Where(char.IsDigit).ToArray());
+        return digits.Length >= 2 ? digits[^2..] : "?";
     }
 
     public void Dispose()
     {
+        try
+        {
+            _ = AbortWebOtpAsync();
+        }
+        catch
+        {
+            // ignore on dispose
+        }
+
         StopTimer();
-        dotNetHelper?.Dispose();
     }
 
     private async Task SelectAfiliadoAsync(int beneficiarioId)
     {
         AfiliadoSeleccionadoValue = beneficiarioId.ToString();
-        await OnAfiliadoCambiado();
-    }
-
-    private async Task OnAfiliadoCambiado()
-    {
-        AceptoTerminos = false;
-        if (int.TryParse(_afiliadoSeleccionado, out int beneficiarioId))
+        try
         {
-            try
-            {
-                afiliadoDetalle = await CuidanetService.GetBeneficiarioDetalleAsync(beneficiarioId);
-            }
-            catch (Exception)
-            {
-                afiliadoDetalle = null;
-            }
+            afiliadoDetalle = await CuidanetService.GetBeneficiarioDetalleAsync(beneficiarioId);
+        }
+        catch (Exception)
+        {
+            afiliadoDetalle = null;
         }
     }
 
     public class LoginViewModel
     {
         public long? Cedula { get; set; }
-        public long? CodigoSms { get; set; }
+        public string Telefono { get; set; } = string.Empty;
+        public string CodigoSms { get; set; } = string.Empty;
     }
 
     private async Task NavigateTo(string page)
     {
-        if (string.IsNullOrEmpty(AfiliadoSeleccionadoValue))
+        if (string.IsNullOrEmpty(AfiliadoSeleccionadoValue) || !AceptoTerminos)
             return;
 
-        var customAuth = (CustomAuthStateProvider)AuthStateProvider;
-        long temp = loginModel.Cedula is null ? 0 : Convert.ToInt64(loginModel.Cedula);
-        await customAuth.MarkUserAsAuthenticated(temp);
-
-        Navigation.NavigateTo($"{page}");
+        isLoading = true;
+        try
+        {
+            var customAuth = (CustomAuthStateProvider)AuthStateProvider;
+            long temp = loginModel.Cedula is null ? 0 : Convert.ToInt64(loginModel.Cedula);
+            await customAuth.MarkUserAsAuthenticated(temp);
+            Navigation.NavigateTo($"{page}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 }
