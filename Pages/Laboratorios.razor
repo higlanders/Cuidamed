@@ -1,233 +1,274 @@
 ﻿@page "/Laboratorios"
-@layout FrameWork
+@layout EmptyLayout
 @using System.IO
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using Cuidanet.Services
 @using Cuidanet.Models
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 @inject CuidanetApiClient CuidanetService
 
-<div class="container py-2" style="max-width: 500px;">
+<PageTitle>Cuidanet — Consultas y Laboratorios</PageTitle>
 
-    <!-- Encabezado de Sección -->
-    <div class="text-center mb-3">
-        <h5 class="fw-bold text-info-custom mb-1">Consultas y Laboratorios</h5>
-        <p class="fuente-gris m-0">
-            Gestiona, captura o adjunta tus estudios médicos, exámentes de laboratorio y soporte de recetas.
-        </p>
-    </div>
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-lab">
+            <div class="cn-lab__shell">
+                <header class="cn-lab__hero">
+                    <div class="cn-lab__hero-glow" aria-hidden="true"></div>
+                    <div class="cn-lab__topbar">
+                        <button type="button" class="cn-lab__back" @onclick="GoHome" aria-label="Volver al inicio">
+                            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                        </button>
+                        <h1 class="cn-lab__heading">Consultas y Labs</h1>
+                        <span class="cn-lab__topbar-spacer" aria-hidden="true"></span>
+                    </div>
+                    <p class="cn-lab__lead">Sube tu récipe o resultado con la cámara o desde tu dispositivo.</p>
+                </header>
 
-    <!-- Selección de Tipo de Gestión (Consultas vs Laboratorios) -->
-    <div class="d-flex justify-content-center mb-3 bg-light p-1 rounded-pill border">
-        <button class="btn btn-sm w-50 rounded-pill fw-bold transition-all @(tipoEstudio == TipoGestion.Laboratorios ? "btn-info-custom text-white shadow-sm" : "text-muted")"
-                @onclick="() => SeleccionarTipoGestion(TipoGestion.Laboratorios)">
-            🧪 Laboratorios
-        </button>
-        <button class="btn btn-sm w-50 rounded-pill fw-bold transition-all @(tipoEstudio == TipoGestion.Consultas ? "btn-info-custom text-white shadow-sm" : "text-muted")"
-                @onclick="() => SeleccionarTipoGestion(TipoGestion.Consultas)">
-            🩺 Consultas / Estudios
-        </button>
-    </div>
+                <section class="cn-lab__sheet">
+                    <div class="cn-lab__steps" aria-hidden="true">
+                        <span class="cn-lab__step is-active"><i class="bi bi-1-circle-fill"></i> Elegir</span>
+                        <span class="cn-lab__step-line"></span>
+                        <span class="cn-lab__step @(isUploading || ultimoRegistroUploaded != null ? "is-active" : "")">
+                            <i class="bi bi-2-circle-fill"></i> Validar
+                        </span>
+                        <span class="cn-lab__step-line"></span>
+                        <span class="cn-lab__step @(ultimoRegistroUploaded != null ? "is-active" : "")">
+                            <i class="bi bi-3-circle-fill"></i> Enviar
+                        </span>
+                    </div>
 
-    <!-- Selector de Origen de Carga (Cámara u Archivo Local) -->
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body p-2 d-flex justify-content-around bg-white rounded">
-            <button class="btn btn-sm flex-fill me-1 @(origenSeleccionado == OrigenMedia.Camara ? "btn-outline-info-custom active" : "btn-light text-secondary")"
-                    @onclick="() => CambiarOrigen(OrigenMedia.Camara)">
-                📷 Usar Cámara
-            </button>
-            <button class="btn btn-sm flex-fill ms-1 @(origenSeleccionado == OrigenMedia.Archivo ? "btn-outline-info-custom active" : "btn-light text-secondary")"
-                    @onclick="() => CambiarOrigen(OrigenMedia.Archivo)">
-                📁 Subir Archivo
-            </button>
-        </div>
-    </div>
+                    <div class="cn-lab__tabs" role="tablist" aria-label="Origen del documento">
+                        <button type="button"
+                                role="tab"
+                                aria-selected="@(origenSeleccionado == OrigenMedia.Camara)"
+                                class="cn-lab__tab @(origenSeleccionado == OrigenMedia.Camara ? "is-active" : "")"
+                                @onclick="() => CambiarOrigen(OrigenMedia.Camara)">
+                            <i class="bi bi-camera-fill" aria-hidden="true"></i>
+                            Cámara
+                        </button>
+                        <button type="button"
+                                role="tab"
+                                aria-selected="@(origenSeleccionado == OrigenMedia.Archivo)"
+                                class="cn-lab__tab @(origenSeleccionado == OrigenMedia.Archivo ? "is-active" : "")"
+                                @onclick="() => CambiarOrigen(OrigenMedia.Archivo)">
+                            <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                            Archivo
+                        </button>
+                    </div>
 
-    <!-- VISTA: CÁMARA EN VIVO -->
-    @if (origenSeleccionado == OrigenMedia.Camara)
-    {
-        <div class="video-container border rounded-3 bg-dark mb-3 position-relative shadow-sm" style="height: 200px; overflow:hidden;">
-            <video id="webcam" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
-            <canvas id="captureCanvas" style="display: none;"></canvas>
-
-            @if (!cameraInitialized)
-            {
-                <div class="position-absolute top-50 start-50 translate-middle text-center text-white w-100 px-3">
-                    <p class="small mb-2">Permite el acceso a la cámara para digitalizar tu documento.</p>
-                </div>
-            }
-        </div>
-
-        <div class="d-grid gap-2 mb-3">
-            @if (!cameraInitialized)
-            {
-                <button class="btn btn-info-custom text-white fw-bold py-2 shadow-sm" @onclick="InicializarCamara">
-                    📷 Activar Cámara
-                </button>
-            }
-            else
-            {
-                <button class="btn btn-success fw-bold py-2 shadow-sm" @onclick="TomarYSubirFoto" disabled="@isUploading">
-                    @if (isUploading)
+                    @if (origenSeleccionado == OrigenMedia.Camara)
                     {
-                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                        <span>Procesando envío...</span>
+                        <div class="cn-lab__camera">
+                            <div class="cn-lab__viewport @(cameraInitialized ? "is-live" : "")">
+                                <video id="webcam" autoplay playsinline muted class="cn-lab__video"></video>
+                                <canvas id="captureCanvas" class="cn-lab__canvas"></canvas>
+                                @if (!cameraInitialized)
+                                {
+                                    <div class="cn-lab__viewport-empty">
+                                        <i class="bi bi-camera-video" aria-hidden="true"></i>
+                                        <p>Enciende la cámara para capturar el documento</p>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="cn-lab__frame" aria-hidden="true">
+                                        <span class="cn-lab__corner cn-lab__corner--tl"></span>
+                                        <span class="cn-lab__corner cn-lab__corner--tr"></span>
+                                        <span class="cn-lab__corner cn-lab__corner--bl"></span>
+                                        <span class="cn-lab__corner cn-lab__corner--br"></span>
+                                    </div>
+                                    <p class="cn-lab__viewport-hint">Centra el documento dentro del marco</p>
+                                }
+                            </div>
+
+                            @if (!cameraInitialized)
+                            {
+                                <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="InicializarCamara" disabled="@isUploading">
+                                    <i class="bi bi-camera" aria-hidden="true"></i>
+                                    Encender cámara
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="button"
+                                        class="cn-lab__btn cn-lab__btn--primary"
+                                        @onclick="TomarYSubirFoto"
+                                        disabled="@isUploading">
+                                    @if (isUploading)
+                                    {
+                                        <span class="cn-lab__spinner" aria-hidden="true"></span>
+                                        <span>Procesando...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-cloud-arrow-up-fill" aria-hidden="true"></i>
+                                        <span>Capturar y enviar</span>
+                                    }
+                                </button>
+                            }
+                        </div>
                     }
-                else
+                    else
                     {
-                        <span>📲 Capturar y Subir @(tipoEstudio == TipoGestion.Laboratorios ? "Examen" : "Estudio")</span>
+                        <div class="cn-lab__drop @(isUploading ? "is-busy" : "")">
+                            <label class="cn-lab__drop-area">
+                                <InputFile OnChange="HandleFileSelected"
+                                           class="cn-lab__file-input"
+                                           accept="image/png,image/jpeg,application/pdf"
+                                           disabled="@isUploading" />
+                                <span class="cn-lab__drop-icon" aria-hidden="true">
+                                    <i class="bi bi-cloud-arrow-up"></i>
+                                </span>
+                                <span class="cn-lab__drop-title">Toca para elegir un archivo</span>
+                                <span class="cn-lab__drop-hint">JPG, PNG o PDF · máx. 100 MB</span>
+                            </label>
+
+                            @if (!string.IsNullOrEmpty(selectedFileName))
+                            {
+                                <div class="cn-lab__file-chip">
+                                    <i class="bi bi-file-earmark-medical" aria-hidden="true"></i>
+                                    <span>@selectedFileName</span>
+                                </div>
+                            }
+
+                            @if (isUploading)
+                            {
+                                <p class="cn-lab__busy">
+                                    <span class="cn-lab__spinner" aria-hidden="true"></span>
+                                    <span>Subiendo archivo...</span>
+                                </p>
+                            }
+                        </div>
                     }
-                </button>
-            }
-        </div>
-    }
-    else
-    {
-        <!-- VISTA: CARGA DE ARCHIVOS -->
-    <div class="card p-4 border-dashed text-center mb-3 bg-white shadow-sm rounded-3">
-        <div class="mb-2">
-            <span style="font-size: 2.5rem; color: #00a4ba;">📄</span>
-        </div>
-        <p class="fuente-gris mb-2">
-            Selecciona una imagen (<strong>.jpg, .png</strong>) o un documento (<strong>.pdf</strong>) correspondiente a tus @(tipoEstudio == TipoGestion.Laboratorios ? "Laboratorios" : "Estudios/Consultas").
-        </p>
 
-        <InputFile OnChange="HandleFileSelected" class="form-control form-control-sm" accept="image/png, image/jpeg, application/pdf" disabled="@isUploading" />
+                    @if (!string.IsNullOrEmpty(statusMessage))
+                    {
+                        <div class="cn-lab__status @StatusClass" role="status">
+                            <i class="bi @StatusIcon" aria-hidden="true"></i>
+                            <p>@statusMessage</p>
+                        </div>
+                    }
 
-        @if (isUploading)
-        {
-            <div class="mt-3">
-                <span class="spinner-border spinner-border-sm text-info-custom" role="status" aria-hidden="true"></span>
-                <span class="text-info-custom small ms-2 fw-bold">Subiendo archivo al servidor...</span>
+                    @if (ultimoRegistroUploaded != null)
+                    {
+                        <div class="cn-lab__success">
+                            <div class="cn-lab__success-badge" aria-hidden="true">
+                                <i class="bi bi-check-lg"></i>
+                            </div>
+                            <h2 class="cn-lab__success-title">Documento enviado</h2>
+                            <p class="cn-lab__success-lead">Tu archivo quedó registrado en CuidaNet.</p>
+                            <dl class="cn-lab__meta">
+                                <div>
+                                    <dt>ID imagen</dt>
+                                    <dd>@ultimoRegistroUploaded.ImagenesId</dd>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(ultimoRegistroUploaded.Periodo))
+                                {
+                                    <div>
+                                        <dt>Periodo</dt>
+                                        <dd>@ultimoRegistroUploaded.Periodo</dd>
+                                    </div>
+                                }
+                            </dl>
+                            <div class="cn-lab__success-actions">
+                                @if (!string.IsNullOrWhiteSpace(ultimoRegistroUploaded.UrlPublica))
+                                {
+                                    <a class="cn-lab__btn cn-lab__btn--ghost"
+                                       href="@ultimoRegistroUploaded.UrlPublica"
+                                       target="_blank"
+                                       rel="noopener noreferrer">
+                                        <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                                        Ver en servidor
+                                    </a>
+                                }
+                                <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="ResetUpload">
+                                    <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                                    Subir otro
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    <p class="cn-lab__footnote">
+                        Usa buena luz y enfoca el documento para una captura nítida.
+                    </p>
+                </section>
             </div>
-        }
-    </div>
-    }
-
-    <!-- ALERTAS Y ESTADOS DE NOTIFICACIÓN -->
-    @if (!string.IsNullOrEmpty(statusMessage))
-    {
-        <div class="alert @statusClass alert-dismissible fade show small text-center rounded-3 shadow-sm" role="alert">
-            @statusMessage
         </div>
-    }
+    </Authorized>
 
-    <!-- TARJETA CONFIRMACIÓN DE ÉXITO -->
-    @if (ultimoRegistroUploaded != null)
-    {
-        <div class="card border-0 shadow-sm mt-3 bg-light">
-            <div class="card-body p-3">
-                <div class="d-flex align-items-center mb-2">
-                    <span class="fs-4 me-2">✅</span>
-                    <h6 class="card-title fw-bold text-success mb-0">Documento Cargado Exitosamente</h6>
-                </div>
-                <hr class="my-2" />
-                <p class="card-text small text-muted mb-1"><strong>Módulo:</strong> @tipoEstudio.ToString()</p>
-                <p class="card-text small text-muted mb-1"><strong>ID Documento:</strong> @ultimoRegistroUploaded.ImagenesId</p>
-                <p class="card-text small text-muted mb-2"><strong>Periodo:</strong> @ultimoRegistroUploaded.Periodo</p>
-
-                <a href="@ultimoRegistroUploaded.UrlPublica" target="_blank" class="btn btn-sm btn-outline-info-custom w-100 fw-bold mt-1">
-                    🔍 Ver documento subido
-                </a>
-            </div>
-        </div>
-    }
-</div>
-
-<style>
-    /* Tipografía y Colores Estándar Cuidanet */
-    .text-info-custom {
-        color: #00a4ba !important;
-    }
-
-    .btn-info-custom {
-        background-color: #00a4ba !important;
-        border-color: #00a4ba !important;
-        color: #ffffff !important;
-    }
-
-    .btn-outline-info-custom {
-        color: #00a4ba !important;
-        border-color: #00a4ba !important;
-        background-color: transparent;
-    }
-
-        .btn-outline-info-custom:hover,
-        .btn-outline-info-custom.active {
-            background-color: #00a4ba !important;
-            color: #ffffff !important;
-        }
-
-    .fuente-gris {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 300;
-        color: #808080;
-        font-size: 12px;
-        line-height: 1.3;
-    }
-
-    .border-dashed {
-        border: 2px dashed #00a4ba !important;
-        border-radius: 12px;
-    }
-
-    .transition-all {
-        transition: all 0.25s ease-in-out;
-    }
-
-    @@media (min-width: 576px) {
-        .fuente-gris {
-            font-size: 14px;
-        }
-    }
-</style>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private enum OrigenMedia { Camara, Archivo }
-    private enum TipoGestion { Laboratorios, Consultas }
-
     private OrigenMedia origenSeleccionado = OrigenMedia.Camara;
-    private TipoGestion tipoEstudio = TipoGestion.Laboratorios;
 
-    private bool cameraInitialized = false;
-    private bool isUploading = false;
+    private bool cameraInitialized;
+    private bool isUploading;
     private string statusMessage = string.Empty;
-    private string statusClass = "alert-info";
+    private string statusTone = "info";
+    private string selectedFileName = string.Empty;
     private UploadImagenResponse? ultimoRegistroUploaded;
 
     private int servicioContextoId = 1024;
-    private const long MaxFileSizeBytes = 100 * 1024 * 1024; // 100 MB
+    private const long MaxFileSizeBytes = 100 * 1024 * 1024;
 
-    private void SeleccionarTipoGestion(TipoGestion tipo)
+    private string StatusClass => statusTone switch
     {
-        tipoEstudio = tipo;
-        statusMessage = string.Empty;
-        ultimoRegistroUploaded = null;
-    }
+        "success" => "cn-lab__status--success",
+        "warning" => "cn-lab__status--warning",
+        "danger" => "cn-lab__status--danger",
+        _ => "cn-lab__status--info"
+    };
+
+    private string StatusIcon => statusTone switch
+    {
+        "success" => "bi-check-circle-fill",
+        "warning" => "bi-exclamation-triangle-fill",
+        "danger" => "bi-x-circle-fill",
+        _ => "bi-info-circle-fill"
+    };
+
+    private void GoHome() => Navigation.NavigateTo("Home");
 
     private void CambiarOrigen(OrigenMedia nuevoOrigen)
     {
         origenSeleccionado = nuevoOrigen;
         statusMessage = string.Empty;
+        selectedFileName = string.Empty;
+        ultimoRegistroUploaded = null;
+    }
+
+    private void ResetUpload()
+    {
+        statusMessage = string.Empty;
+        selectedFileName = string.Empty;
         ultimoRegistroUploaded = null;
     }
 
     private async Task InicializarCamara()
     {
-        statusMessage = "Solicitando acceso a la cámara...";
-        statusClass = "alert-info";
+        statusMessage = "Solicitando permisos de cámara…";
+        statusTone = "info";
 
         bool resultado = await JS.InvokeAsync<bool>("BlazorCamera.start", "webcam");
 
         if (resultado)
         {
             cameraInitialized = true;
-            statusMessage = "Cámara lista. Ubique el documento dentro del recuadro.";
-            statusClass = "alert-success";
+            statusMessage = "Cámara lista. Posiciona el documento frente al lente.";
+            statusTone = "success";
         }
         else
         {
-            statusMessage = "No se pudo encender la cámara. Compruebe los permisos del navegador.";
-            statusClass = "alert-danger";
+            statusMessage = "No se pudo acceder a la cámara. Revisa los permisos del navegador.";
+            statusTone = "danger";
         }
     }
 
@@ -238,38 +279,36 @@
             var file = e.File;
             if (file == null) return;
 
+            selectedFileName = file.Name;
+
             if (file.Size > MaxFileSizeBytes)
             {
-                statusMessage = "El archivo supera el tamaño máximo permitido (100 MB).";
-                statusClass = "alert-danger";
+                statusMessage = "El archivo excede el límite permitido de 100 MB.";
+                statusTone = "danger";
                 return;
             }
 
             isUploading = true;
-            statusMessage = "Subiendo archivo...";
-            statusClass = "alert-info";
+            statusMessage = "Enviando archivo a CuidaNet…";
+            statusTone = "info";
             ultimoRegistroUploaded = null;
             StateHasChanged();
 
             using var stream = file.OpenReadStream(MaxFileSizeBytes);
-
-            // Usamos la carpeta según el tipo seleccionado para categorizar la subida
-            string carpetaDestino = tipoEstudio == TipoGestion.Laboratorios ? "Servicio" : "Consulta";
-
             ultimoRegistroUploaded = await CuidanetService.UploadImagenAsync(
                 fileStream: stream,
                 fileName: file.Name,
-                carpeta: carpetaDestino,
+                carpeta: "Servicio",
                 servicioId: servicioContextoId
             );
 
-            statusMessage = $"Documento de {tipoEstudio} registrado con éxito.";
-            statusClass = "alert-success";
+            statusMessage = "Archivo subido correctamente.";
+            statusTone = "success";
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error al subir el archivo: {ex.Message}";
-            statusClass = "alert-danger";
+            statusMessage = $"Error al cargar el archivo: {ex.Message}";
+            statusTone = "danger";
         }
         finally
         {
@@ -282,38 +321,39 @@
         try
         {
             isUploading = true;
-            statusMessage = "Capturando imagen...";
-            statusClass = "alert-info";
+            statusMessage = "Procesando captura…";
+            statusTone = "info";
             ultimoRegistroUploaded = null;
             StateHasChanged();
 
             string base64DataUrl = await JS.InvokeAsync<string>("BlazorCamera.capture", "webcam", "captureCanvas");
-            if (string.IsNullOrEmpty(base64DataUrl) || !base64DataUrl.Contains(","))
+            if (string.IsNullOrEmpty(base64DataUrl) || !base64DataUrl.Contains(','))
             {
-                throw new Exception("No se pudo obtener la captura de la cámara.");
+                throw new Exception("La captura falló o el video está vacío.");
             }
 
             string base64Data = base64DataUrl.Split(',')[1];
             byte[] imageBytes = Convert.FromBase64String(base64Data);
             using var memoryStream = new MemoryStream(imageBytes);
-            string nombreArchivo = $"{tipoEstudio}_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+            string nombreArchivo = $"Captura_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
-            string carpetaDestino = tipoEstudio == TipoGestion.Laboratorios ? "Servicio" : "Consulta";
+            statusMessage = "Transmitiendo a CuidaNet…";
+            StateHasChanged();
 
             ultimoRegistroUploaded = await CuidanetService.UploadImagenAsync(
                 fileStream: memoryStream,
                 fileName: nombreArchivo,
-                carpeta: carpetaDestino,
+                carpeta: "Servicio",
                 servicioId: servicioContextoId
             );
 
-            statusMessage = $"Captura de {tipoEstudio} guardada exitosamente.";
-            statusClass = "alert-success";
+            statusMessage = "Captura guardada correctamente.";
+            statusTone = "success";
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error al capturar la imagen: {ex.Message}";
-            statusClass = "alert-danger";
+            statusMessage = $"Error durante el proceso de cámara: {ex.Message}";
+            statusTone = "danger";
         }
         finally
         {
