@@ -1,144 +1,127 @@
 ﻿@page "/Beneficios"
 @page "/beneficios"
-@layout FrameWork
+@layout EmptyLayout
 @using Microsoft.AspNetCore.Components.Authorization
 @using Cuidanet.Services
 @using Cuidanet.Models
 @inject CuidanetApiClient CuidanetService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Cuidanet — Coberturas y consumos</PageTitle>
 
 <AuthorizeView>
     <Authorized>
-        <div class="container-fluid py-2 px-1">
-
-            <div class="d-flex align-items-center justify-content-between mb-3 px-2">
-                <div>
-                    <h5 class="fw-bold text-info-custom mb-0">Coberturas y consumos</h5>
-                    <p class="text-muted small mb-0">Cliente, plan activo y consumos del período</p>
+        <div class="cn-ben">
+            <header class="cn-ben__top">
+                <button type="button" class="cn-ben__back" @onclick="GoHome" aria-label="Volver al inicio">
+                    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                    <span>Inicio</span>
+                </button>
+                <div class="cn-ben__titles">
+                    <h1 class="cn-ben__title">Coberturas y consumos</h1>
+                    <p class="cn-ben__subtitle">Cliente, plan activo y consumos del período</p>
                 </div>
                 @if (planActivo is not null)
                 {
-                    <span class="badge bg-success-subtle text-success border border-success p-2">
-                        Plan activo
-                    </span>
+                    <span class="cn-ben__badge">Plan activo</span>
                 }
-            </div>
+            </header>
 
             @if (cargando)
             {
-                <div class="text-center py-5">
-                    <div class="spinner-border text-info-custom" role="status">
+                <div class="cn-ben__state">
+                    <div class="spinner-border text-info" role="status">
                         <span class="visually-hidden">Cargando…</span>
                     </div>
-                    <p class="text-muted small mt-2">Consultando coberturas y consumos…</p>
-                </div>
-            }
-            else if (!string.IsNullOrWhiteSpace(errorMessage))
-            {
-                <div class="alert alert-danger border-0 shadow-sm rounded-3">
-                    <strong>No se pudo cargar la información.</strong>
-                    <p class="small mb-0 mt-1">@errorMessage</p>
+                    <p>Consultando coberturas y consumos…</p>
                 </div>
             }
             else
             {
-                <!-- Sección 1: Cliente y plan -->
-                <section class="mb-4 px-1">
-                    <h6 class="fw-bold text-secondary text-uppercase small mb-2 px-1">Cliente y plan</h6>
+                @if (!string.IsNullOrWhiteSpace(errorMessage))
+                {
+                    <div class="cn-ben__alert cn-ben__alert--error" role="alert">
+                        <strong>No se pudo cargar parte de la información.</strong>
+                        <p>@errorMessage</p>
+                    </div>
+                }
+
+                <section class="cn-ben__section">
+                    <h2 class="cn-ben__section-title">Cliente y plan</h2>
 
                     @if (planes.Count == 0)
                     {
-                        <div class="alert alert-light text-center border rounded-3 p-4 shadow-sm mb-0">
-                            <h6 class="fw-bold mt-1 text-secondary">Sin plan activo</h6>
-                            <p class="text-muted small mb-0">No hay cliente/plan vigente asociado a tu cédula.</p>
+                        <div class="cn-ben__empty">
+                            <h3>Sin plan activo</h3>
+                            <p>No hay cliente/plan vigente asociado a tu cédula.</p>
                         </div>
                     }
                     else
                     {
                         @foreach (var plan in planes)
                         {
-                            <div class="card border-0 shadow-sm mb-3 card-plan">
-                                <div class="card-body p-3">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div>
-                                            <span class="text-uppercase small text-muted fw-semibold">Asegurado</span>
-                                            <h6 class="fw-bold text-dark mb-0">@plan.NombreCompleto</h6>
-                                            <p class="text-muted small mb-0">Cédula @plan.Cedula</p>
-                                        </div>
-                                        @if (!string.IsNullOrWhiteSpace(plan.Parentesco))
-                                        {
-                                            <span class="badge bg-light text-dark border">@plan.Parentesco</span>
-                                        }
+                            <article class="cn-ben__card">
+                                <div class="cn-ben__card-head">
+                                    <div>
+                                        <span class="cn-ben__label">Asegurado</span>
+                                        <h3>@plan.NombreCompleto</h3>
+                                        <p class="cn-ben__muted">Cédula @plan.Cedula</p>
                                     </div>
-
-                                    <div class="row g-2 pt-2 border-top mt-2">
-                                        <div class="col-12 col-md-6">
-                                            <span class="text-uppercase extra-small text-muted fw-semibold">Cliente</span>
-                                            <p class="fw-semibold mb-0">@(plan.NombreCliente ?? "—")</p>
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <span class="text-uppercase extra-small text-muted fw-semibold">Plan</span>
-                                            <p class="fw-semibold mb-0 text-info-custom">@(plan.NombrePlan ?? "—")</p>
-                                        </div>
+                                    @if (!string.IsNullOrWhiteSpace(plan.Parentesco))
+                                    {
+                                        <span class="cn-ben__chip">@plan.Parentesco</span>
+                                    }
+                                </div>
+                                <div class="cn-ben__grid2">
+                                    <div>
+                                        <span class="cn-ben__label">Cliente</span>
+                                        <p class="cn-ben__value">@(string.IsNullOrWhiteSpace(plan.NombreCliente) ? "—" : plan.NombreCliente)</p>
+                                    </div>
+                                    <div>
+                                        <span class="cn-ben__label">Plan</span>
+                                        <p class="cn-ben__value cn-ben__value--accent">@(string.IsNullOrWhiteSpace(plan.NombrePlan) ? "—" : plan.NombrePlan)</p>
                                     </div>
                                 </div>
-                            </div>
+                            </article>
                         }
                     }
                 </section>
 
-                <!-- Sección 2: Consumos -->
-                <section class="mb-3 px-1">
-                    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-2 px-1">
-                        <h6 class="fw-bold text-secondary text-uppercase small mb-0">Consumos</h6>
-                        <p class="text-muted extra-small mb-0">
-                            @fechaDesde.ToString("dd/MM/yyyy") – @fechaHasta.ToString("dd/MM/yyyy")
-                        </p>
+                <section class="cn-ben__section">
+                    <div class="cn-ben__section-head">
+                        <h2 class="cn-ben__section-title">Consumos</h2>
+                        <p class="cn-ben__muted">@fechaDesde.ToString("dd/MM/yyyy") – @fechaHasta.ToString("dd/MM/yyyy")</p>
                     </div>
 
                     @if (consumo is null)
                     {
-                        <div class="alert alert-light text-center border rounded-3 p-4 shadow-sm mb-0">
-                            <h6 class="fw-bold mt-1 text-secondary">Sin consumos en el período</h6>
-                            <p class="text-muted small mb-0">No se registraron movimientos para tu cuenta en estas fechas.</p>
+                        <div class="cn-ben__empty">
+                            <h3>Sin consumos en el período</h3>
+                            <p>No se registraron movimientos para tu cuenta en estas fechas.</p>
                         </div>
                     }
                     else
                     {
-                        <div class="card card-resumen border-0 shadow-sm mb-3 text-white">
-                            <div class="card-body p-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <span class="text-uppercase small opacity-75 fw-semibold">Consumo total</span>
-                                        <h3 class="fw-bold mb-0">$@consumo.ConsumoTotal.ToString("N2")</h3>
-                                    </div>
-                                    <div class="icon-circle bg-white text-info-custom">
-                                        <i class="bi bi-wallet2"></i>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="cn-ben__total">
+                            <span class="cn-ben__label cn-ben__label--light">Consumo total</span>
+                            <strong>$@consumo.ConsumoTotal.ToString("N2")</strong>
                         </div>
 
-                        <div class="row g-3">
+                        <div class="cn-ben__cards">
                             @foreach (var item in ItemsConsumo)
                             {
-                                <div class="col-12 col-md-6">
-                                    <div class="card border-0 shadow-sm h-100 card-beneficio">
-                                        <div class="card-body p-3">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <h6 class="fw-bold text-dark mb-0">@item.Titulo</h6>
-                                                <span class="badge bg-light text-dark border rounded-pill px-2">
-                                                    @item.Casos @(item.Casos == 1 ? "caso" : "casos")
-                                                </span>
-                                            </div>
-                                            <p class="text-muted small mb-2">@item.Descripcion</p>
-                                            <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-                                                <span class="text-muted extra-small">Consumido</span>
-                                                <span class="fw-bold text-info-custom fs-6">$@item.Monto.ToString("N2")</span>
-                                            </div>
-                                        </div>
+                                <article class="cn-ben__card">
+                                    <div class="cn-ben__card-head">
+                                        <h3>@item.Titulo</h3>
+                                        <span class="cn-ben__chip">@item.Casos @(item.Casos == 1 ? "caso" : "casos")</span>
                                     </div>
-                                </div>
+                                    <p class="cn-ben__muted">@item.Descripcion</p>
+                                    <div class="cn-ben__card-foot">
+                                        <span class="cn-ben__muted">Consumido</span>
+                                        <strong class="cn-ben__value--accent">$@item.Monto.ToString("N2")</strong>
+                                    </div>
+                                </article>
                             }
                         </div>
                     }
@@ -151,37 +134,6 @@
     </NotAuthorized>
 </AuthorizeView>
 
-<style>
-    .text-info-custom {
-        color: #00a4ba !important;
-    }
-
-    .card-resumen {
-        background: linear-gradient(135deg, #00a4ba 0%, #007a8a 100%);
-        border-radius: 14px;
-    }
-
-    .icon-circle {
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.3rem;
-    }
-
-    .card-plan,
-    .card-beneficio {
-        border-radius: 12px;
-        border: 1px solid #f0f0f0 !important;
-    }
-
-    .extra-small {
-        font-size: 0.75rem;
-    }
-</style>
-
 @code {
     private bool cargando = true;
     private string? errorMessage;
@@ -193,71 +145,102 @@
     private DateTime fechaDesde = new(DateTime.Today.Year, 1, 1);
     private DateTime fechaHasta = DateTime.Today;
 
-    private CoberturaPlanDto? planActivo => planes.FirstOrDefault();
+    private CoberturaPlanDto? planActivo => planes.Count > 0 ? planes[0] : null;
 
-    private IEnumerable<(string Titulo, string Descripcion, decimal Monto, int Casos)> ItemsConsumo
-    {
-        get
-        {
-            if (consumo is null)
-                yield break;
-
-            yield return ("APS", "Consultas y servicios APS", consumo.ConsumoAps, consumo.CasosAps);
-            yield return ("Carta aval", "Presupuestos carta aval", consumo.ConsumoCartaAval, consumo.CasosCartaAval);
-            yield return ("Reembolso", "Reembolsos aprobados / pagados", consumo.ConsumoReembolso, consumo.CasosReembolso);
-            yield return ("Medicamentos", "Farmacia / medicamentos", consumo.ConsumoMedicamentos, consumo.CasosMedicamentos);
-        }
-    }
+    private List<ConsumoItemVm> ItemsConsumo { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (user.Identity is not { IsAuthenticated: true })
-        {
-            cargando = false;
-            return;
-        }
-
-        cedulaUsuario = user.Identity.Name ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(cedulaUsuario))
-        {
-            errorMessage = "No se encontró la cédula de sesión.";
-            cargando = false;
-            return;
-        }
-
         try
         {
-            planes = await CuidanetService.GetCoberturaPlanAsync(cedulaUsuario);
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Cliente/plan: {ex.Message}";
-            planes = new();
-        }
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
 
-        try
-        {
-            consumo = await CuidanetService.GetCoberturaConsumosAsync(cedulaUsuario, fechaDesde, fechaHasta);
-
-            if (consumo is not null)
+            if (user.Identity is not { IsAuthenticated: true })
             {
-                if (consumo.FechaDesde.HasValue) fechaDesde = consumo.FechaDesde.Value.Date;
-                if (consumo.FechaHasta.HasValue) fechaHasta = consumo.FechaHasta.Value.Date;
+                cargando = false;
+                return;
             }
+
+            cedulaUsuario = user.Identity.Name ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(cedulaUsuario))
+            {
+                errorMessage = "No se encontró la cédula de sesión.";
+                cargando = false;
+                return;
+            }
+
+            await LoadPlanAsync();
+            await LoadConsumosAsync();
+            RebuildConsumoItems();
         }
         catch (Exception ex)
         {
-            var consumoError = $"Consumos: {ex.Message}";
-            errorMessage = string.IsNullOrWhiteSpace(errorMessage)
-                ? consumoError
-                : $"{errorMessage} | {consumoError}";
+            errorMessage = ex.Message;
         }
         finally
         {
             cargando = false;
         }
+    }
+
+    private async Task LoadPlanAsync()
+    {
+        try
+        {
+            planes = await CuidanetService.GetCoberturaPlanAsync(cedulaUsuario) ?? new();
+        }
+        catch (Exception ex)
+        {
+            planes = new();
+            errorMessage = AppendError(errorMessage, $"Cliente/plan: {ex.Message}");
+        }
+    }
+
+    private async Task LoadConsumosAsync()
+    {
+        try
+        {
+            consumo = await CuidanetService.GetCoberturaConsumosAsync(cedulaUsuario, fechaDesde, fechaHasta);
+            if (consumo?.FechaDesde is DateTime d) fechaDesde = d.Date;
+            if (consumo?.FechaHasta is DateTime h) fechaHasta = h.Date;
+        }
+        catch (Exception ex)
+        {
+            consumo = null;
+            errorMessage = AppendError(errorMessage, $"Consumos: {ex.Message}");
+        }
+    }
+
+    private void RebuildConsumoItems()
+    {
+        ItemsConsumo = new();
+        if (consumo is null) return;
+
+        ItemsConsumo.Add(new ConsumoItemVm("APS", "Consultas y servicios APS", consumo.ConsumoAps, consumo.CasosAps));
+        ItemsConsumo.Add(new ConsumoItemVm("Carta aval", "Presupuestos carta aval", consumo.ConsumoCartaAval, consumo.CasosCartaAval));
+        ItemsConsumo.Add(new ConsumoItemVm("Reembolso", "Reembolsos aprobados / pagados", consumo.ConsumoReembolso, consumo.CasosReembolso));
+        ItemsConsumo.Add(new ConsumoItemVm("Medicamentos", "Farmacia / medicamentos", consumo.ConsumoMedicamentos, consumo.CasosMedicamentos));
+    }
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+
+    private static string AppendError(string? current, string next) =>
+        string.IsNullOrWhiteSpace(current) ? next : $"{current} | {next}";
+
+    private sealed class ConsumoItemVm
+    {
+        public ConsumoItemVm(string titulo, string descripcion, decimal monto, int casos)
+        {
+            Titulo = titulo;
+            Descripcion = descripcion;
+            Monto = monto;
+            Casos = casos;
+        }
+
+        public string Titulo { get; }
+        public string Descripcion { get; }
+        public decimal Monto { get; }
+        public int Casos { get; }
     }
 }

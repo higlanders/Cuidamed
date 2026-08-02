@@ -177,9 +177,15 @@
 
         window.registrarHelperInstalacion = (dotNetHelper) => {
             window.dotNetInstallHelper = dotNetHelper;
-            // Si el evento ya se había capturado antes de que Blazor cargara
+            // Diferir el callback para no reentrar durante OnAfterRender de Blazor
             if (deferredPrompt) {
-                dotNetHelper.invokeMethodAsync('MostrarBannerInstalacion');
+                setTimeout(() => {
+                    try {
+                        dotNetHelper.invokeMethodAsync('MostrarBannerInstalacion');
+                    } catch (e) {
+                        console.warn('PWA banner helper:', e);
+                    }
+                }, 0);
             }
         };
 

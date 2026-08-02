@@ -346,12 +346,9 @@
                 dotNetHelper = DotNetObjectReference.Create(this);
                 await JSRuntime.InvokeVoidAsync("registrarHelperInstalacion", dotNetHelper);
             }
-            catch (JSException)
+            catch (Exception)
             {
-                // PWA helper opcional: no tumbar la página si el JS no está listo.
-            }
-            catch (JSDisconnectedException)
-            {
+                // PWA helper opcional: no tumbar la página si el JS falla.
             }
         }
     }
