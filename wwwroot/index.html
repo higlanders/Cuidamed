@@ -76,7 +76,13 @@
                 if (type !== 'dotnetjs' && defaultUri.endsWith('.br')) {
                     defaultUri = defaultUri.replace('.br', '');
                 }
-                // Sin chequeo de integridad: evita crash cuando el SW/caché mezcla builds
+
+                // dotnetjs EXIGE URI string (no Response/fetch)
+                if (type === 'dotnetjs') {
+                    return defaultUri;
+                }
+
+                // Resto: sin integridad, evita mezcla de builds en caché
                 return fetch(defaultUri, { cache: 'no-store' });
             }
         }).catch(function (err) {
