@@ -65,8 +65,8 @@ namespace Cuidanet.Handlers
 
                 if (string.IsNullOrWhiteSpace(usuario) || string.IsNullOrWhiteSpace(password))
                 {
-                    throw new InvalidOperationException(
-                        "Faltan credenciales de API (CuidanetServices:user/pass). Borra los datos del sitio y recarga.");
+                    Console.Error.WriteLine("[CuidanetAuth] Faltan credenciales CuidanetServices:user/pass.");
+                    return null;
                 }
 
                 using var authClient = new HttpClient();
@@ -79,8 +79,8 @@ namespace Cuidanet.Handlers
                     _cachedToken = loginData?.Token;
                     if (string.IsNullOrWhiteSpace(_cachedToken))
                     {
-                        throw new InvalidOperationException(
-                            "El login de API no devolvió token. Revisa la respuesta de Auth/login.");
+                        Console.Error.WriteLine("[CuidanetAuth] Auth/login no devolvió token.");
+                        return null;
                     }
 
                     return _cachedToken;
@@ -91,8 +91,14 @@ namespace Cuidanet.Handlers
                     ? string.Empty
                     : (detail.Length <= 160 ? detail.Trim() : detail.Trim()[..160] + "…");
 
-                throw new HttpRequestException(
-                    $"No se pudo autenticar el servicio API ({(int)response.StatusCode}). {detail}".Trim());
+                Console.Error.WriteLine(
+                    $"[CuidanetAuth] Login API falló ({(int)response.StatusCode}). {detail}".Trim());
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[CuidanetAuth] Excepción en login API: {ex.Message}");
+                return null;
             }
             finally
             {

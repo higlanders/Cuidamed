@@ -32,10 +32,39 @@
     </div>
 
     <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="." class="reload">Reload</a>
+        Ocurrió un error al cargar la app.
+        <a href="." class="reload">Recargar</a>
         <span class="dismiss">🗙</span>
+        <div id="blazor-error-detail" style="margin-top:0.5rem;font-size:12px;opacity:0.85;max-width:28rem;"></div>
     </div>
+
+    <script>
+        // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
+        (async function clearStalePwa() {
+            const flag = 'cn_cache_bust_20260801c';
+            try {
+                if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(regs.map(function (r) { return r.unregister(); }));
+                }
+                if (window.caches && caches.keys) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                }
+            } catch (e) {
+                console.warn('PWA cache clear:', e);
+            }
+
+            // Un solo reload por sesión tras limpiar, para tomar el build nuevo.
+            try {
+                if (!sessionStorage.getItem(flag)) {
+                    sessionStorage.setItem(flag, '1');
+                    location.reload();
+                    return;
+                }
+            } catch (e) { /* sessionStorage bloqueado */ }
+        })();
+    </script>
 
     <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
 
@@ -43,15 +72,25 @@
     <script>
         Blazor.start({
             loadBootResource: function (type, name, defaultUri, integrity) {
-                // Desactiva la búsqueda de archivos comprimidos .br si GitHub Pages no los sirve
+                // Desactiva .br si GitHub Pages no los sirve
                 if (type !== 'dotnetjs' && defaultUri.endsWith('.br')) {
-                    return defaultUri.replace('.br', '');
+                    defaultUri = defaultUri.replace('.br', '');
                 }
+                // Sin chequeo de integridad: evita crash cuando el SW/caché mezcla builds
+                return fetch(defaultUri, { cache: 'no-store' });
             }
+        }).catch(function (err) {
+            console.error('Blazor.start failed', err);
+            var ui = document.getElementById('blazor-error-ui');
+            var detail = document.getElementById('blazor-error-detail');
+            if (ui) ui.style.display = 'block';
+            if (detail) detail.textContent = (err && err.message) ? err.message : String(err);
         });
     </script>
 
-    <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
+    <!-- Service Worker desactivado temporalmente para evitar WASM en caché tras deploys.
+         Se puede volver a activar cuando la app esté estable. -->
+    <!-- <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script> -->
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
