@@ -260,7 +260,13 @@ namespace Cuidanet.Services
             query["cedula"] = cedula;
 
             var response = await _httpClient.GetAsync($"{_coberturaPlanUrl}?{query}");
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var detail = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException(
+                    $"Cobertura/plan falló ({(int)response.StatusCode}). {TrimError(detail)}");
+            }
+
             return await response.Content.ReadFromJsonAsync<List<CoberturaPlanDto>>()
                    ?? new List<CoberturaPlanDto>();
         }
@@ -282,7 +288,13 @@ namespace Cuidanet.Services
                 query["fechaHasta"] = fechaHasta.Value.ToString("yyyy-MM-dd");
 
             var response = await _httpClient.GetAsync($"{_coberturaConsumosUrl}?{query}");
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var detail = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException(
+                    $"Cobertura/consumos falló ({(int)response.StatusCode}). {TrimError(detail)}");
+            }
+
             return await response.Content.ReadFromJsonAsync<CoberturaConsumoDto>();
         }
 

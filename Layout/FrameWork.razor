@@ -341,8 +341,18 @@
     {
         if (firstRender)
         {
-            dotNetHelper = DotNetObjectReference.Create(this);
-            await JSRuntime.InvokeVoidAsync("registrarHelperInstalacion", dotNetHelper);
+            try
+            {
+                dotNetHelper = DotNetObjectReference.Create(this);
+                await JSRuntime.InvokeVoidAsync("registrarHelperInstalacion", dotNetHelper);
+            }
+            catch (JSException)
+            {
+                // PWA helper opcional: no tumbar la página si el JS no está listo.
+            }
+            catch (JSDisconnectedException)
+            {
+            }
         }
     }
 

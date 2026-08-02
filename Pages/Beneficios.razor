@@ -230,13 +230,17 @@
 
         try
         {
-            var planTask = CuidanetService.GetCoberturaPlanAsync(cedulaUsuario);
-            var consumoTask = CuidanetService.GetCoberturaConsumosAsync(cedulaUsuario, fechaDesde, fechaHasta);
+            planes = await CuidanetService.GetCoberturaPlanAsync(cedulaUsuario);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Cliente/plan: {ex.Message}";
+            planes = new();
+        }
 
-            await Task.WhenAll(planTask, consumoTask);
-
-            planes = await planTask ?? new();
-            consumo = await consumoTask;
+        try
+        {
+            consumo = await CuidanetService.GetCoberturaConsumosAsync(cedulaUsuario, fechaDesde, fechaHasta);
 
             if (consumo is not null)
             {
@@ -246,7 +250,10 @@
         }
         catch (Exception ex)
         {
-            errorMessage = ex.Message;
+            var consumoError = $"Consumos: {ex.Message}";
+            errorMessage = string.IsNullOrWhiteSpace(errorMessage)
+                ? consumoError
+                : $"{errorMessage} | {consumoError}";
         }
         finally
         {
