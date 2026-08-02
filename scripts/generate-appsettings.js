@@ -53,6 +53,8 @@ const settings = {
       VerificarSms: process.env.CUIDANET_SMS_VERIFICAR || "sms/verificar-codigo",
       AfiliadoRed: "Afiliado/red",
       AfiliadoRedFiltros: "Afiliado/red/filtros",
+      CoberturaPlan: "Cobertura/plan",
+      CoberturaConsumos: "Cobertura/consumos",
     },
   },
 };

@@ -20,6 +20,8 @@ namespace Cuidanet.Services
         private readonly string _verificarSmsUrl;
         private readonly string _afiliadoRedUrl;
         private readonly string _afiliadoRedFiltrosUrl;
+        private readonly string _coberturaPlanUrl;
+        private readonly string _coberturaConsumosUrl;
 
         // 3. Modificar el constructor para inyectar IConfiguration
         public CuidanetApiClient(HttpClient httpClient, IConfiguration configuration)
@@ -43,6 +45,8 @@ namespace Cuidanet.Services
             _verificarSmsUrl = configuration["CuidanetServices:Endpoints:VerificarSms"] ?? "sms/verificar-codigo";
             _afiliadoRedUrl = configuration["CuidanetServices:Endpoints:AfiliadoRed"] ?? "Afiliado/red";
             _afiliadoRedFiltrosUrl = configuration["CuidanetServices:Endpoints:AfiliadoRedFiltros"] ?? "Afiliado/red/filtros";
+            _coberturaPlanUrl = configuration["CuidanetServices:Endpoints:CoberturaPlan"] ?? "Cobertura/plan";
+            _coberturaConsumosUrl = configuration["CuidanetServices:Endpoints:CoberturaConsumos"] ?? "Cobertura/consumos";
         }
 
         /// <summary>
@@ -245,6 +249,41 @@ namespace Cuidanet.Services
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<ProveedorRedFiltrosDto>()
                    ?? new ProveedorRedFiltrosDto();
+        }
+
+        /// <summary>
+        /// GET /api/Cobertura/plan?cedula= — cliente y plan(es) activos del asegurado.
+        /// </summary>
+        public async Task<List<CoberturaPlanDto>> GetCoberturaPlanAsync(string cedula)
+        {
+            var query = HttpUtility.ParseQueryString(string.Empty);
+            query["cedula"] = cedula;
+
+            var response = await _httpClient.GetAsync($"{_coberturaPlanUrl}?{query}");
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<List<CoberturaPlanDto>>()
+                   ?? new List<CoberturaPlanDto>();
+        }
+
+        /// <summary>
+        /// GET /api/Cobertura/consumos?cedula=&amp;fechaDesde=&amp;fechaHasta=
+        /// Consumos APS, reembolso, carta aval y medicamentos.
+        /// </summary>
+        public async Task<CoberturaConsumoDto?> GetCoberturaConsumosAsync(
+            string cedula,
+            DateTime? fechaDesde = null,
+            DateTime? fechaHasta = null)
+        {
+            var query = HttpUtility.ParseQueryString(string.Empty);
+            query["cedula"] = cedula;
+            if (fechaDesde.HasValue)
+                query["fechaDesde"] = fechaDesde.Value.ToString("yyyy-MM-dd");
+            if (fechaHasta.HasValue)
+                query["fechaHasta"] = fechaHasta.Value.ToString("yyyy-MM-dd");
+
+            var response = await _httpClient.GetAsync($"{_coberturaConsumosUrl}?{query}");
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<CoberturaConsumoDto>();
         }
 
         /// <summary>
