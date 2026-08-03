@@ -1,153 +1,181 @@
-﻿@page "/Beneficios"
-@layout FrameWork
+﻿@page "/beneficios"
+@layout EmptyLayout
+@using Microsoft.AspNetCore.Components.Authorization
 @using Cuidanet.Services
 @using Cuidanet.Models
 @inject CuidanetApiClient CuidanetService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
 
-<div class="container-fluid py-2 px-1">
+<PageTitle>Cuidanet — Coberturas y consumos</PageTitle>
 
-    <!-- Encabezado de Sección -->
-    <div class="d-flex align-items-center justify-content-between mb-3 px-2">
-        <div>
-            <h5 class="fw-bold text-info-custom mb-0">Mis Beneficios</h5>
-            <p class="text-muted small mb-0">Consulta tus coberturas y montos disponibles</p>
-        </div>
-        <span class="badge bg-light text-dark border p-2">
-            📋 Plan Activo
-        </span>
-    </div>
-
-    @if (cargando)
-    {
-        <!-- Estado de Carga -->
-        <div class="text-center py-5">
-            <div class="spinner-border text-info-custom" role="status">
-                <span class="visually-hidden">Cargando coberturas...</span>
-            </div>
-            <p class="text-muted small mt-2">Consultando coberturas vigentes...</p>
-        </div>
-    }
-    else if (coberturas == null || !coberturas.Any())
-    {
-        <!-- Estado Vacío -->
-        <div class="alert alert-light text-center border rounded-3 p-4 shadow-sm">
-            <span style="font-size: 2.5rem;">📂</span>
-            <h6 class="fw-bold mt-2 text-secondary">Sin coberturas registradas</h6>
-            <p class="text-muted small mb-0">No se encontraron beneficios o coberturas vigentes asociadas a tu cuenta.</p>
-        </div>
-    }
-    else
-    {
-        <!-- Resumen General / KPI -->
-        <div class="card card-resumen border-0 shadow-sm mb-4 text-white">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="text-uppercase small opacity-75 fw-semibold">Total Coberturas</span>
-                        <h3 class="fw-bold mb-0">@coberturas.Count</h3>
-                    </div>
-                    <div class="icon-circle bg-white text-info-custom">
-                        🛡️
-                    </div>
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-ben">
+            <header class="cn-ben__top">
+                <button type="button" class="cn-ben__back" @onclick="GoHome" aria-label="Volver al inicio">
+                    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                    <span>Inicio</span>
+                </button>
+                <div class="cn-ben__titles">
+                    <h1 class="cn-ben__title">Coberturas y consumos</h1>
+                    <p class="cn-ben__subtitle">Cliente, plan activo y consumos del período</p>
                 </div>
-            </div>
-        </div>
+                @if (planActivo is not null)
+                {
+                    <span class="cn-ben__badge">Plan activo</span>
+                }
+            </header>
 
-        <!-- Lista de Beneficios / Coberturas -->
-        <div class="row g-3">
-            @foreach (var item in coberturas)
+            @if (cargando)
             {
-                <div class="col-12 col-md-6">
-                    <div class="card border-0 shadow-sm h-100 card-beneficio">
-                        <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h6 class="fw-bold text-dark mb-0">@item.NombreServicio</h6>
-                                <span class="badge @(item.EstaVigente ? "bg-success-subtle text-success border border-success" : "bg-danger-subtle text-danger border border-danger") rounded-pill px-2">
-                                    @(item.EstaVigente ? "Vigente" : "Agotado / Inactivo")
-                                </span>
-                            </div>
-
-                            <p class="text-muted small mb-3">@item.Descripcion</p>
-
-                            <!-- Barra de Progreso de Consumo -->
-                            <div class="mb-2">
-                                <div class="d-flex justify-content-between small mb-1">
-                                    <span class="text-muted">Consumido: <strong>$@item.MontoConsumido.ToString("N2")</strong></span>
-                                    <span class="fw-bold text-info-custom">Límite: $@item.MontoLimite.ToString("N2")</span>
-                                </div>
-                                <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar @ObtenerColorBarra(item.PorcentajeConsumido)"
-                                         role="progressbar"
-                                         style="width: @(item.PorcentajeConsumido)%"
-                                         aria-valuenow="@item.PorcentajeConsumido"
-                                         aria-valuemin="0"
-                                         aria-valuemax="100">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-3">
-                                <span class="text-muted extra-small">Disponible:</span>
-                                <span class="fw-bold text-success fs-6">$@((item.MontoLimite - item.MontoConsumido).ToString("N2"))</span>
-                            </div>
-                        </div>
+                <div class="cn-ben__state">
+                    <div class="spinner-border text-info" role="status">
+                        <span class="visually-hidden">Cargando…</span>
                     </div>
+                    <p>Consultando coberturas y consumos…</p>
                 </div>
             }
+            else
+            {
+                @if (!string.IsNullOrWhiteSpace(errorMessage))
+                {
+                    <div class="cn-ben__alert cn-ben__alert--error" role="alert">
+                        <strong>No se pudo cargar parte de la información.</strong>
+                        <p>@errorMessage</p>
+                    </div>
+                }
+
+                <section class="cn-ben__section">
+                    <h2 class="cn-ben__section-title">Cliente y plan</h2>
+
+                    @if (planes.Count == 0)
+                    {
+                        <div class="cn-ben__empty">
+                            <h3>Sin plan activo</h3>
+                            <p>No hay cliente/plan vigente asociado a tu cédula.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var plan in planes)
+                        {
+                            <article class="cn-ben__card">
+                                <div class="cn-ben__card-head">
+                                    <div>
+                                        <span class="cn-ben__label">Asegurado</span>
+                                        <h3>@plan.NombreCompleto</h3>
+                                        <p class="cn-ben__muted">Cédula @plan.Cedula</p>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(plan.Parentesco))
+                                    {
+                                        <span class="cn-ben__chip">@plan.Parentesco</span>
+                                    }
+                                </div>
+                                <div class="cn-ben__grid2">
+                                    <div>
+                                        <span class="cn-ben__label">Cliente</span>
+                                        <p class="cn-ben__value">@(string.IsNullOrWhiteSpace(plan.NombreCliente) ? "—" : plan.NombreCliente)</p>
+                                    </div>
+                                    <div>
+                                        <span class="cn-ben__label">Plan</span>
+                                        <p class="cn-ben__value cn-ben__value--accent">@(string.IsNullOrWhiteSpace(plan.NombrePlan) ? "—" : plan.NombrePlan)</p>
+                                    </div>
+                                </div>
+                            </article>
+                        }
+                    }
+                </section>
+
+                <section class="cn-ben__section">
+                    <div class="cn-ben__section-head">
+                        <h2 class="cn-ben__section-title">Consumos</h2>
+                        <p class="cn-ben__muted">@fechaDesde.ToString("dd/MM/yyyy") – @fechaHasta.ToString("dd/MM/yyyy")</p>
+                    </div>
+
+                    @if (consumo is null)
+                    {
+                        <div class="cn-ben__empty">
+                            <h3>Sin consumos en el período</h3>
+                            <p>No se registraron movimientos para tu cuenta en estas fechas.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="cn-ben__total">
+                            <span class="cn-ben__label cn-ben__label--light">Consumo total</span>
+                            <strong>$@consumo.ConsumoTotal.ToString("N2")</strong>
+                        </div>
+
+                        <div class="cn-ben__cards">
+                            @foreach (var item in ItemsConsumo)
+                            {
+                                <article class="cn-ben__card">
+                                    <div class="cn-ben__card-head">
+                                        <h3>@item.Titulo</h3>
+                                        <span class="cn-ben__chip">@item.Casos @(item.Casos == 1 ? "caso" : "casos")</span>
+                                    </div>
+                                    <p class="cn-ben__muted">@item.Descripcion</p>
+                                    <div class="cn-ben__card-foot">
+                                        <span class="cn-ben__muted">Consumido</span>
+                                        <strong class="cn-ben__value--accent">$@item.Monto.ToString("N2")</strong>
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    }
+                </section>
+            }
         </div>
-    }
-</div>
-
-<style>
-    .text-info-custom {
-        color: #00a4ba !important; /* */
-    }
-
-    .card-resumen {
-        background: linear-gradient(135deg, #00a4ba 0%, #007a8a 100%);
-        border-radius: 14px;
-    }
-
-    .icon-circle {
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.3rem;
-    }
-
-    .card-beneficio {
-        border-radius: 12px;
-        border: 1px solid #f0f0f0 !important;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-        .card-beneficio:active {
-            transform: scale(0.99);
-        }
-
-    .extra-small {
-        font-size: 0.75rem;
-    }
-</style>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private bool cargando = true;
-    private List<CoberturaDto> coberturas = new();
+    private string? errorMessage;
+    private string cedulaUsuario = string.Empty;
+
+    private List<CoberturaPlanDto> planes = new();
+    private CoberturaConsumoDto? consumo;
+
+    private DateTime fechaDesde = new(DateTime.Today.Year, 1, 1);
+    private DateTime fechaHasta = DateTime.Today;
+
+    private CoberturaPlanDto? planActivo => planes.Count > 0 ? planes[0] : null;
+
+    private List<ConsumoItemVm> ItemsConsumo { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Simulación o llamada al API de Cuidanet
-            //coberturas = await CuidanetService.GetCoberturasVigentesAsync() ?? new();
-            coberturas = new();
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity is not { IsAuthenticated: true })
+            {
+                cargando = false;
+                return;
+            }
+
+            cedulaUsuario = user.Identity.Name ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(cedulaUsuario))
+            {
+                errorMessage = "No se encontró la cédula de sesión.";
+                cargando = false;
+                return;
+            }
+
+            await LoadPlanAsync();
+            await LoadConsumosAsync();
+            RebuildConsumoItems();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Manejo silencioso o logger
+            errorMessage = ex.Message;
         }
         finally
         {
@@ -155,21 +183,63 @@
         }
     }
 
-    private string ObtenerColorBarra(decimal porcentaje)
+    private async Task LoadPlanAsync()
     {
-        if (porcentaje >= 90) return "bg-danger";
-        if (porcentaje >= 70) return "bg-warning";
-        return "bg-info-custom-bar";
+        try
+        {
+            planes = await CuidanetService.GetCoberturaPlanAsync(cedulaUsuario) ?? new();
+        }
+        catch (Exception ex)
+        {
+            planes = new();
+            errorMessage = AppendError(errorMessage, $"Cliente/plan: {ex.Message}");
+        }
     }
 
-    // DTO de soporte interno para la vista si no existe en la biblioteca
-    public class CoberturaDto
+    private async Task LoadConsumosAsync()
     {
-        public string NombreServicio { get; set; } = string.Empty;
-        public string Descripcion { get; set; } = string.Empty;
-        public decimal MontoLimite { get; set; }
-        public decimal MontoConsumido { get; set; }
-        public bool EstaVigente { get; set; } = true;
-        public decimal PorcentajeConsumido => MontoLimite > 0 ? (MontoConsumido / MontoLimite) * 100 : 0;
+        try
+        {
+            consumo = await CuidanetService.GetCoberturaConsumosAsync(cedulaUsuario, fechaDesde, fechaHasta);
+            if (consumo?.FechaDesde is DateTime d) fechaDesde = d.Date;
+            if (consumo?.FechaHasta is DateTime h) fechaHasta = h.Date;
+        }
+        catch (Exception ex)
+        {
+            consumo = null;
+            errorMessage = AppendError(errorMessage, $"Consumos: {ex.Message}");
+        }
+    }
+
+    private void RebuildConsumoItems()
+    {
+        ItemsConsumo = new();
+        if (consumo is null) return;
+
+        ItemsConsumo.Add(new ConsumoItemVm("APS", "Consultas y servicios APS", consumo.ConsumoAps, consumo.CasosAps));
+        ItemsConsumo.Add(new ConsumoItemVm("Carta aval", "Presupuestos carta aval", consumo.ConsumoCartaAval, consumo.CasosCartaAval));
+        ItemsConsumo.Add(new ConsumoItemVm("Reembolso", "Reembolsos aprobados / pagados", consumo.ConsumoReembolso, consumo.CasosReembolso));
+        ItemsConsumo.Add(new ConsumoItemVm("Medicamentos", "Farmacia / medicamentos", consumo.ConsumoMedicamentos, consumo.CasosMedicamentos));
+    }
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+
+    private static string AppendError(string? current, string next) =>
+        string.IsNullOrWhiteSpace(current) ? next : $"{current} | {next}";
+
+    private sealed class ConsumoItemVm
+    {
+        public ConsumoItemVm(string titulo, string descripcion, decimal monto, int casos)
+        {
+            Titulo = titulo;
+            Descripcion = descripcion;
+            Monto = monto;
+            Casos = casos;
+        }
+
+        public string Titulo { get; }
+        public string Descripcion { get; }
+        public decimal Monto { get; }
+        public int Casos { get; }
     }
 }

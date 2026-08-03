@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -13,10 +13,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" >
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/app.css" />
+    <link href="Cuidanet.styles.css" rel="stylesheet" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="manifest.webmanifest" rel="manifest" />
     <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <script type="importmap"></script>
 
 </head>
 
@@ -30,30 +32,110 @@
     </div>
 
     <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="." class="reload">Reload</a>
+        Ocurrió un error al cargar la app.
+        <a href="." class="reload">Recargar</a>
         <span class="dismiss">🗙</span>
+        <div id="blazor-error-detail" style="margin-top:0.5rem;font-size:12px;opacity:0.85;max-width:28rem;"></div>
     </div>
+
+    <script>
+        // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
+        (async function clearStalePwa() {
+            const flag = 'cn_cache_bust_20260801e';
+            try {
+                if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(regs.map(function (r) { return r.unregister(); }));
+                }
+                if (window.caches && caches.keys) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                }
+            } catch (e) {
+                console.warn('PWA cache clear:', e);
+            }
+
+            // Un solo reload por sesión tras limpiar, para tomar el build nuevo.
+            try {
+                if (!sessionStorage.getItem(flag)) {
+                    sessionStorage.setItem(flag, '1');
+                    location.reload();
+                    return;
+                }
+            } catch (e) { /* sessionStorage bloqueado */ }
+        })();
+    </script>
 
     <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
 
-    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js" autostart="false"></script>
     <script>
         Blazor.start({
             loadBootResource: function (type, name, defaultUri, integrity) {
-                // Desactiva la búsqueda de archivos comprimidos .br si GitHub Pages no los sirve
+                // Desactiva .br si GitHub Pages no los sirve
                 if (type !== 'dotnetjs' && defaultUri.endsWith('.br')) {
-                    return defaultUri.replace('.br', '');
+                    defaultUri = defaultUri.replace('.br', '');
                 }
+
+                // dotnetjs EXIGE URI string (no Response/fetch)
+                if (type === 'dotnetjs') {
+                    return defaultUri;
+                }
+
+                // Resto: sin integridad, evita mezcla de builds en caché
+                return fetch(defaultUri, { cache: 'no-store' });
             }
+        }).catch(function (err) {
+            console.error('Blazor.start failed', err);
+            var ui = document.getElementById('blazor-error-ui');
+            var detail = document.getElementById('blazor-error-detail');
+            if (ui) ui.style.display = 'block';
+            if (detail) detail.textContent = (err && err.message) ? err.message : String(err);
         });
     </script>
 
-    <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
+    <!-- Service Worker desactivado temporalmente para evitar WASM en caché tras deploys.
+         Se puede volver a activar cuando la app esté estable. -->
+    <!-- <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script> -->
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <script>
+        window.BlazorSmsOtp = {
+            _controller: null,
+            hostname: function () {
+                return window.location.hostname || '';
+            },
+            listen: async function () {
+                this.abort();
+                if (!('OTPCredential' in window) || !navigator.credentials || !navigator.credentials.get) {
+                    return null;
+                }
+                this._controller = new AbortController();
+                try {
+                    const cred = await navigator.credentials.get({
+                        otp: { transport: ['sms'] },
+                        signal: this._controller.signal
+                    });
+                    return (cred && cred.code) ? String(cred.code) : null;
+                } catch (err) {
+                    if (err && err.name === 'AbortError') {
+                        return null;
+                    }
+                    console.warn('Web OTP no disponible:', err);
+                    return null;
+                } finally {
+                    this._controller = null;
+                }
+            },
+            abort: function () {
+                if (this._controller) {
+                    try { this._controller.abort(); } catch (_) { /* ignore */ }
+                    this._controller = null;
+                }
+            }
+        };
+
         window.BlazorCamera = {
             start: async (videoId) => {
                 try {
@@ -140,9 +222,15 @@
 
         window.registrarHelperInstalacion = (dotNetHelper) => {
             window.dotNetInstallHelper = dotNetHelper;
-            // Si el evento ya se había capturado antes de que Blazor cargara
+            // Diferir el callback para no reentrar durante OnAfterRender de Blazor
             if (deferredPrompt) {
-                dotNetHelper.invokeMethodAsync('MostrarBannerInstalacion');
+                setTimeout(() => {
+                    try {
+                        dotNetHelper.invokeMethodAsync('MostrarBannerInstalacion');
+                    } catch (e) {
+                        console.warn('PWA banner helper:', e);
+                    }
+                }, 0);
             }
         };
 

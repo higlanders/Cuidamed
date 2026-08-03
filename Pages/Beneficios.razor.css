@@ -1,0 +1,221 @@
+﻿.cn-ben {
+    --cn-teal: #00a4ba;
+    --cn-teal-dark: #007a8a;
+    --cn-ink: #1a2b32;
+    --cn-muted: #6b7c83;
+    --cn-line: #e6eef0;
+    min-height: 100dvh;
+    padding: 1rem 1rem 2rem;
+    background:
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0, 164, 186, 0.12), transparent 60%),
+        #f7fafb;
+    color: var(--cn-ink);
+    font-family: "Montserrat", system-ui, sans-serif;
+}
+
+.cn-ben__top {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.cn-ben__back {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid var(--cn-line);
+    background: #fff;
+    color: var(--cn-teal-dark);
+    border-radius: 999px;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.cn-ben__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.cn-ben__subtitle {
+    margin: 0.2rem 0 0;
+    color: var(--cn-muted);
+    font-size: 0.9rem;
+}
+
+.cn-ben__badge {
+    justify-self: start;
+    background: rgba(25, 135, 84, 0.12);
+    color: #198754;
+    border: 1px solid rgba(25, 135, 84, 0.35);
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.cn-ben__state,
+.cn-ben__empty {
+    text-align: center;
+    background: #fff;
+    border: 1px solid var(--cn-line);
+    border-radius: 14px;
+    padding: 2rem 1rem;
+    color: var(--cn-muted);
+}
+
+.cn-ben__empty h3,
+.cn-ben__state p {
+    margin: 0.75rem 0 0;
+}
+
+.cn-ben__empty p {
+    margin: 0.35rem 0 0;
+    font-size: 0.9rem;
+}
+
+.cn-ben__alert {
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.cn-ben__alert--error {
+    background: #fff5f5;
+    border: 1px solid #f1c0c0;
+    color: #842029;
+}
+
+.cn-ben__alert p {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+}
+
+.cn-ben__section {
+    margin-bottom: 1.5rem;
+}
+
+.cn-ben__section-title {
+    margin: 0;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cn-muted);
+    font-weight: 700;
+}
+
+.cn-ben__section-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.35rem;
+    align-items: baseline;
+    margin-bottom: 0.75rem;
+}
+
+.cn-ben__card {
+    background: #fff;
+    border: 1px solid var(--cn-line);
+    border-radius: 14px;
+    padding: 1rem;
+    margin-top: 0.75rem;
+    box-shadow: 0 8px 24px rgba(26, 43, 50, 0.04);
+}
+
+.cn-ben__card-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.cn-ben__card-head h3 {
+    margin: 0.15rem 0 0;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.cn-ben__label {
+    display: block;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--cn-muted);
+    font-weight: 600;
+}
+
+.cn-ben__label--light {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.cn-ben__muted {
+    margin: 0.15rem 0 0;
+    color: var(--cn-muted);
+    font-size: 0.85rem;
+}
+
+.cn-ben__chip {
+    flex-shrink: 0;
+    border: 1px solid var(--cn-line);
+    background: #f7fafb;
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+}
+
+.cn-ben__grid2 {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--cn-line);
+}
+
+@media (min-width: 640px) {
+    .cn-ben__grid2 {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .cn-ben__cards {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.cn-ben__value {
+    margin: 0.2rem 0 0;
+    font-weight: 600;
+}
+
+.cn-ben__value--accent {
+    color: var(--cn-teal-dark);
+}
+
+.cn-ben__total {
+    background: linear-gradient(135deg, var(--cn-teal) 0%, var(--cn-teal-dark) 100%);
+    color: #fff;
+    border-radius: 14px;
+    padding: 1rem 1.1rem;
+    margin-bottom: 0.75rem;
+}
+
+.cn-ben__total strong {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 1.6rem;
+}
+
+.cn-ben__cards {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.cn-ben__card-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--cn-line);
+}

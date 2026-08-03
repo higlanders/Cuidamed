@@ -1,0 +1,67 @@
+﻿name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Generate appsettings.json
+        env:
+          CUIDANET_USER: ${{ secrets.CUIDANET_USER }}
+          CUIDANET_PASS: ${{ secrets.CUIDANET_PASS }}
+          CUIDANET_LOGIN_URL: ${{ secrets.CUIDANET_LOGIN_URL }}
+          CUIDANET_BASE_URL: ${{ secrets.CUIDANET_BASE_URL }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        run: node scripts/generate-appsettings.js
+
+      - name: Publish Blazor WASM
+        run: |
+          # Patch paths BEFORE publish so service-worker asset hashes match
+          sed -i 's|<base href="/" />|<base href="/Cuidamed/" />|' wwwroot/index.html
+          sed -i 's|const base = "/";|const base = "/Cuidamed/";|' wwwroot/service-worker.published.js
+
+          # Publish the project (not the solution) to avoid NETSDK1194 output issues
+          dotnet publish Cuidanet.csproj -c Release -o publish
+
+          # Jekyll ignores _* folders; without this, _framework 404s on GitHub Pages
+          touch publish/wwwroot/.nojekyll
+
+          # SPA fallback for Blazor client-side routes
+          cp publish/wwwroot/index.html publish/wwwroot/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish/wwwroot
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

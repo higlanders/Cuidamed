@@ -55,7 +55,7 @@
 
             <div class="text-end d-flex flex-column align-items-end justify-content-center">
                 <img class="logohome" src="logo.png" style="max-width: 55px; height: auto;" alt="Logo" />
-                <p class="slogan fst-italic mb-0" style="font-size: 9px; line-height: 1;">"Cuidamos tu bienestar"</p>
+                <p class="slogan fst-italic mb-0" style="font-size: 9px; line-height: 1;">"Tu aliado confiable en gestión de salud."</p>
             </div>
         </div>
 
@@ -124,7 +124,7 @@
                     </div>
 
                     <!-- Coberturas y consumos -->
-                    <div class="dashboard-card-menu" @onclick='() => NavigateTo("Beneficios")'>
+                    <div class="dashboard-card-menu" @onclick='() => NavigateTo("beneficios")'>
                         <div class="card-content text-center">
                             <img class="logodashboard-menu" src="coberturas.png" />
                             <p class="fuente-gris-menu m-0">Beneficios</p>
@@ -341,8 +341,15 @@
     {
         if (firstRender)
         {
-            dotNetHelper = DotNetObjectReference.Create(this);
-            await JSRuntime.InvokeVoidAsync("registrarHelperInstalacion", dotNetHelper);
+            try
+            {
+                dotNetHelper = DotNetObjectReference.Create(this);
+                await JSRuntime.InvokeVoidAsync("registrarHelperInstalacion", dotNetHelper);
+            }
+            catch (Exception)
+            {
+                // PWA helper opcional: no tumbar la página si el JS falla.
+            }
         }
     }
 

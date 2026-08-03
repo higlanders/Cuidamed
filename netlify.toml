@@ -1,0 +1,23 @@
+﻿# Netlify — Blazor WebAssembly (Cuidamed)
+#
+# Environment variables (Site configuration → Environment variables):
+#   CUIDANET_USER       = usuario API CuidaNet   (required)
+#   CUIDANET_PASS       = password API CuidaNet  (required)
+#   CUIDANET_LOGIN_URL  = optional override
+#   CUIDANET_BASE_URL   = optional override
+#   AZURE_CLIENT_ID     = optional
+
+[build]
+  command = "bash scripts/netlify-build.sh"
+  publish = "publish/wwwroot"
+
+[build.environment]
+  DOTNET_NOLOGO = "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+  NODE_VERSION = "20"
+
+# Client-side routing (Blazor)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

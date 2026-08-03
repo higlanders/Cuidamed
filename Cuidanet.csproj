@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -18,5 +18,32 @@
   <ItemGroup>
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
+
+  <!--
+    .NET 10 + ServiceWorkerAssetsManifest duplica assets cuyo nombre tiene varios puntos
+    (appsettings.json / appsettings.Development.json / appsettings.example.json).
+    Los sacamos del pipeline SWA y los copiamos a mano a output/publish.
+  -->
+  <ItemGroup>
+    <Content Remove="wwwroot\appsettings*.json" />
+  </ItemGroup>
+
+  <Target Name="CopyAppsettingsToOutput" AfterTargets="Build">
+    <Copy SourceFiles="wwwroot\appsettings.json"
+          DestinationFolder="$(OutputPath)wwwroot"
+          SkipUnchangedFiles="true"
+          Condition="Exists('wwwroot\appsettings.json')" />
+    <Copy SourceFiles="wwwroot\appsettings.Development.json"
+          DestinationFolder="$(OutputPath)wwwroot"
+          SkipUnchangedFiles="true"
+          Condition="Exists('wwwroot\appsettings.Development.json')" />
+  </Target>
+
+  <Target Name="CopyAppsettingsToPublish" AfterTargets="Publish">
+    <Copy SourceFiles="wwwroot\appsettings.json"
+          DestinationFolder="$(PublishDir)wwwroot"
+          SkipUnchangedFiles="true"
+          Condition="Exists('wwwroot\appsettings.json')" />
+  </Target>
 
 </Project>

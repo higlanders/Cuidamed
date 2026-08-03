@@ -1,231 +1,356 @@
-﻿@page "/Proveedores"
-@layout FrameWork
-@using Microsoft.AspNetCore.Components.Web
-@inject IJSRuntime JSRuntime
+﻿@page "/proveedores"
+@layout EmptyLayout
+@using Microsoft.AspNetCore.Components.Authorization
+@using Cuidanet.Services
+@using Cuidanet.Models
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject CuidanetApiClient CuidanetService
 
-<div class="container-fluid px-2 py-1">
+<PageTitle>Cuidanet — Red de Proveedores</PageTitle>
 
-    <!-- Encabezado de la Sección -->
-    <div class="d-flex align-items-center mb-3">
-        <span class="fs-4 me-2">🏥</span>
-        <div>
-            <h5 class="fw-bold text-info-custom mb-0">Red de Proveedores</h5>
-            <p class="text-muted small mb-0">Encuentra centros médicos, especialistas y servicios en tu zona.</p>
-        </div>
-    </div>
-
-    <!-- Filtros de Búsqueda -->
-    <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-white">
-        <div class="row g-2">
-            <!-- Buscar por Nombre o Especialidad -->
-            <div class="col-12">
-                <label class="form-label font-montserrat text-muted small fw-bold mb-1">BÚSQUEDA RÁPIDA</label>
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-light border-end-0">🔍</span>
-                    <input type="text"
-                           class="form-control bg-light border-start-0 font-montserrat"
-                           placeholder="Ej. Clínica, Dr. Pérez, Odontología..."
-                           @bind="filtroTexto"
-                           @bind:event="oninput" />
-                </div>
-            </div>
-
-            <!-- Selección de Estado / Ciudad -->
-            <div class="col-6">
-                <label class="form-label font-montserrat text-muted small fw-bold mb-1">UBICACIÓN</label>
-                <select class="form-select form-select-sm font-montserrat" @bind="estadoSeleccionado">
-                    <option value="">Todas</option>
-                    <option value="Caracas">Caracas</option>
-                    <option value="Miranda">Miranda</option>
-                    <option value="Aragua">Aragua</option>
-                    <option value="Zulia">Zulia</option>
-                </select>
-            </div>
-
-            <!-- Selección de Especialidad -->
-            <div class="col-6">
-                <label class="form-label font-montserrat text-muted small fw-bold mb-1">ESPECIALIDAD</label>
-                <select class="form-select form-select-sm font-montserrat" @bind="especialidadSeleccionada">
-                    <option value="">Todas</option>
-                    <option value="Medicina General">Medicina General</option>
-                    <option value="Pediatría">Pediatría</option>
-                    <option value="Odontología">Odontología</option>
-                    <option value="Laboratorio">Laboratorio</option>
-                    <option value="Oftalmología">Oftalmología</option>
-                </select>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toggle de Vista: Lista / Mapa -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <span class="text-muted small font-montserrat">
-            Se encontraron <strong class="text-info-custom">@ProveedoresFiltrados.Count()</strong> prestadores
-        </span>
-        <div class="btn-group btn-group-sm" role="group">
-            <button type="button"
-                    class="btn @(vistaMapa ? "btn-outline-info" : "btn-info text-white") fw-bold"
-                    @onclick="() => ToggleVista(false)">
-                📋 Lista
-            </button>
-            <button type="button"
-                    class="btn @(vistaMapa ? "btn-info text-white" : "btn-outline-info") fw-bold"
-                    @onclick="() => ToggleVista(true)">
-                🗺️ Mapa
-            </button>
-        </div>
-    </div>
-
-    <!-- CONTENIDO: VISTA DE MAPA -->
-    @if (vistaMapa)
-    {
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-3">
-            <div id="mapaProveedores" class="mapa-container position-relative">
-                <!-- Capa/Placeholder visual del Mapa -->
-                <div class="d-flex flex-column justify-content-center align-items-center h-100 bg-light text-muted p-4 text-center">
-                    <span style="font-size: 3rem;">📍</span>
-                    <p class="fw-bold mb-1 mt-2 text-dark">Mapa Interactivo</p>
-                    <p class="small mb-3">Geolocalización de centros y médicos cercanos.</p>
-                    <button class="btn btn-sm btn-info text-white fw-bold px-3 rounded-pill" @onclick="CentrarUbicacion">
-                        🎯 Usar mi ubicación actual
-                    </button>
-                </div>
-            </div>
-        </div>
-    }
-    else
-    {
-        <!-- CONTENIDO: VISTA DE LISTA DE PRESTADORES -->
-        <div class="d-flex flex-column gap-2 mb-4">
-            @if (ProveedoresFiltrados.Any())
-            {
-                @foreach (var prov in ProveedoresFiltrados)
-                {
-                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white tarjet-proveedor">
-                        <div class="d-flex align-items-start gap-3">
-                            <!-- Icono o Imagen del Prestador -->
-                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center flex-shrink-0"
-                                 style="width: 50px; height: 50px; border: 1px solid #00a4ba;">
-                                <span style="font-size: 1.5rem;">@(prov.Tipo == "Clínica" ? "🏥" : "👨‍⚕️")</span>
-                            </div>
-
-                            <!-- Información Principal -->
-                            <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <h6 class="fw-bold mb-0 text-dark font-montserrat" style="font-size: 14px;">@prov.Nombre</h6>
-                                    <span class="badge bg-light text-info-custom border border-info font-montserrat" style="font-size: 10px;">
-                                        @prov.Tipo
-                                    </span>
-                                </div>
-
-                                <p class="text-info-custom fw-semibold mb-1" style="font-size: 12px;">@prov.Especialidad</p>
-
-                                <p class="text-muted small mb-1 d-flex align-items-center gap-1" style="font-size: 11px;">
-                                    <span>📍</span> @prov.Direccion, <strong>@prov.Ciudad</strong>
-                                </p>
-
-                                <div class="d-flex align-items-center gap-3 mt-2 pt-2 border-top">
-                                    <a href="tel:@prov.Telefono" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2 font-montserrat" style="font-size: 11px;">
-                                        📞 @prov.Telefono
-                                    </a>
-                                    <button class="btn btn-sm btn-info text-white rounded-pill py-0 px-2 font-montserrat ms-auto" style="font-size: 11px;" @onclick="() => VerDetalle(prov)">
-                                        Ver Más
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-prov">
+            <div class="cn-prov__shell">
+                <header class="cn-prov__hero">
+                    <div class="cn-prov__hero-glow" aria-hidden="true"></div>
+                    <div class="cn-prov__topbar">
+                        <button type="button" class="cn-prov__back" @onclick="GoHome" aria-label="Volver al inicio">
+                            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                        </button>
+                        <h1 class="cn-prov__heading">Red de Proveedores</h1>
+                        <span class="cn-prov__topbar-spacer" aria-hidden="true"></span>
                     </div>
-                }
-            }
-            else
-            {
-                <div class="text-center py-5 bg-white rounded-4 shadow-sm">
-                    <span style="font-size: 2.5rem;">🔎</span>
-                    <p class="text-muted mt-2 mb-0">No se encontraron proveedores con los criterios ingresados.</p>
-                </div>
-            }
+                    <p class="cn-prov__lead">Encuentra clínicas, laboratorios y farmacias de tu red.</p>
+                </header>
+
+                <section class="cn-prov__sheet">
+                    <div class="cn-prov__filters-form">
+                        <label class="cn-prov__field">
+                            <span>Estado</span>
+                            <select class="cn-prov__select" value="@filtroEstado" @onchange="OnEstadoChangedAsync">
+                                <option value="">Todos</option>
+                                @foreach (var e in EstadosDisponibles)
+                                {
+                                    <option value="@e">@e</option>
+                                }
+                            </select>
+                        </label>
+                        <label class="cn-prov__field">
+                            <span>Ciudad</span>
+                            <select class="cn-prov__select"
+                                    value="@filtroCiudad"
+                                    @onchange="OnCiudadChanged"
+                                    disabled="@(!CiudadesDisponibles.Any())">
+                                <option value="">@(string.IsNullOrEmpty(filtroEstado) ? "Todas" : "Todas del estado")</option>
+                                @foreach (var c in CiudadesDisponibles)
+                                {
+                                    <option value="@c">@c</option>
+                                }
+                            </select>
+                        </label>
+                        <label class="cn-prov__field">
+                            <span>Tipo</span>
+                            <select class="cn-prov__select" value="@filtroTipo" @onchange="OnTipoChanged">
+                                <option value="">Todos</option>
+                                @foreach (var t in TiposDisponibles)
+                                {
+                                    <option value="@t">@t</option>
+                                }
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="cn-prov__search">
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <input type="search"
+                               class="cn-prov__search-input"
+                               placeholder="Buscar por nombre o dirección"
+                               value="@searchQuery"
+                               @oninput="OnSearchInput"
+                               aria-label="Buscar proveedores" />
+                        @if (!string.IsNullOrWhiteSpace(searchQuery))
+                        {
+                            <button type="button" class="cn-prov__search-clear" @onclick="ClearSearch" aria-label="Limpiar búsqueda">
+                                <i class="bi bi-x-circle-fill" aria-hidden="true"></i>
+                            </button>
+                        }
+                    </div>
+
+                    @if (isLoading)
+                    {
+                        <p class="cn-prov__count">Cargando proveedores…</p>
+                    }
+                    else if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="cn-prov__empty">
+                            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                            <p>@errorMessage</p>
+                            <button type="button" class="cn-prov__empty-btn" @onclick="ReloadAsync">Reintentar</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="cn-prov__count">
+                            @FilteredProveedores.Count() @(FilteredProveedores.Count() == 1 ? "resultado" : "resultados")
+                        </p>
+
+                        @if (!FilteredProveedores.Any())
+                        {
+                            <div class="cn-prov__empty">
+                                <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                                <p>No encontramos proveedores con esos criterios.</p>
+                                <button type="button" class="cn-prov__empty-btn" @onclick="ResetFilters">Ver todos</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <ul class="cn-prov__list">
+                                @foreach (var p in FilteredProveedores)
+                                {
+                                    <li class="cn-prov__card">
+                                        <div class="cn-prov__card-icon" aria-hidden="true">
+                                            <i class="bi @IconoPorTipo(p.Tipo)"></i>
+                                        </div>
+                                        <div class="cn-prov__card-body">
+                                            <div class="cn-prov__card-top">
+                                                <h2 class="cn-prov__card-name">@p.Nombre</h2>
+                                                @if (!string.IsNullOrWhiteSpace(p.Tipo))
+                                                {
+                                                    <span class="cn-prov__badge">@p.Tipo</span>
+                                                }
+                                            </div>
+                                            <p class="cn-prov__card-meta">
+                                                <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                                                @FormatUbicacion(p)
+                                            </p>
+                                            <div class="cn-prov__card-actions">
+                                                @if (!string.IsNullOrWhiteSpace(p.Telefono))
+                                                {
+                                                    <a class="cn-prov__action cn-prov__action--call" href="tel:@DigitsOnly(p.Telefono)">
+                                                        <i class="bi bi-telephone-fill" aria-hidden="true"></i>
+                                                        Llamar
+                                                    </a>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(p.ContactoWhatsApp))
+                                                {
+                                                    <a class="cn-prov__action cn-prov__action--wa"
+                                                       href="@WhatsAppUrl(p.ContactoWhatsApp)"
+                                                       target="_blank"
+                                                       rel="noopener noreferrer">
+                                                        <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                                                        WhatsApp
+                                                    </a>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(p.Direccion))
+                                                {
+                                                    <a class="cn-prov__action cn-prov__action--map"
+                                                       href="@MapUrl(p)"
+                                                       target="_blank"
+                                                       rel="noopener noreferrer">
+                                                        <i class="bi bi-map" aria-hidden="true"></i>
+                                                        Ver mapa
+                                                    </a>
+                                                }
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    }
+                </section>
+            </div>
         </div>
-    }
+    </Authorized>
 
-</div>
-
-<!-- CSS Estilo Cuidanet -->
-<style>
-    .font-montserrat {
-        font-family: 'Montserrat', sans-serif;
-    }
-
-    .text-info-custom {
-        color: #00a4ba !important;
-    }
-
-    .mapa-container {
-        width: 100%;
-        height: 350px;
-        border-radius: 12px;
-    }
-
-    .tarjet-proveedor {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        border-left: 4px solid #00a4ba !important;
-    }
-
-        .tarjet-proveedor:active {
-            transform: scale(0.99);
-            background-color: #f7f9fa;
-        }
-
-    .form-control:focus, .form-select:focus {
-        border-color: #00a4ba;
-        box-shadow: 0 0 0 0.25rem rgba(0, 164, 186, 0.25);
-    }
-</style>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
-    private bool vistaMapa = false;
-    private string filtroTexto = "";
-    private string estadoSeleccionado = "";
-    private string especialidadSeleccionada = "";
+    private string cedulaUsuario = string.Empty;
+    private string searchQuery = string.Empty;
+    private string filtroEstado = string.Empty;
+    private string filtroCiudad = string.Empty;
+    private string filtroTipo = string.Empty;
+    private bool isLoading = true;
+    private string? errorMessage;
 
-    // Modelo local simplificado para renderizado visual
-    private class Proveedor
+    private List<ProveedorRedDto> todosProveedores = new();
+
+    private IEnumerable<string> EstadosDisponibles =>
+        todosProveedores
+            .Select(p => p.Estado)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)!;
+
+    private IEnumerable<string> CiudadesDisponibles
     {
-        public int Id { get; set; }
-        public string Nombre { get; set; } = "";
-        public string Especialidad { get; set; } = "";
-        public string Tipo { get; set; } = ""; // Clínica, Médico, Laboratorio
-        public string Ciudad { get; set; } = "";
-        public string Direccion { get; set; } = "";
-        public string Telefono { get; set; } = "";
+        get
+        {
+            var q = todosProveedores.AsEnumerable();
+            if (!string.IsNullOrWhiteSpace(filtroEstado))
+            {
+                q = q.Where(p => string.Equals(p.Estado, filtroEstado, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return q
+                .Select(p => p.Ciudad)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)!;
+        }
     }
 
-    private List<Proveedor> listaProveedores = new()
-    {
-        new Proveedor { Id = 1, Nombre = "Centro Médico Las Mercedes", Especialidad = "Atención Primaria / Urgencias", Tipo = "Clínica", Ciudad = "Caracas", Direccion = "Av. Principal Las Mercedes", Telefono = "0212-9991111" },
-        new Proveedor { Id = 2, Nombre = "Dr. Roberto Mendoza", Especialidad = "Pediatría", Tipo = "Médico", Ciudad = "Caracas", Direccion = "Consultorios El Ádila, Piso 3", Telefono = "0414-1234567" },
-        new Proveedor { Id = 3, Nombre = "Laboratorio Clínico Cuidamed", Especialidad = "Laboratorio", Tipo = "Laboratorio", Ciudad = "Miranda", Direccion = "CC. Castillejo, Guatire", Telefono = "0212-3445566" },
-        new Proveedor { Id = 4, Nombre = "Dra. Elena Gómez", Especialidad = "Oftalmología", Tipo = "Médico", Ciudad = "Aragua", Direccion = "Policlínica Maracay", Telefono = "0424-7654321" }
-    };
+    private IEnumerable<string> TiposDisponibles =>
+        todosProveedores
+            .Select(p => p.Tipo)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)!;
 
-    private IEnumerable<Proveedor> ProveedoresFiltrados => listaProveedores.Where(p =>
-        (string.IsNullOrWhiteSpace(filtroTexto) || p.Nombre.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) || p.Especialidad.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrWhiteSpace(estadoSeleccionado) || p.Ciudad.Equals(estadoSeleccionado, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrWhiteSpace(especialidadSeleccionada) || p.Especialidad.Contains(especialidadSeleccionada, StringComparison.OrdinalIgnoreCase))
-    );
-
-    private void ToggleVista(bool mapa)
+    private IEnumerable<ProveedorRedDto> FilteredProveedores
     {
-        vistaMapa = mapa;
+        get
+        {
+            IEnumerable<ProveedorRedDto> q = todosProveedores;
+
+            if (!string.IsNullOrWhiteSpace(filtroEstado))
+                q = q.Where(p => string.Equals(p.Estado, filtroEstado, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(filtroCiudad))
+                q = q.Where(p => string.Equals(p.Ciudad, filtroCiudad, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(filtroTipo))
+                q = q.Where(p => string.Equals(p.Tipo, filtroTipo, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                var term = searchQuery.Trim();
+                q = q.Where(p =>
+                    Contains(p.Nombre, term)
+                    || Contains(p.Direccion, term)
+                    || Contains(p.Ciudad, term)
+                    || Contains(p.Estado, term)
+                    || Contains(p.Tipo, term));
+            }
+
+            return q;
+        }
     }
 
-    private async Task CentrarUbicacion()
+    protected override async Task OnInitializedAsync()
     {
-        // Aquí se llamaría a JavaScript interop para obtener la geolocalización
-        await JSRuntime.InvokeVoidAsync("alert", "Obteniendo ubicación del dispositivo...");
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is not { IsAuthenticated: true })
+            return;
+
+        cedulaUsuario = user.Identity.Name ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(cedulaUsuario))
+        {
+            errorMessage = "No se encontró la cédula de sesión.";
+            isLoading = false;
+            return;
+        }
+
+        await LoadProveedoresAsync();
     }
 
-    private void VerDetalle(Proveedor proveedor)
+    private async Task LoadProveedoresAsync()
     {
-        // Lógica de navegación o modal para ver detalle
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            todosProveedores = await CuidanetService.GetRedProveedoresAsync(cedulaUsuario);
+        }
+        catch (Exception ex)
+        {
+            todosProveedores = new();
+            errorMessage = "No se pudo cargar la red de proveedores. Intenta de nuevo.";
+            Console.WriteLine($"Red proveedores: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
+
+    private Task OnEstadoChangedAsync(ChangeEventArgs e)
+    {
+        filtroEstado = e.Value?.ToString() ?? string.Empty;
+        // Al cambiar estado, limpiar ciudad si ya no pertenece al estado.
+        if (!string.IsNullOrEmpty(filtroCiudad)
+            && !CiudadesDisponibles.Contains(filtroCiudad, StringComparer.OrdinalIgnoreCase))
+        {
+            filtroCiudad = string.Empty;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void OnCiudadChanged(ChangeEventArgs e) =>
+        filtroCiudad = e.Value?.ToString() ?? string.Empty;
+
+    private void OnTipoChanged(ChangeEventArgs e) =>
+        filtroTipo = e.Value?.ToString() ?? string.Empty;
+
+    private async Task ReloadAsync() => await LoadProveedoresAsync();
+
+    private void ResetFilters()
+    {
+        searchQuery = string.Empty;
+        filtroEstado = string.Empty;
+        filtroCiudad = string.Empty;
+        filtroTipo = string.Empty;
+    }
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+
+    private void OnSearchInput(ChangeEventArgs e) => searchQuery = e.Value?.ToString() ?? string.Empty;
+
+    private void ClearSearch() => searchQuery = string.Empty;
+
+    private static bool Contains(string? source, string query) =>
+        !string.IsNullOrEmpty(source) && source.Contains(query, StringComparison.OrdinalIgnoreCase);
+
+    private static string FormatUbicacion(ProveedorRedDto p)
+    {
+        var parts = new[] { p.Estado, p.Ciudad, p.Direccion }
+            .Where(s => !string.IsNullOrWhiteSpace(s));
+        return string.Join(" · ", parts);
+    }
+
+    private static string IconoPorTipo(string? tipo)
+    {
+        if (string.IsNullOrWhiteSpace(tipo)) return "bi-geo-alt-fill";
+        var t = tipo.Trim().ToLowerInvariant();
+        if (t.Contains("lab")) return "bi-eyedropper";
+        if (t.Contains("farm")) return "bi-capsule";
+        if (t.Contains("odon") || t.Contains("dental")) return "bi-emoji-smile";
+        if (t.Contains("clin") || t.Contains("centr") || t.Contains("hosp")) return "bi-hospital";
+        return "bi-geo-alt-fill";
+    }
+
+    private static string DigitsOnly(string value) =>
+        new string(value.Where(char.IsDigit).ToArray());
+
+    private static string WhatsAppUrl(string contacto)
+    {
+        var digits = DigitsOnly(contacto);
+        if (digits.Length == 10 && digits.StartsWith('0'))
+            digits = "58" + digits[1..];
+        else if (digits.Length == 11 && digits.StartsWith("58") == false && digits.StartsWith('0') == false)
+            digits = "58" + digits;
+        return $"https://wa.me/{digits}";
+    }
+
+    private static string MapUrl(ProveedorRedDto p) =>
+        $"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString($"{p.Nombre} {p.Direccion} {p.Ciudad}")}";
 }
