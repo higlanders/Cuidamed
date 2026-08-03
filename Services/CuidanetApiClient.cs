@@ -16,12 +16,6 @@ namespace Cuidanet.Services
         private readonly string _movimientoConsultaUrl;
         private readonly string _uploadImagenUrl;
         private readonly string _ImagenesServicioUrl;
-        private readonly string _enviarSmsUrl;
-        private readonly string _verificarSmsUrl;
-        private readonly string _afiliadoRedUrl;
-        private readonly string _afiliadoRedFiltrosUrl;
-        private readonly string _coberturaPlanUrl;
-        private readonly string _coberturaConsumosUrl;
 
         // 3. Modificar el constructor para inyectar IConfiguration
         public CuidanetApiClient(HttpClient httpClient, IConfiguration configuration)
@@ -41,111 +35,7 @@ namespace Cuidanet.Services
             _movimientoConsultaUrl = configuration["CuidanetServices:Endpoints:MovimientoConsulta"] ?? "MovimientoServicio/consulta";
             _uploadImagenUrl = configuration["CuidanetServices:Endpoints:UploadImagen"] ?? "Imagenes/upload";
             _ImagenesServicioUrl = configuration["CuidanetServices:Endpoints:ImagenesServicio"] ?? "Imagenes/servicio";
-            _enviarSmsUrl = configuration["CuidanetServices:Endpoints:EnviarSms"] ?? "sms/enviar-codigo";
-            _verificarSmsUrl = configuration["CuidanetServices:Endpoints:VerificarSms"] ?? "sms/verificar-codigo";
-            _afiliadoRedUrl = configuration["CuidanetServices:Endpoints:AfiliadoRed"] ?? "Afiliado/red";
-            _afiliadoRedFiltrosUrl = configuration["CuidanetServices:Endpoints:AfiliadoRedFiltros"] ?? "Afiliado/red/filtros";
-            _coberturaPlanUrl = configuration["CuidanetServices:Endpoints:CoberturaPlan"] ?? "Cobertura/plan";
-            _coberturaConsumosUrl = configuration["CuidanetServices:Endpoints:CoberturaConsumos"] ?? "Cobertura/consumos";
-        }
 
-        /// <summary>
-        /// Envía OTP SMS: mismo flujo que EnvioSmsGateway (INSERT MensajesSmsNube vía APILIS).
-        /// Endpoint: POST api/sms/enviar-codigo
-        /// </summary>
-        /// <param name="origen">Hostname de la app para Web OTP (p. ej. window.location.hostname).</param>
-        public async Task<SmsApiResponse> EnviarSmsAsync(string cedula, string telefono, string? origen = null)
-        {
-            var payload = new EnviarSmsRequest
-            {
-                Cedula = cedula,
-                Telefono = telefono,
-                Origen = origen
-            };
-            var response = await _httpClient.PostAsJsonAsync(_enviarSmsUrl, payload);
-            var body = await response.Content.ReadAsStringAsync();
-            var parsed = ParseSmsResponse(body);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                if (parsed != null && (!string.IsNullOrWhiteSpace(parsed.UserMessage) || parsed.IsExplicitFailure))
-                    return parsed;
-
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                {
-                    throw new HttpRequestException(
-                        "No autorizado (401). Suele ser caché vieja de appsettings o credenciales de API. " +
-                        "Borra los datos del sitio y recarga. Detalle: " + TrimError(body));
-                }
-
-                throw new HttpRequestException(
-                    $"No se pudo enviar el SMS ({(int)response.StatusCode}). {TrimError(body)}");
-            }
-
-            if (parsed != null && parsed.IsExplicitFailure)
-                return parsed;
-
-            return parsed ?? new SmsApiResponse { Ok = true };
-        }
-
-        /// <summary>
-        /// Verifica el código SMS OTP en APILISPoblacion.
-        /// </summary>
-        public async Task<SmsApiResponse> VerificarSmsAsync(string cedula, string telefono, string codigo)
-        {
-            var payload = new VerificarSmsRequest
-            {
-                Cedula = cedula,
-                Telefono = telefono,
-                Codigo = codigo
-            };
-            var response = await _httpClient.PostAsJsonAsync(_verificarSmsUrl, payload);
-            var body = await response.Content.ReadAsStringAsync();
-            var parsed = ParseSmsResponse(body);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                if (parsed != null)
-                {
-                    parsed.Ok = false;
-                    parsed.Valid = false;
-                    return parsed;
-                }
-
-                throw new HttpRequestException(
-                    $"No se pudo verificar el SMS ({(int)response.StatusCode}). {TrimError(body)}");
-            }
-
-            if (parsed != null && parsed.IsExplicitFailure)
-                return parsed;
-
-            return parsed ?? new SmsApiResponse { Ok = true, Valid = true };
-        }
-
-        private static SmsApiResponse? ParseSmsResponse(string body)
-        {
-            if (string.IsNullOrWhiteSpace(body))
-                return null;
-
-            try
-            {
-                return System.Text.Json.JsonSerializer.Deserialize<SmsApiResponse>(
-                    body,
-                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        private static string TrimError(string body)
-        {
-            if (string.IsNullOrWhiteSpace(body))
-                return string.Empty;
-
-            var trimmed = body.Trim();
-            return trimmed.Length <= 180 ? trimmed : trimmed[..180] + "…";
         }
 
         /// <summary>
@@ -191,14 +81,6 @@ namespace Cuidanet.Services
                 throw new InvalidOperationException("Acceso denegado: El endpoint requiere parámetros de filtrado explícitos para este usuario (Regla Crítica de Privacidad).");
             }
 
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                var detail = await response.Content.ReadAsStringAsync();
-                throw new HttpRequestException(
-                    "No autorizado (401). No se pudo autenticar el servicio API. " +
-                    "Borra los datos del sitio y recarga. " + TrimError(detail));
-            }
-
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<List<BeneficiarioDto>>() ?? new List<BeneficiarioDto>();
         }
@@ -215,87 +97,6 @@ namespace Cuidanet.Services
 
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<BeneficiarioDto>();
-        }
-
-        /// <summary>
-        /// GET /api/Afiliado/red — proveedores de la red para la cédula (sin exclusiones del cliente).
-        /// </summary>
-        public async Task<List<ProveedorRedDto>> GetRedProveedoresAsync(
-            string cedula,
-            string? estado = null,
-            string? ciudad = null,
-            string? tipo = null)
-        {
-            var query = HttpUtility.ParseQueryString(string.Empty);
-            query["cedula"] = cedula;
-            if (!string.IsNullOrWhiteSpace(estado)) query["estado"] = estado;
-            if (!string.IsNullOrWhiteSpace(ciudad)) query["ciudad"] = ciudad;
-            if (!string.IsNullOrWhiteSpace(tipo)) query["tipo"] = tipo;
-
-            var response = await _httpClient.GetAsync($"{_afiliadoRedUrl}?{query}");
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<List<ProveedorRedDto>>() ?? new List<ProveedorRedDto>();
-        }
-
-        /// <summary>
-        /// GET /api/Afiliado/red/filtros — valores distintos de estado, ciudad y tipo.
-        /// </summary>
-        public async Task<ProveedorRedFiltrosDto> GetRedProveedoresFiltrosAsync(string cedula)
-        {
-            var query = HttpUtility.ParseQueryString(string.Empty);
-            query["cedula"] = cedula;
-
-            var response = await _httpClient.GetAsync($"{_afiliadoRedFiltrosUrl}?{query}");
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<ProveedorRedFiltrosDto>()
-                   ?? new ProveedorRedFiltrosDto();
-        }
-
-        /// <summary>
-        /// GET /api/Cobertura/plan?cedula= — cliente y plan(es) activos del asegurado.
-        /// </summary>
-        public async Task<List<CoberturaPlanDto>> GetCoberturaPlanAsync(string cedula)
-        {
-            var query = HttpUtility.ParseQueryString(string.Empty);
-            query["cedula"] = cedula;
-
-            var response = await _httpClient.GetAsync($"{_coberturaPlanUrl}?{query}");
-            if (!response.IsSuccessStatusCode)
-            {
-                var detail = await response.Content.ReadAsStringAsync();
-                throw new HttpRequestException(
-                    $"Cobertura/plan falló ({(int)response.StatusCode}). {TrimError(detail)}");
-            }
-
-            return await response.Content.ReadFromJsonAsync<List<CoberturaPlanDto>>()
-                   ?? new List<CoberturaPlanDto>();
-        }
-
-        /// <summary>
-        /// GET /api/Cobertura/consumos?cedula=&amp;fechaDesde=&amp;fechaHasta=
-        /// Consumos APS, reembolso, carta aval y medicamentos.
-        /// </summary>
-        public async Task<CoberturaConsumoDto?> GetCoberturaConsumosAsync(
-            string cedula,
-            DateTime? fechaDesde = null,
-            DateTime? fechaHasta = null)
-        {
-            var query = HttpUtility.ParseQueryString(string.Empty);
-            query["cedula"] = cedula;
-            if (fechaDesde.HasValue)
-                query["fechaDesde"] = fechaDesde.Value.ToString("yyyy-MM-dd");
-            if (fechaHasta.HasValue)
-                query["fechaHasta"] = fechaHasta.Value.ToString("yyyy-MM-dd");
-
-            var response = await _httpClient.GetAsync($"{_coberturaConsumosUrl}?{query}");
-            if (!response.IsSuccessStatusCode)
-            {
-                var detail = await response.Content.ReadAsStringAsync();
-                throw new HttpRequestException(
-                    $"Cobertura/consumos falló ({(int)response.StatusCode}). {TrimError(detail)}");
-            }
-
-            return await response.Content.ReadFromJsonAsync<CoberturaConsumoDto>();
         }
 
         /// <summary>

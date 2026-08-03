@@ -365,6 +365,3 @@ FodyWeavers.xsd
 # Configuración local con credenciales
 wwwroot/appsettings.json
 wwwroot/appsettings.Development.json
-
-# Salida local de publish / verificación
-_pubcheck/

@@ -1,24 +1,12 @@
 ﻿<CascadingAuthenticationState>
-    <ErrorBoundary>
-        <ChildContent>
-            <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
-                <Found Context="routeData">
-                    <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-                        <NotAuthorized>
-                            <RedirectToLogin />
-                        </NotAuthorized>
-                    </AuthorizeRouteView>
-                    <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-                </Found>
-            </Router>
-        </ChildContent>
-        <ErrorContent Context="ex">
-            <div style="max-width:32rem;margin:2rem auto;padding:1.25rem;font-family:Montserrat,system-ui,sans-serif;">
-                <h2 style="color:#842029;font-size:1.1rem;">Ocurrió un error</h2>
-                <p style="color:#6b7c83;font-size:0.9rem;">@ex.Message</p>
-                <p style="color:#6b7c83;font-size:0.85rem;">Prueba recargar o borrar la caché del sitio (PWA) e intenta de nuevo.</p>
-                <a href="." style="color:#007a8a;font-weight:600;">Recargar</a>
-            </div>
-        </ErrorContent>
-    </ErrorBoundary>
+    <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)" >
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    <RedirectToLogin />
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+    </Router>
 </CascadingAuthenticationState>

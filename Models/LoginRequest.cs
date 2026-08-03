@@ -29,60 +29,6 @@ namespace Cuidanet.Models
         public bool Valid { get; set; }
     }
 
-    public class EnviarSmsRequest
-    {
-        [JsonPropertyName("cedula")]
-        public string Cedula { get; set; } = string.Empty;
-
-        [JsonPropertyName("telefono")]
-        public string Telefono { get; set; } = string.Empty;
-
-        /// <summary>Hostname de la página (Web OTP).</summary>
-        [JsonPropertyName("origen")]
-        public string? Origen { get; set; }
-    }
-
-    public class VerificarSmsRequest
-    {
-        [JsonPropertyName("cedula")]
-        public string Cedula { get; set; } = string.Empty;
-
-        [JsonPropertyName("telefono")]
-        public string Telefono { get; set; } = string.Empty;
-
-        [JsonPropertyName("codigo")]
-        public string Codigo { get; set; } = string.Empty;
-    }
-
-    public class SmsApiResponse
-    {
-        [JsonPropertyName("ok")]
-        public bool? Ok { get; set; }
-
-        [JsonPropertyName("success")]
-        public bool? Success { get; set; }
-
-        [JsonPropertyName("valid")]
-        public bool? Valid { get; set; }
-
-        [JsonPropertyName("mensaje")]
-        public string? Mensaje { get; set; }
-
-        [JsonPropertyName("message")]
-        public string? Message { get; set; }
-
-        [JsonPropertyName("messageId")]
-        public long? MessageId { get; set; }
-
-        public bool IsSuccessful =>
-            (Ok ?? true) && (Success ?? true) && (Valid ?? true);
-
-        public bool IsExplicitFailure =>
-            Ok == false || Success == false || Valid == false;
-
-        public string? UserMessage => Mensaje ?? Message;
-    }
-
     // Puedes expandir estas propiedades según el JSON real de tu API
     public class BeneficiarioDto
     {
@@ -95,65 +41,8 @@ namespace Cuidanet.Models
         [JsonPropertyName("cedula")]
         public string Cedula { get; set; } = string.Empty;
 
-        [JsonPropertyName("nombre")]
-        public string? Nombre { get; set; }
-
-        [JsonPropertyName("apellido")]
-        public string? Apellido { get; set; }
-
         [JsonPropertyName("foto")]
         public string? FotoBase64 { get; set; } // Solo vendrá en el detalle unitario
-
-        /// <summary>Nombre y apellido del asegurado, o etiqueta de respaldo si la API no los envía.</summary>
-        [JsonIgnore]
-        public string NombreCompleto
-        {
-            get
-            {
-                var full = $"{Nombre} {Apellido}".Trim();
-                return string.IsNullOrWhiteSpace(full)
-                    ? $"Afiliado #{BeneficiarioId}"
-                    : full;
-            }
-        }
-    }
-
-    /// <summary>Proveedor de la red CuidaNet (GET Afiliado/red).</summary>
-    public class ProveedorRedDto
-    {
-        [JsonPropertyName("nombre")]
-        public string Nombre { get; set; } = string.Empty;
-
-        [JsonPropertyName("direccion")]
-        public string Direccion { get; set; } = string.Empty;
-
-        [JsonPropertyName("telefono")]
-        public string Telefono { get; set; } = string.Empty;
-
-        [JsonPropertyName("contactoWhatsApp")]
-        public string ContactoWhatsApp { get; set; } = string.Empty;
-
-        [JsonPropertyName("estado")]
-        public string? Estado { get; set; }
-
-        [JsonPropertyName("ciudad")]
-        public string? Ciudad { get; set; }
-
-        [JsonPropertyName("tipo")]
-        public string? Tipo { get; set; }
-    }
-
-    /// <summary>Combos de filtro para la red de proveedores.</summary>
-    public class ProveedorRedFiltrosDto
-    {
-        [JsonPropertyName("estados")]
-        public List<string> Estados { get; set; } = new();
-
-        [JsonPropertyName("ciudades")]
-        public List<string> Ciudades { get; set; } = new();
-
-        [JsonPropertyName("tipos")]
-        public List<string> Tipos { get; set; } = new();
     }
 }
 

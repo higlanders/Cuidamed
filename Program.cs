@@ -1,59 +1,36 @@
-﻿using System.Text;
 using Cuidanet;
 using Cuidanet.Handlers;
 using Cuidanet.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Microsoft.Extensions.Configuration;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// appsettings.json se publica fuera del pipeline SWA (.NET 10 fingerprint bug).
-// CreateDefault puede no cargarlo; lo leemos explícitamente desde el BaseAddress (/Cuidamed/).
-try
-{
-    using var configClient = new HttpClient
-    {
-        BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
-    };
-    var json = await configClient.GetStringAsync("appsettings.json");
-    if (!string.IsNullOrWhiteSpace(json) && json.Contains("CuidanetServices", StringComparison.Ordinal))
-    {
-        builder.Configuration.AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(json)));
-    }
-    else
-    {
-        Console.Error.WriteLine("[Cuidanet] appsettings.json vacío o sin CuidanetServices.");
-    }
-}
-catch (Exception ex)
-{
-    Console.Error.WriteLine(
-        $"[Cuidanet] No se pudo cargar appsettings.json desde {builder.HostEnvironment.BaseAddress}: {ex.Message}");
-}
-
-if (string.IsNullOrWhiteSpace(builder.Configuration["CuidanetServices:user"]))
-{
-    Console.Error.WriteLine("[Cuidanet] CuidanetServices:user está vacío tras cargar configuración.");
-}
-
+// 1. Registramos nuestro proveedor personalizado como un Singleton/Scoped
 builder.Services.AddScoped<CustomAuthStateProvider>();
 
+// 2. Reemplazamos el proveedor por defecto de Blazor por el nuestro
 builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
     provider.GetRequiredService<CustomAuthStateProvider>());
 
+// 3. Habilitamos el núcleo de autorización de Blazor
 builder.Services.AddAuthorizationCore();
 
+// 4. Registrar el handler para un HttpClient específico
 builder.Services.AddTransient<CuidanetAuthHandler>(sp =>
 {
-    var config = sp.GetRequiredService<IConfiguration>();
-    return new CuidanetAuthHandler(config);
+    var user = builder.Configuration["CuidanetServices:user"] ?? string.Empty;
+    var pass = builder.Configuration["CuidanetServices:pass"] ?? string.Empty;
+
+    // Pasamos el usuario, la contraseña y builder.Configuration directamente
+    return new CuidanetAuthHandler(user, pass, builder.Configuration);
 });
 
 builder.Services.AddHttpClient<CuidanetApiClient>()
     .AddHttpMessageHandler<CuidanetAuthHandler>();
 
 await builder.Build().RunAsync();
+
