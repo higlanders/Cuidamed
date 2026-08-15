@@ -46,7 +46,7 @@
     <script>
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260815f';
+            const flag = 'cn_cache_bust_20260815g';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
@@ -82,8 +82,18 @@
                     defaultUri = defaultUri.replace('.br', '');
                 }
 
-                // dotnetjs EXIGE URI string (no Response/fetch)
+                // dotnetjs EXIGE URI string (no Response/fetch).
+                // En publish el archivo es dotnet.[hash].js; el importmap lo declara,
+                // pero este callback recibe la URI sin hash y acaba en 404.
                 if (type === 'dotnetjs') {
+                    try {
+                        var mapEl = document.querySelector('script[type="importmap"]');
+                        var map = mapEl ? JSON.parse(mapEl.textContent || '{}') : {};
+                        var mapped = map.imports && (map.imports['./_framework/dotnet.js'] || map.imports['_framework/dotnet.js']);
+                        if (mapped) {
+                            return new URL(mapped, document.baseURI).href;
+                        }
+                    } catch (e) { /* usar defaultUri */ }
                     return defaultUri;
                 }
 
