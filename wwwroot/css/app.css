@@ -80,22 +80,64 @@ a, .btn-link {
 .cn-boot__logo {
     width: min(240px, 70vw);
     height: auto;
-    animation: cn-boot-in 1.5s ease-out both;
 }
 
-@keyframes cn-boot-in {
-    from {
+#cn-boot-reveal {
+    position: fixed;
+    inset: 0;
+    z-index: 4000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    perspective: 1100px;
+    animation: cn-boot-overlay-out 0.4s ease 5.5s forwards;
+}
+
+.cn-boot-reveal__stage {
+    width: min(240px, 70vw);
+    transform-origin: center center;
+    transform-style: preserve-3d;
+    animation: cn-boot-reveal 5.5s both;
+}
+
+.cn-boot-reveal__stage img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+@keyframes cn-boot-reveal {
+    0% {
         opacity: 0;
-        transform: scale(0);
+        transform: scale(0) rotateY(0deg);
+        animation-timing-function: ease-out;
     }
-    to {
+    27.2727% {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(1) rotateY(0deg);
+        animation-timing-function: ease-in-out;
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotateY(360deg);
+    }
+}
+
+@keyframes cn-boot-overlay-out {
+    to {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .cn-boot__logo {
+    #cn-boot-reveal {
+        animation: cn-boot-overlay-out 0.01s linear forwards;
+    }
+
+    .cn-boot-reveal__stage {
         animation: none;
         opacity: 1;
         transform: none;

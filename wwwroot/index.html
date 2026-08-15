@@ -23,6 +23,12 @@
 </head>
 
 <body>
+    <div id="cn-boot-reveal" role="status" aria-label="Cuidanet">
+        <div class="cn-boot-reveal__stage">
+            <img src="LogoCuidaNet.png" alt="Cuidanet" />
+        </div>
+    </div>
+
     <div id="app">
         <div class="cn-boot" role="status" aria-label="Cuidanet">
             <img class="cn-boot__logo" src="LogoCuidaNet.png" alt="Cuidanet" />
@@ -39,7 +45,7 @@
     <script>
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260815i';
+            const flag = 'cn_cache_bust_20260815j';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
