@@ -24,11 +24,9 @@
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <div class="cn-boot" role="status" aria-label="Cargando Cuidanet">
+            <img class="cn-boot__logo" src="LogoCuidaNet.png" alt="Cuidanet" />
+        </div>
     </div>
 
     <div id="blazor-error-ui">
@@ -41,7 +39,7 @@
     <script>
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260801e';
+            const flag = 'cn_cache_bust_20260815a';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
