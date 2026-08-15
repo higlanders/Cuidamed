@@ -18,95 +18,27 @@
     <link href="manifest.webmanifest" rel="manifest" />
     <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-    <script type="importmap"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+        }
+    }
+    </script>
 
 </head>
 
 <body>
-    <div id="cn-intro" data-active="1" role="dialog" aria-label="Presentación de animaciones">
-        <div class="cn-intro__top">
-            <div>
-                <div class="cn-intro__num" id="cn-intro-num">1</div>
-                <p class="cn-intro__caption"></p>
-            </div>
-            <button type="button" class="cn-intro__skip" id="cn-intro-skip">Saltar</button>
-        </div>
-        <div class="cn-intro__stage">
-            <section class="cn-intro__scene is-active" data-scene="1" aria-label="Animación 1">
-                <div class="cn-s1">
-                    <div class="cn-s1__morph">
-                        <span class="cn-s1__label">Iniciar sesión</span>
-                        <span class="cn-s1__bar"></span>
-                        <div class="cn-s1__dash">
-                            <div class="cn-s1__dash-top"></div>
-                            <div class="cn-s1__dash-grid">
-                                <span></span><span></span><span></span><span></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="cn-intro__scene" data-scene="2" aria-label="Animación 2">
-                <div class="cn-s2">
-                    <svg class="cn-s2__pet" viewBox="0 0 120 120" aria-hidden="true">
-                        <circle cx="60" cy="58" r="38" fill="#eef7f9" stroke="#0170a0" stroke-width="3" />
-                        <circle class="cn-s2__eye" cx="46" cy="52" r="5" fill="#0170a0" />
-                        <circle class="cn-s2__eye" cx="74" cy="52" r="5" fill="#0170a0" />
-                        <path d="M48 72 Q60 82 72 72" fill="none" stroke="#00a4ba" stroke-width="3" stroke-linecap="round" />
-                        <g class="cn-s2__hands">
-                            <ellipse cx="46" cy="54" rx="12" ry="9" fill="#85b998" />
-                            <ellipse cx="74" cy="54" rx="12" ry="9" fill="#85b998" />
-                        </g>
-                    </svg>
-                    <div class="cn-s2__fields">
-                        <div class="cn-s2__field">Correo</div>
-                        <div class="cn-s2__field cn-s2__field--pass">Contraseña</div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="cn-intro__scene" data-scene="3" aria-label="Animación 3">
-                <div class="cn-s3">
-                    <div class="cn-s3__card">
-                        <div class="cn-s3__face cn-s3__face--front">
-                            <div class="cn-s3__fake-label">Ingreso seguro</div>
-                            <div class="cn-s3__fake-input"></div>
-                            <div class="cn-s3__fake-input"></div>
-                            <div class="cn-s3__fake-btn"></div>
-                        </div>
-                        <div class="cn-s3__face cn-s3__face--back">
-                            <div class="cn-s3__print" aria-hidden="true"></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="cn-intro__scene" data-scene="4" aria-label="Animación 4">
-                <div class="cn-s4">
-                    <canvas id="cn-s4-canvas"></canvas>
-                    <p class="cn-s4__hint">Mueve el cursor</p>
-                </div>
-            </section>
-
-            <section class="cn-intro__scene" data-scene="5" aria-label="Animación 5">
-                <div class="cn-s5">
-                    <div class="cn-s5__halo" aria-hidden="true"></div>
-                    <div class="cn-s5__card">
-                        <div class="cn-s5__row"></div>
-                        <div class="cn-s5__row"></div>
-                        <div class="cn-s5__btn"></div>
-                    </div>
-                </div>
-            </section>
-        </div>
+    <div id="cn-logo3d" role="status" aria-label="Cuidanet">
+        <canvas id="cn-logo3d-canvas"></canvas>
+        <img id="cn-logo3d-fallback" class="cn-logo3d__fallback" src="LogoCuidaNet.png" alt="Cuidanet" hidden />
     </div>
 
     <div id="app">
         <div class="cn-boot" role="status" aria-label="Cargando Cuidanet">
             <div class="cn-boot__mark">
                 <img class="cn-boot__logo" src="LogoCuidaNet.png" alt="Cuidanet" />
-                <span class="cn-boot__line" aria-hidden="true"></span>
             </div>
         </div>
     </div>
@@ -121,7 +53,7 @@
     <script>
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260815d';
+            const flag = 'cn_cache_bust_20260815e';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
@@ -143,59 +75,7 @@
                     return;
                 }
             } catch (e) { /* sessionStorage bloqueado */ }
-
-            playBootChime();
-            document.addEventListener('pointerdown', playBootChime, { once: true });
         })();
-
-        var bootChimePlayed = false;
-        function playBootChime() {
-            if (bootChimePlayed) return;
-            try {
-                if (sessionStorage.getItem('cn_boot_chime') === '1') {
-                    bootChimePlayed = true;
-                    return;
-                }
-            } catch (e) { /* sessionStorage bloqueado */ }
-
-            try {
-                var Ctx = window.AudioContext || window.webkitAudioContext;
-                if (!Ctx) return;
-                var ctx = new Ctx();
-
-                function startTones() {
-                    if (bootChimePlayed) return;
-                    bootChimePlayed = true;
-                    try { sessionStorage.setItem('cn_boot_chime', '1'); } catch (e) { /* ignore */ }
-
-                    var now = ctx.currentTime;
-                    function tone(freq, start, dur, gain) {
-                        var osc = ctx.createOscillator();
-                        var amp = ctx.createGain();
-                        osc.type = 'sine';
-                        osc.frequency.setValueAtTime(freq, start);
-                        amp.gain.setValueAtTime(0.0001, start);
-                        amp.gain.exponentialRampToValueAtTime(gain, start + 0.04);
-                        amp.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-                        osc.connect(amp);
-                        amp.connect(ctx.destination);
-                        osc.start(start);
-                        osc.stop(start + dur + 0.02);
-                    }
-
-                    tone(523.25, now, 0.32, 0.09);
-                    tone(659.25, now + 0.16, 0.42, 0.08);
-                }
-
-                if (ctx.state === 'suspended' && ctx.resume) {
-                    ctx.resume().then(startTones).catch(function () { /* autoplay bloqueado */ });
-                } else {
-                    startTones();
-                }
-            } catch (e) {
-                /* El navegador puede bloquear audio sin gesto del usuario */
-            }
-        }
     </script>
 
     <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
@@ -377,7 +257,7 @@
             return outcome === 'accepted';
         };
     </script>
-    <script src="js/boot-intro.js"></script>
+    <script type="module" src="js/boot-logo3d.js"></script>
 </body>
 
 </html>
