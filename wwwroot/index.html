@@ -25,7 +25,10 @@
 <body>
     <div id="app">
         <div class="cn-boot" role="status" aria-label="Cargando Cuidanet">
-            <img class="cn-boot__logo" src="LogoCuidaNet.png" alt="Cuidanet" />
+            <div class="cn-boot__mark">
+                <img class="cn-boot__logo" src="LogoCuidaNet.png" alt="Cuidanet" />
+                <span class="cn-boot__line" aria-hidden="true"></span>
+            </div>
         </div>
     </div>
 
@@ -39,7 +42,7 @@
     <script>
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260815a';
+            const flag = 'cn_cache_bust_20260815b';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
@@ -61,7 +64,59 @@
                     return;
                 }
             } catch (e) { /* sessionStorage bloqueado */ }
+
+            playBootChime();
+            document.addEventListener('pointerdown', playBootChime, { once: true });
         })();
+
+        var bootChimePlayed = false;
+        function playBootChime() {
+            if (bootChimePlayed) return;
+            try {
+                if (sessionStorage.getItem('cn_boot_chime') === '1') {
+                    bootChimePlayed = true;
+                    return;
+                }
+            } catch (e) { /* sessionStorage bloqueado */ }
+
+            try {
+                var Ctx = window.AudioContext || window.webkitAudioContext;
+                if (!Ctx) return;
+                var ctx = new Ctx();
+
+                function startTones() {
+                    if (bootChimePlayed) return;
+                    bootChimePlayed = true;
+                    try { sessionStorage.setItem('cn_boot_chime', '1'); } catch (e) { /* ignore */ }
+
+                    var now = ctx.currentTime;
+                    function tone(freq, start, dur, gain) {
+                        var osc = ctx.createOscillator();
+                        var amp = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, start);
+                        amp.gain.setValueAtTime(0.0001, start);
+                        amp.gain.exponentialRampToValueAtTime(gain, start + 0.04);
+                        amp.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+                        osc.connect(amp);
+                        amp.connect(ctx.destination);
+                        osc.start(start);
+                        osc.stop(start + dur + 0.02);
+                    }
+
+                    tone(523.25, now, 0.32, 0.09);
+                    tone(659.25, now + 0.16, 0.42, 0.08);
+                }
+
+                if (ctx.state === 'suspended' && ctx.resume) {
+                    ctx.resume().then(startTones).catch(function () { /* autoplay bloqueado */ });
+                } else {
+                    startTones();
+                }
+            } catch (e) {
+                /* El navegador puede bloquear audio sin gesto del usuario */
+            }
+        }
     </script>
 
     <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>

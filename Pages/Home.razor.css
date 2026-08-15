@@ -17,7 +17,7 @@
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    background: var(--cn-sheet-bg);
+    background: #ffffff;
     font-family: var(--cn-font);
     color: var(--cn-text);
     -webkit-font-smoothing: antialiased;
@@ -49,9 +49,10 @@
 /* —— Hero plano —— */
 .cn-home__hero {
     flex: 0 0 auto;
-    padding: calc(0.85rem + env(safe-area-inset-top, 0px)) 1.25rem 1.5rem;
-    background: var(--cn-primary);
-    color: #fff;
+    padding: calc(0.85rem + env(safe-area-inset-top, 0px)) 1.25rem 1.25rem;
+    background: #ffffff;
+    color: var(--cn-text);
+    border-bottom: 3px solid var(--cn-primary);
 }
 
 .cn-home__topbar {
@@ -72,10 +73,10 @@
     width: 2.35rem;
     height: 2.35rem;
     padding: 0;
-    border: 1.5px solid rgba(255, 255, 255, 0.55);
+    border: 1.5px solid var(--cn-primary);
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.16);
-    color: #fff;
+    background: #eef7f9;
+    color: var(--cn-primary);
     font-family: var(--cn-font);
     font-size: 0.7rem;
     font-weight: 700;
@@ -97,13 +98,14 @@
     font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.2;
+    color: var(--cn-deep);
 }
 
 .cn-home__meta {
     margin: 0 0 0.55rem;
     font-size: 0.78rem;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.86);
+    color: var(--cn-muted);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -119,15 +121,13 @@
     margin: 0;
     font-size: 0.875rem;
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.92);
+    color: var(--cn-primary);
 }
 
 /* —— Sheet —— */
 .cn-home__sheet {
     flex: 1 1 auto;
-    background: var(--cn-surface);
-    border-radius: var(--cn-radius-sheet) var(--cn-radius-sheet) 0 0;
-    margin-top: -12px;
+    background: #ffffff;
     padding: 1.25rem 1.1rem 1.25rem;
 }
 
