@@ -46,7 +46,7 @@
     <script>
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260815g';
+            const flag = 'cn_cache_bust_20260815h';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
@@ -77,28 +77,27 @@
     <script>
         Blazor.start({
             loadBootResource: function (type, name, defaultUri, integrity) {
-                // Desactiva .br si GitHub Pages no los sirve
-                if (type !== 'dotnetjs' && defaultUri.endsWith('.br')) {
-                    defaultUri = defaultUri.replace('.br', '');
+                // GitHub Pages no sirve .br con Content-Encoding; usa el archivo plano.
+                if (defaultUri && defaultUri.endsWith('.br')) {
+                    defaultUri = defaultUri.replace(/\.br$/, '');
                 }
 
-                // dotnetjs EXIGE URI string (no Response/fetch).
-                // En publish el archivo es dotnet.[hash].js; el importmap lo declara,
-                // pero este callback recibe la URI sin hash y acaba en 404.
-                if (type === 'dotnetjs') {
-                    try {
-                        var mapEl = document.querySelector('script[type="importmap"]');
-                        var map = mapEl ? JSON.parse(mapEl.textContent || '{}') : {};
-                        var mapped = map.imports && (map.imports['./_framework/dotnet.js'] || map.imports['_framework/dotnet.js']);
-                        if (mapped) {
-                            return new URL(mapped, document.baseURI).href;
+                try {
+                    var mapEl = document.querySelector('script[type="importmap"]');
+                    var imports = mapEl ? (JSON.parse(mapEl.textContent || '{}').imports || {}) : {};
+                    var file = (name || defaultUri).split('?')[0].split('/').pop();
+                    for (var key in imports) {
+                        if (key === 'three' || key.indexOf('three/') === 0) continue;
+                        if (key.split('/').pop() === file) {
+                            defaultUri = new URL(imports[key], document.baseURI).href;
+                            break;
                         }
-                    } catch (e) { /* usar defaultUri */ }
-                    return defaultUri;
-                }
+                    }
+                } catch (e) { /* importmap ausente o inválido */ }
 
-                // Resto: sin integridad, evita mezcla de builds en caché
-                return fetch(defaultUri, { cache: 'no-store' });
+                // Siempre URI string. Devolver fetch() rompe Mono
+                // (MONO_WASM: s is not a function en mono_download_assets).
+                return defaultUri;
             }
         }).catch(function (err) {
             console.error('Blazor.start failed', err);
