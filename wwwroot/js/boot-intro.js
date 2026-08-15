@@ -1,5 +1,5 @@
 ﻿(function () {
-    var SCENE_MS = 4200;
+    var SCENE_MS = 8000;
     var intro = document.getElementById("cn-intro");
     if (!intro) return;
 
@@ -19,20 +19,25 @@
         if (numEl) numEl.textContent = String(n);
         intro.setAttribute("data-active", String(n));
         scenes.forEach(function (el) {
-            var on = el.getAttribute("data-scene") === String(n);
-            el.classList.toggle("is-active", on);
-            if (on) {
-                el.style.animation = "none";
-                void el.offsetWidth;
-                el.style.animation = "";
-            }
+            el.classList.remove("is-active");
         });
+        var current = intro.querySelector('[data-scene="' + n + '"]');
+        if (current) {
+            void current.offsetWidth;
+            current.classList.add("is-active");
+        }
 
         if (particleStop) {
             particleStop();
             particleStop = null;
         }
-        if (n === 4) particleStop = startParticles();
+        if (n === 4) {
+            window.requestAnimationFrame(function () {
+                window.requestAnimationFrame(function () {
+                    particleStop = startParticles();
+                });
+            });
+        }
     }
 
     function next() {

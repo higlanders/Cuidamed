@@ -24,7 +24,7 @@
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    background: linear-gradient(165deg, var(--cn-deep) 0%, var(--cn-primary) 45%, var(--cn-teal) 100%);
+    background: #ffffff;
     font-family: var(--cn-font);
     color: var(--cn-text);
     -webkit-font-smoothing: antialiased;
@@ -52,9 +52,11 @@
 /* —— Hero —— */
 .cn-login-hero {
     flex: 0 0 auto;
-    padding: calc(1.75rem + env(safe-area-inset-top, 0px)) 1.75rem 2.25rem;
+    padding: calc(1.25rem + env(safe-area-inset-top, 0px)) 1.75rem 1.25rem;
     text-align: center;
-    color: #fff;
+    color: var(--cn-text);
+    background: #ffffff;
+    border-bottom: 3px solid var(--cn-primary);
     position: relative;
     animation: cn-hero-in 0.55s ease-out both;
     transition: padding 0.25s ease;
@@ -74,11 +76,7 @@
 }
 
 .cn-login-hero__glow {
-    position: absolute;
-    inset: -20% -10% auto;
-    height: 70%;
-    background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.18) 0%, transparent 70%);
-    pointer-events: none;
+    display: none;
 }
 
 .cn-login-hero__logo {
@@ -88,8 +86,7 @@
     max-height: 64px;
     width: auto;
     max-width: min(220px, 70vw);
-    margin: 0 auto 1rem;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+    margin: 0 auto 0.75rem;
 }
 
 .cn-login-hero__slogan {
@@ -100,18 +97,18 @@
     font-weight: 400;
     font-style: italic;
     letter-spacing: 0.01em;
-    color: rgba(255, 255, 255, 0.92);
+    color: var(--cn-primary);
 }
 
 /* —— Sheet —— */
 .cn-login-sheet {
     flex: 1 1 auto;
-    background: var(--cn-surface);
-    border-radius: var(--cn-radius-sheet) var(--cn-radius-sheet) 0 0;
+    background: #ffffff;
+    border-radius: 0;
     padding: 1.5rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
     display: flex;
     flex-direction: column;
-    box-shadow: 0 -8px 32px rgba(10, 65, 128, 0.18);
+    box-shadow: none;
     animation: cn-sheet-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
     animation-delay: 0.08s;
     /* Un solo scroll en la página (cn-login-page), no anidar overflow aquí en móvil */
@@ -616,17 +613,15 @@
     .cn-login-page {
         align-items: center;
         padding: 2rem 1rem;
-        background:
-            radial-gradient(ellipse at 20% 20%, rgba(26, 154, 158, 0.35) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 80%, rgba(10, 65, 128, 0.4) 0%, transparent 45%),
-            linear-gradient(165deg, var(--cn-deep) 0%, var(--cn-primary) 45%, var(--cn-teal) 100%);
+        background: #ffffff;
     }
 
     .cn-login-shell {
         min-height: auto;
         max-height: min(860px, calc(100dvh - 2rem));
         border-radius: 28px;
-        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+        border: 1px solid #e6eef1;
+        box-shadow: 0 12px 40px rgba(1, 112, 160, 0.08);
         overflow: hidden;
     }
 
