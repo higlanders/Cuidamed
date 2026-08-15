@@ -155,6 +155,471 @@ a, .btn-link {
     }
 }
 
+/* —— Intro: 5 animaciones en secuencia —— */
+#cn-intro {
+    --cn-primary: #0170a0;
+    --cn-teal: #00a4ba;
+    --cn-text: #1a2b33;
+    --cn-muted: #6b7c85;
+    position: fixed;
+    inset: 0;
+    z-index: 4000;
+    background: #ffffff;
+    color: var(--cn-text);
+    font-family: 'Montserrat', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+}
+
+#cn-intro.is-done {
+    animation: cn-intro-out 0.6s ease forwards;
+    pointer-events: none;
+}
+
+@keyframes cn-intro-out {
+    to { opacity: 0; visibility: hidden; }
+}
+
+.cn-intro__top {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: calc(0.75rem + env(safe-area-inset-top, 0px)) 1.1rem 0.4rem;
+    position: relative;
+    z-index: 2;
+}
+
+.cn-intro__num {
+    font-size: 2.75rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--cn-primary);
+    letter-spacing: -0.04em;
+}
+
+.cn-intro__caption {
+    margin: 0.2rem 0 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--cn-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+#cn-intro[data-active="1"] .cn-intro__caption::after { content: "Morphing"; }
+#cn-intro[data-active="2"] .cn-intro__caption::after { content: "Mascota"; }
+#cn-intro[data-active="3"] .cn-intro__caption::after { content: "Card flip"; }
+#cn-intro[data-active="4"] .cn-intro__caption::after { content: "Partículas"; }
+#cn-intro[data-active="5"] .cn-intro__caption::after { content: "Glow"; }
+
+.cn-intro__skip {
+    border: none;
+    background: transparent;
+    color: var(--cn-primary);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 0.2rem;
+    cursor: pointer;
+}
+
+.cn-intro__stage {
+    flex: 1;
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+}
+
+.cn-intro__scene {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1.25rem 1.5rem;
+}
+
+.cn-intro__scene.is-active {
+    display: flex;
+}
+
+/* 1. Seamless morphing */
+.cn-s1 {
+    position: relative;
+    width: min(280px, 82vw);
+    height: 168px;
+    display: grid;
+    place-items: center;
+}
+
+.cn-s1__morph {
+    position: absolute;
+    width: 168px;
+    height: 48px;
+    border-radius: 14px;
+    background: var(--cn-primary);
+    color: #fff;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 28px rgba(1, 112, 160, 0.22);
+}
+
+.cn-intro__scene.is-active .cn-s1__morph {
+    animation: cn-s1-morph 4.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cn-s1__label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.cn-intro__scene.is-active .cn-s1__label {
+    animation: cn-s1-label 4.2s ease both;
+}
+
+.cn-s1__bar {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    height: 6px;
+    width: 0;
+    border-radius: 99px;
+    background: #fff;
+    transform: translateY(-50%);
+    opacity: 0;
+}
+
+.cn-intro__scene.is-active .cn-s1__bar {
+    animation: cn-s1-bar 4.2s ease both;
+}
+
+.cn-s1__dash {
+    position: absolute;
+    inset: 14px;
+    opacity: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cn-intro__scene.is-active .cn-s1__dash {
+    animation: cn-s1-dash 4.2s ease both;
+}
+
+.cn-s1__dash-top {
+    height: 10px;
+    width: 42%;
+    border-radius: 6px;
+    background: rgba(1, 112, 160, 0.2);
+}
+
+.cn-s1__dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    flex: 1;
+}
+
+.cn-s1__dash-grid span {
+    border-radius: 10px;
+    background: #eef7f9;
+    border: 1px solid #d7eaef;
+}
+
+@keyframes cn-s1-morph {
+    0%, 12% { width: 168px; height: 48px; border-radius: 14px; background: #0170a0; }
+    28% { width: 280px; height: 16px; border-radius: 99px; background: #d7eaef; }
+    55% { width: 280px; height: 16px; border-radius: 99px; background: #00a4ba; }
+    72%, 100% { width: 280px; height: 168px; border-radius: 18px; background: #fff; box-shadow: 0 14px 36px rgba(1, 112, 160, 0.16); }
+}
+
+@keyframes cn-s1-label {
+    0%, 14% { opacity: 1; }
+    22%, 100% { opacity: 0; }
+}
+
+@keyframes cn-s1-bar {
+    0%, 22% { opacity: 0; width: 0; }
+    28% { opacity: 1; width: 12%; }
+    52% { opacity: 1; width: 86%; }
+    62%, 100% { opacity: 0; width: 86%; }
+}
+
+@keyframes cn-s1-dash {
+    0%, 68% { opacity: 0; }
+    80%, 100% { opacity: 1; }
+}
+
+/* 2. Mascota reactiva */
+.cn-s2 {
+    width: min(280px, 82vw);
+    text-align: center;
+}
+
+.cn-s2__pet {
+    width: 112px;
+    height: 112px;
+    margin: 0 auto 1rem;
+}
+
+.cn-intro__scene.is-active .cn-s2__pet {
+    animation: cn-s2-look 4.2s ease-in-out both;
+}
+
+.cn-s2__eye {
+    transform-origin: center;
+}
+
+.cn-s2__hands {
+    opacity: 0;
+}
+
+.cn-intro__scene.is-active .cn-s2__hands {
+    animation: cn-s2-hands 4.2s ease-in-out both;
+}
+
+.cn-s2__fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.cn-s2__field {
+    height: 42px;
+    border: 1.5px solid #d7eaef;
+    border-radius: 12px;
+    background: #fff;
+    text-align: left;
+    padding: 0.35rem 0.8rem 0.2rem;
+    color: var(--cn-muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+.cn-intro__scene.is-active .cn-s2__field--pass {
+    animation: cn-s2-pass 4.2s ease both;
+}
+
+@keyframes cn-s2-look {
+    0%, 18% { transform: translateX(0); }
+    28% { transform: translateX(-10px); }
+    42% { transform: translateX(10px); }
+    52% { transform: translateX(0); }
+    70%, 82% { transform: translateX(0); }
+    88% { transform: translateX(-8px) rotate(-8deg); }
+    94% { transform: translateX(8px) rotate(8deg); }
+    100% { transform: translateX(0) rotate(0); }
+}
+
+@keyframes cn-s2-hands {
+    0%, 48% { opacity: 0; transform: translateY(12px); }
+    58%, 78% { opacity: 1; transform: translateY(0); }
+    90%, 100% { opacity: 0; transform: translateY(12px); }
+}
+
+@keyframes cn-s2-pass {
+    0%, 48% { border-color: #d7eaef; }
+    52%, 78% { border-color: #0170a0; }
+    86% { border-color: #c0392b; }
+    100% { border-color: #d7eaef; }
+}
+
+/* 3. Card flip 3D */
+.cn-s3 {
+    perspective: 900px;
+    width: min(280px, 82vw);
+    height: 210px;
+}
+
+.cn-s3__card {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+}
+
+.cn-intro__scene.is-active .cn-s3__card {
+    animation: cn-s3-flip 4.2s ease-in-out both;
+}
+
+.cn-s3__face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 18px;
+    background: #fff;
+    border: 1px solid #e6eef1;
+    box-shadow: 0 12px 32px rgba(1, 112, 160, 0.12);
+    padding: 1.15rem;
+}
+
+.cn-s3__face--back {
+    transform: rotateY(180deg);
+    display: grid;
+    place-items: center;
+}
+
+.cn-s3__fake-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--cn-primary);
+    margin-bottom: 0.8rem;
+}
+
+.cn-s3__fake-input {
+    height: 38px;
+    border-radius: 10px;
+    background: #f4f7f8;
+    margin-bottom: 0.55rem;
+}
+
+.cn-s3__fake-btn {
+    height: 40px;
+    border-radius: 12px;
+    background: var(--cn-primary);
+}
+
+.cn-s3__print {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 3px solid var(--cn-teal);
+    position: relative;
+}
+
+.cn-intro__scene.is-active .cn-s3__print::before,
+.cn-intro__scene.is-active .cn-s3__print::after {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 164, 186, 0.35);
+    animation: cn-s3-wave 1.4s ease-out infinite;
+}
+
+.cn-intro__scene.is-active .cn-s3__print::after {
+    inset: -22px;
+    animation-delay: 0.35s;
+}
+
+@keyframes cn-s3-flip {
+    0%, 28% { transform: rotateY(0deg); }
+    48%, 100% { transform: rotateY(180deg); }
+}
+
+@keyframes cn-s3-wave {
+    from { transform: scale(0.7); opacity: 0.7; }
+    to { transform: scale(1.25); opacity: 0; }
+}
+
+/* 4. Partículas */
+.cn-s4 {
+    position: absolute;
+    inset: 0;
+}
+
+#cn-s4-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.cn-s4__hint {
+    position: absolute;
+    left: 50%;
+    bottom: 18%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--cn-primary);
+    background: rgba(255, 255, 255, 0.86);
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+}
+
+/* 5. Glow neumórfico */
+.cn-s5 {
+    width: min(280px, 82vw);
+    position: relative;
+}
+
+.cn-s5__card {
+    border-radius: 20px;
+    padding: 1.25rem 1.1rem;
+    background: #f4f7f8;
+    box-shadow: 8px 8px 18px rgba(1, 112, 160, 0.08), -8px -8px 18px #fff;
+    position: relative;
+}
+
+.cn-s5__card::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 22px;
+    padding: 2px;
+    background: linear-gradient(120deg, #0170a0, #00a4ba, #85b998, #0170a0);
+    background-size: 220% 220%;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    opacity: 0.35;
+}
+
+.cn-intro__scene.is-active .cn-s5__card::before {
+    animation: cn-s5-border 4.2s linear both;
+}
+
+.cn-s5__row {
+    height: 38px;
+    border-radius: 10px;
+    background: #fff;
+    margin-bottom: 0.55rem;
+}
+
+.cn-s5__btn {
+    height: 42px;
+    border-radius: 12px;
+    background: var(--cn-primary);
+}
+
+.cn-s5__halo {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0.2);
+    background: radial-gradient(circle, rgba(0, 164, 186, 0.35) 0%, rgba(1, 112, 160, 0.08) 45%, transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.cn-intro__scene.is-active .cn-s5__halo {
+    animation: cn-s5-halo 4.2s ease both;
+}
+
+@keyframes cn-s5-border {
+    0%, 18% { opacity: 0.3; background-position: 0% 50%; }
+    40% { opacity: 1; background-position: 100% 50%; }
+    100% { opacity: 1; background-position: 200% 50%; }
+}
+
+@keyframes cn-s5-halo {
+    0%, 48% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+    62% { opacity: 1; transform: translate(-50%, -50%) scale(6); }
+    100% { opacity: 0.15; transform: translate(-50%, -50%) scale(18); }
+}
+
 code {
     color: #c02d76;
 }
