@@ -23,16 +23,9 @@
 </head>
 
 <body>
-    <div id="cn-logo3d" role="status" aria-label="Cuidanet">
-        <canvas id="cn-logo3d-canvas"></canvas>
-        <img id="cn-logo3d-fallback" class="cn-logo3d__fallback" src="LogoCuidaNet.png" alt="Cuidanet" hidden />
-    </div>
-
     <div id="app">
-        <div class="cn-boot" role="status" aria-label="Cargando Cuidanet">
-            <div class="cn-boot__mark">
-                <img class="cn-boot__logo" src="LogoCuidaNet.png" alt="Cuidanet" />
-            </div>
+        <div class="cn-boot" role="status" aria-label="Cuidanet">
+            <img class="cn-boot__logo" src="LogoCuidaNet.png" alt="Cuidanet" />
         </div>
     </div>
 
@@ -46,7 +39,7 @@
     <script>
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260815h';
+            const flag = 'cn_cache_bust_20260815i';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
@@ -87,7 +80,6 @@
                     var imports = mapEl ? (JSON.parse(mapEl.textContent || '{}').imports || {}) : {};
                     var file = (name || defaultUri).split('?')[0].split('/').pop();
                     for (var key in imports) {
-                        if (key === 'three' || key.indexOf('three/') === 0) continue;
                         if (key.split('/').pop() === file) {
                             defaultUri = new URL(imports[key], document.baseURI).href;
                             break;
@@ -259,7 +251,6 @@
             return outcome === 'accepted';
         };
     </script>
-    <script type="module" src="js/boot-logo3d.js"></script>
 </body>
 
 </html>

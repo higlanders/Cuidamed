@@ -77,63 +77,29 @@ a, .btn-link {
     background: #ffffff;
 }
 
-.cn-boot__mark {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
 .cn-boot__logo {
-    width: min(220px, 64vw);
-    height: auto;
-}
-
-#cn-logo3d {
-    position: fixed;
-    inset: 0;
-    z-index: 4000;
-    background: #ffffff;
-    perspective: 900px;
-}
-
-#cn-logo3d.is-done {
-    animation: cn-logo3d-out 0.45s ease forwards;
-    pointer-events: none;
-}
-
-@keyframes cn-logo3d-out {
-    to { opacity: 0; visibility: hidden; }
-}
-
-#cn-logo3d-canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-}
-
-.cn-logo3d__fallback {
-    position: absolute;
-    left: 50%;
-    top: 50%;
     width: min(240px, 70vw);
     height: auto;
-    transform: translate(-50%, -50%) scale(0);
-    transform-style: preserve-3d;
+    animation: cn-boot-in 1.5s ease-out both;
 }
 
-.cn-logo3d__fallback.is-on {
-    animation: cn-logo3d-scale 1.5s ease-out forwards,
-               cn-logo3d-spin 4s ease-in-out 1.5s forwards;
+@keyframes cn-boot-in {
+    from {
+        opacity: 0;
+        transform: scale(0);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
-@keyframes cn-logo3d-scale {
-    from { transform: translate(-50%, -50%) scale(0); }
-    to { transform: translate(-50%, -50%) scale(1); }
-}
-
-@keyframes cn-logo3d-spin {
-    from { transform: translate(-50%, -50%) scale(1) rotateY(0deg); }
-    to { transform: translate(-50%, -50%) scale(1) rotateY(360deg); }
+@media (prefers-reduced-motion: reduce) {
+    .cn-boot__logo {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
 }
 
 code {
