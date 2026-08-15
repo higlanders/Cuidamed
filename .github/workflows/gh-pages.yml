@@ -46,6 +46,10 @@ jobs:
           # Publish the project (not the solution) to avoid NETSDK1194 output issues
           dotnet publish Cuidanet.csproj -c Release -o publish
 
+          # Blazor genera el importmap de _framework; hay que fusionar Three.js
+          # sin reemplazar el placeholder (si no, dotnet.js da 404).
+          node scripts/merge-three-importmap.js publish/wwwroot/index.html
+
           # Jekyll ignores _* folders; without this, _framework 404s on GitHub Pages
           touch publish/wwwroot/.nojekyll
 
