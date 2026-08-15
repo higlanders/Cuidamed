@@ -14,12 +14,8 @@
         <div class="cn-home">
             <div class="cn-home__shell">
                 <header class="cn-home__hero">
-                    <div class="cn-home__hero-glow" aria-hidden="true"></div>
                     <div class="cn-home__topbar">
-                        <button type="button" class="cn-home__menu-btn" @onclick="ToggleSidebar" aria-label="Abrir menú">
-                            <i class="bi bi-list" aria-hidden="true"></i>
-                            <span>Menú</span>
-                        </button>
+                        <img class="cn-home__logo" src="LogoCuidaNet.png" alt="CuidaNet" />
                         <button type="button" class="cn-home__avatar-btn" @onclick="ToggleSidebar" aria-label="Mi perfil">
                             @if (afiliadoDetalle != null && !string.IsNullOrEmpty(afiliadoDetalle.FotoBase64))
                             {
@@ -27,65 +23,57 @@
                             }
                             else
                             {
-                                <span aria-hidden="true">@GetInitials(cedulaUsuario)</span>
+                                <span aria-hidden="true">@GetInitials()</span>
                             }
                         </button>
                     </div>
-                    <img class="cn-home__logo" src="LogoCuidaNet.png" alt="CuidaNet" />
-                    <p class="cn-home__slogan">"Tu aliado confiable en gestión de salud."</p>
+                    <p class="cn-home__hello">@Saludo</p>
+                    <p class="cn-home__meta">
+                        @if (!string.IsNullOrWhiteSpace(cedulaUsuario))
+                        {
+                            <span>Cédula @cedulaUsuario</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(nombrePlan))
+                        {
+                            <span class="cn-home__dot" aria-hidden="true">·</span>
+                            <span>@nombrePlan</span>
+                        }
+                    </p>
+                    <p class="cn-home__slogan">Cuidamos tu bienestar</p>
                 </header>
 
                 <section class="cn-home__sheet">
-                    <h1 class="cn-home__title">¿Qué necesitas hoy?</h1>
-                    <p class="cn-home__subtitle">Accede a tus servicios de salud en un toque.</p>
-
+                    <h1 class="cn-home__title">Servicios</h1>
                     <nav class="cn-home__grid" aria-label="Servicios">
-                        <button type="button" class="cn-home__tile" @onclick='() => NavigateTo("beneficios")'>
-                            <span class="cn-home__tile-icon cn-home__tile-icon--blue" aria-hidden="true">
-                                <i class="bi bi-shield-check"></i>
-                            </span>
-                            <span class="cn-home__tile-body">
-                                <span class="cn-home__tile-label">Coberturas y consumos</span>
-                                <span class="cn-home__tile-hint">Consulta tu plan</span>
-                            </span>
-                            <i class="bi bi-chevron-right cn-home__tile-chevron" aria-hidden="true"></i>
-                        </button>
-
-                        <button type="button" class="cn-home__tile cn-home__tile--featured" @onclick='() => NavigateTo("proveedores")'>
-                            <span class="cn-home__tile-icon cn-home__tile-icon--teal" aria-hidden="true">
-                                <i class="bi bi-geo-alt-fill"></i>
-                            </span>
-                            <span class="cn-home__tile-body">
-                                <span class="cn-home__tile-label">Red de Proveedores</span>
-                                <span class="cn-home__tile-hint">Clínicas, labs y más</span>
-                            </span>
-                            <i class="bi bi-chevron-right cn-home__tile-chevron" aria-hidden="true"></i>
-                        </button>
-
-                        <button type="button" class="cn-home__tile" @onclick='() => NavigateTo("citas-aps")'>
-                            <span class="cn-home__tile-icon cn-home__tile-icon--orange" aria-hidden="true">
-                                <i class="bi bi-calendar2-heart"></i>
-                            </span>
-                            <span class="cn-home__tile-body">
-                                <span class="cn-home__tile-label">Agendar cita APS</span>
-                                <span class="cn-home__tile-hint">Atención primaria</span>
-                            </span>
-                            <i class="bi bi-chevron-right cn-home__tile-chevron" aria-hidden="true"></i>
-                        </button>
-
-                        <button type="button" class="cn-home__tile" @onclick='() => NavigateTo("Laboratorios")'>
-                            <span class="cn-home__tile-icon cn-home__tile-icon--deep" aria-hidden="true">
-                                <i class="bi bi-file-earmark-medical"></i>
-                            </span>
-                            <span class="cn-home__tile-body">
-                                <span class="cn-home__tile-label">Consultas y Laboratorios</span>
-                                <span class="cn-home__tile-hint">Cargar documentos</span>
-                            </span>
-                            <i class="bi bi-chevron-right cn-home__tile-chevron" aria-hidden="true"></i>
-                        </button>
+                        @foreach (var modulo in AppModules.All)
+                        {
+                            <button type="button"
+                                    class="cn-home__tile"
+                                    @onclick="() => NavigateTo(modulo.Route)">
+                                <span class="cn-home__tile-icon"
+                                      style="--cn-icon: url('@modulo.IconPath')"
+                                      aria-hidden="true"></span>
+                                <span class="cn-home__tile-label">@modulo.Label</span>
+                            </button>
+                        }
                     </nav>
                 </section>
             </div>
+
+            <nav class="cn-home__tabbar" aria-label="Navegación principal">
+                <button type="button" class="cn-home__tab is-active" aria-current="page">
+                    <i class="bi bi-house" aria-hidden="true"></i>
+                    <span>Inicio</span>
+                </button>
+                <button type="button" class="cn-home__tab" @onclick='() => NavigateTo("notificaciones")'>
+                    <i class="bi bi-bell" aria-hidden="true"></i>
+                    <span>Notificaciones</span>
+                </button>
+                <button type="button" class="cn-home__tab" @onclick="ToggleSidebar">
+                    <i class="bi bi-person" aria-hidden="true"></i>
+                    <span>Perfil</span>
+                </button>
+            </nav>
 
             <div class="cn-home__overlay @(isSidebarOpen ? "is-open" : "")" @onclick="ToggleSidebar"></div>
             <aside class="cn-home__drawer @(isSidebarOpen ? "is-open" : "")" aria-hidden="@(!isSidebarOpen)">
@@ -97,26 +85,7 @@
                 </div>
 
                 <div class="cn-home__drawer-body">
-                    @if (afiliadoDetalle != null)
-                    {
-                        <div class="cn-home__profile">
-                            @if (!string.IsNullOrEmpty(afiliadoDetalle.FotoBase64))
-                            {
-                                <img class="cn-home__profile-photo"
-                                     src="data:image/jpeg;base64,@afiliadoDetalle.FotoBase64"
-                                     alt="Foto del afiliado" />
-                            }
-                            else
-                            {
-                                <div class="cn-home__profile-photo cn-home__profile-photo--placeholder" aria-hidden="true">
-                                    @GetInitials(cedulaUsuario)
-                                </div>
-                            }
-                            <p class="cn-home__profile-name">Afiliado</p>
-                            <p class="cn-home__profile-cedula">Cédula @cedulaUsuario</p>
-                        </div>
-                    }
-                    else if (isLoading)
+                    @if (isLoading)
                     {
                         <div class="cn-home__drawer-loading">
                             <div class="spinner-border spinner-border-sm text-info" role="status">
@@ -128,31 +97,29 @@
                     else
                     {
                         <div class="cn-home__profile">
-                            <div class="cn-home__profile-photo cn-home__profile-photo--placeholder" aria-hidden="true">
-                                @GetInitials(cedulaUsuario)
-                            </div>
-                            <p class="cn-home__profile-cedula">Cédula @cedulaUsuario</p>
+                            @if (afiliadoDetalle != null && !string.IsNullOrEmpty(afiliadoDetalle.FotoBase64))
+                            {
+                                <img class="cn-home__profile-photo"
+                                     src="data:image/jpeg;base64,@afiliadoDetalle.FotoBase64"
+                                     alt="Foto del afiliado" />
+                            }
+                            else
+                            {
+                                <div class="cn-home__profile-photo cn-home__profile-photo--placeholder" aria-hidden="true">
+                                    @GetInitials()
+                                </div>
+                            }
+                            <p class="cn-home__profile-name">@NombreAfiliado</p>
+                            @if (!string.IsNullOrWhiteSpace(cedulaUsuario))
+                            {
+                                <p class="cn-home__profile-cedula">Cédula @cedulaUsuario</p>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(nombrePlan))
+                            {
+                                <p class="cn-home__profile-plan">@nombrePlan</p>
+                            }
                         </div>
                     }
-
-                    <nav class="cn-home__drawer-nav" aria-label="Accesos rápidos">
-                        <button type="button" class="cn-home__drawer-link" @onclick='() => NavigateFromDrawer("proveedores")'>
-                            <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
-                            <span>Red de Proveedores</span>
-                        </button>
-                        <button type="button" class="cn-home__drawer-link" @onclick='() => NavigateFromDrawer("Laboratorios")'>
-                            <i class="bi bi-file-earmark-medical" aria-hidden="true"></i>
-                            <span>Consultas y Laboratorios</span>
-                        </button>
-                        <button type="button" class="cn-home__drawer-link" @onclick='() => NavigateFromDrawer("beneficios")'>
-                            <i class="bi bi-shield-check" aria-hidden="true"></i>
-                            <span>Coberturas y consumos</span>
-                        </button>
-                        <button type="button" class="cn-home__drawer-link" @onclick='() => NavigateFromDrawer("citas-aps")'>
-                            <i class="bi bi-calendar2-heart" aria-hidden="true"></i>
-                            <span>Agendar cita APS</span>
-                        </button>
-                    </nav>
 
                     <button type="button" class="cn-home__logout" @onclick="BeginLogOut">
                         <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
@@ -172,7 +139,25 @@
     private bool isSidebarOpen = false;
     private bool isLoading = true;
     private string cedulaUsuario = string.Empty;
+    private string nombrePlan = string.Empty;
     private BeneficiarioDto? afiliadoDetalle;
+    private CoberturaPlanDto? planActivo;
+
+    private string NombreAfiliado =>
+        afiliadoDetalle?.NombreCompleto
+        ?? planActivo?.NombreCompleto
+        ?? "Afiliado";
+
+    private string Saludo
+    {
+        get
+        {
+            var nombre = afiliadoDetalle?.Nombre ?? planActivo?.Nombre;
+            if (!string.IsNullOrWhiteSpace(nombre))
+                return $"Hola, {nombre.Trim()}";
+            return "Hola";
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -194,12 +179,30 @@
             }
             catch (Exception)
             {
-                // Silencioso: el home sigue usable sin foto/detalle
+                // El home sigue usable sin foto/detalle
+            }
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(cedulaUsuario))
+                {
+                    var planes = await CuidanetService.GetCoberturaPlanAsync(cedulaUsuario);
+                    planActivo = planes?.FirstOrDefault();
+                    nombrePlan = planActivo?.NombrePlan?.Trim() ?? string.Empty;
+                }
+            }
+            catch (Exception)
+            {
+                // El home sigue usable sin el nombre del plan
             }
             finally
             {
                 isLoading = false;
             }
+        }
+        else
+        {
+            isLoading = false;
         }
     }
 
@@ -208,17 +211,18 @@
     private void NavigateTo(string page) =>
         Navigation.NavigateTo(page.TrimStart('/'));
 
-    private void NavigateFromDrawer(string page)
+    private string GetInitials()
     {
-        isSidebarOpen = false;
-        NavigateTo(page);
-    }
-
-    private static string GetInitials(string cedula)
-    {
-        if (string.IsNullOrWhiteSpace(cedula) || cedula.Length < 2)
+        var source = afiliadoDetalle?.NombreCompleto ?? planActivo?.NombreCompleto ?? cedulaUsuario;
+        if (string.IsNullOrWhiteSpace(source))
             return "?";
-        return cedula[^2..].ToUpperInvariant();
+
+        var parts = source.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[1][0])}";
+        if (source.Length >= 2 && source.All(char.IsDigit))
+            return source[^2..].ToUpperInvariant();
+        return source[..1].ToUpperInvariant();
     }
 
     public async Task BeginLogOut()
@@ -228,4 +232,3 @@
         Navigation.NavigateTo("/", forceLoad: true);
     }
 }
-

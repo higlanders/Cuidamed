@@ -1,0 +1,60 @@
+﻿@page "/telemedicina"
+@page "/amd"
+@page "/reembolso"
+@page "/mis-sintomas"
+@page "/cartas-avales"
+@page "/farmacias"
+@page "/contacto-emergencia"
+@page "/odontologia"
+@page "/notificaciones"
+@layout EmptyLayout
+@using Microsoft.AspNetCore.Components.Authorization
+@using Cuidanet.Models
+@inject NavigationManager Navigation
+
+<PageTitle>Cuidanet — @Titulo</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-mod">
+            <div class="cn-mod__shell">
+                <header class="cn-mod__hero">
+                    <button type="button" class="cn-mod__back" @onclick="GoHome" aria-label="Volver al inicio">
+                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                    </button>
+                    <h1 class="cn-mod__heading">@Titulo</h1>
+                    <span class="cn-mod__spacer" aria-hidden="true"></span>
+                </header>
+
+                <section class="cn-mod__sheet">
+                    @if (modulo is not null)
+                    {
+                        <span class="cn-mod__icon"
+                              style="--cn-icon: url('@modulo.IconPath')"
+                              aria-hidden="true"></span>
+                    }
+                    <h2>Pronto estará disponible</h2>
+                    <p>Esta funcionalidad se habilitará en una próxima fase. Mientras tanto puedes volver al inicio y usar los servicios activos.</p>
+                    <button type="button" class="cn-mod__cta" @onclick="GoHome">Volver al inicio</button>
+                </section>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private AppModule? modulo;
+
+    private string Titulo => modulo?.Label ?? "Servicio";
+
+    protected override void OnParametersSet()
+    {
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
+        modulo = AppModules.FindByRoute(path);
+    }
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+}
