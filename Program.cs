@@ -53,6 +53,9 @@ builder.Services.AddTransient<CuidanetAuthHandler>(sp =>
     return new CuidanetAuthHandler(config);
 });
 
+builder.Services.AddSingleton<CuidanetAppSettings>();
+builder.Services.AddScoped<AfiliadoPerfilService>();
+
 builder.Services.AddHttpClient<CuidanetApiClient>()
     .AddHttpMessageHandler<CuidanetAuthHandler>();
 

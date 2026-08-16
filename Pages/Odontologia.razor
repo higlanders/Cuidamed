@@ -1,0 +1,66 @@
+﻿@page "/odontologia"
+@layout EmptyLayout
+@using Cuidanet.Services
+@inject NavigationManager Navigation
+@inject AfiliadoPerfilService PerfilService
+@inject CuidanetAppSettings AppSettings
+
+<PageTitle>Cuidanet — Odontología</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        @if (!cargando && !esLis)
+        {
+            <div class="cn-svc">
+                <div class="cn-svc__shell">
+                    <header class="cn-svc__hero">
+                        <button type="button" class="cn-svc__back" @onclick="GoHome" aria-label="Volver al inicio">
+                            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                        </button>
+                        <h1 class="cn-svc__heading">Odontología</h1>
+                        <span class="cn-svc__spacer" aria-hidden="true"></span>
+                    </header>
+
+                    <section class="cn-svc__sheet">
+                        <article class="cn-svc__card">
+                            <h2>Redyplan</h2>
+                            <p class="cn-svc__muted">Empresa que atiende el servicio de odontología.</p>
+                            @if (whatsAppUrl is not null)
+                            {
+                                <a class="cn-svc__link" href="@whatsAppUrl" target="_blank" rel="noopener noreferrer">
+                                    WhatsApp Redyplan
+                                </a>
+                            }
+                            else
+                            {
+                                <p class="cn-svc__error">El WhatsApp de Redyplan no está configurado.</p>
+                            }
+                        </article>
+                    </section>
+                </div>
+            </div>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool cargando = true;
+    private bool esLis;
+    private string? whatsAppUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var perfil = await PerfilService.GetAsync();
+        esLis = perfil.EsLis;
+        whatsAppUrl = WhatsAppLink.Chat(AppSettings.WhatsAppRedyplan, "Hola, consulto el servicio de odontología Cuidanet.");
+        cargando = false;
+
+        if (esLis)
+            Navigation.NavigateTo("Home");
+    }
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+}

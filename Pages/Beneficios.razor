@@ -6,6 +6,7 @@
 @inject CuidanetApiClient CuidanetService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
+@inject AfiliadoPerfilService PerfilService
 
 <PageTitle>Cuidanet — Coberturas y consumos</PageTitle>
 
@@ -19,7 +20,7 @@
                 </button>
                 <div class="cn-ben__titles">
                     <h1 class="cn-ben__title">Coberturas y consumos</h1>
-                    <p class="cn-ben__subtitle">Cliente, plan activo y consumos del período</p>
+                    <p class="cn-ben__subtitle">@Subtitulo</p>
                 </div>
                 @if (planActivo is not null)
                 {
@@ -104,7 +105,7 @@
                     {
                         <div class="cn-ben__total">
                             <span class="cn-ben__label cn-ben__label--light">Consumo total</span>
-                            <strong>$@consumo.ConsumoTotal.ToString("N2")</strong>
+                            <strong>$@totalVisible.ToString("N2")</strong>
                         </div>
 
                         <div class="cn-ben__cards">
@@ -147,6 +148,12 @@
     private CoberturaPlanDto? planActivo => planes.Count > 0 ? planes[0] : null;
 
     private List<ConsumoItemVm> ItemsConsumo { get; set; } = new();
+    private bool esLis;
+    private decimal totalVisible;
+
+    private string Subtitulo => esLis
+        ? "Consumos de APS y farmacia cubiertos"
+        : "Cliente, plan activo y consumos del período";
 
     protected override async Task OnInitializedAsync()
     {
@@ -168,6 +175,9 @@
                 cargando = false;
                 return;
             }
+
+            var perfil = await PerfilService.GetAsync();
+            esLis = perfil.EsLis;
 
             await LoadPlanAsync();
             await LoadConsumosAsync();
@@ -217,9 +227,20 @@
         if (consumo is null) return;
 
         ItemsConsumo.Add(new ConsumoItemVm("APS", "Consultas y servicios APS", consumo.ConsumoAps, consumo.CasosAps));
-        ItemsConsumo.Add(new ConsumoItemVm("Carta aval", "Presupuestos carta aval", consumo.ConsumoCartaAval, consumo.CasosCartaAval));
-        ItemsConsumo.Add(new ConsumoItemVm("Reembolso", "Reembolsos aprobados / pagados", consumo.ConsumoReembolso, consumo.CasosReembolso));
-        ItemsConsumo.Add(new ConsumoItemVm("Medicamentos", "Farmacia / medicamentos", consumo.ConsumoMedicamentos, consumo.CasosMedicamentos));
+
+        var farmaciaCubierta = consumo.CasosMedicamentos > 0 || consumo.ConsumoMedicamentos > 0;
+        if (!esLis || farmaciaCubierta)
+        {
+            ItemsConsumo.Add(new ConsumoItemVm("Medicamentos", "Farmacia / medicamentos", consumo.ConsumoMedicamentos, consumo.CasosMedicamentos));
+        }
+
+        if (!esLis)
+        {
+            ItemsConsumo.Add(new ConsumoItemVm("Carta aval", "Presupuestos carta aval", consumo.ConsumoCartaAval, consumo.CasosCartaAval));
+            ItemsConsumo.Add(new ConsumoItemVm("Reembolso", "Reembolsos aprobados / pagados", consumo.ConsumoReembolso, consumo.CasosReembolso));
+        }
+
+        totalVisible = ItemsConsumo.Sum(i => i.Monto);
     }
 
     private void GoHome() => Navigation.NavigateTo("Home");

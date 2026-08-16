@@ -1,0 +1,104 @@
+﻿@page "/contacto-emergencia"
+@layout EmptyLayout
+@using Cuidanet.Services
+@inject NavigationManager Navigation
+@inject CuidanetAppSettings AppSettings
+@inject IJSRuntime JS
+
+<PageTitle>Cuidanet — Contacto de emergencia</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-svc">
+            <div class="cn-svc__shell">
+                <header class="cn-svc__hero">
+                    <button type="button" class="cn-svc__back" @onclick="GoHome" aria-label="Volver al inicio">
+                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                    </button>
+                    <h1 class="cn-svc__heading">Contacto de emergencia</h1>
+                    <span class="cn-svc__spacer" aria-hidden="true"></span>
+                </header>
+
+                <section class="cn-svc__sheet">
+                    <p class="cn-svc__lead">Indícanos estos datos para escribirte con el call center por WhatsApp.</p>
+
+                    <div class="cn-svc__field">
+                        <label class="cn-svc__label" for="motivo-ce">Motivo</label>
+                        <textarea id="motivo-ce" class="cn-svc__textarea" maxlength="300" @bind="motivo" @bind:event="oninput"></textarea>
+                    </div>
+                    <div class="cn-svc__field">
+                        <label class="cn-svc__label" for="direccion-ce">Dirección</label>
+                        <input id="direccion-ce" class="cn-svc__input" maxlength="200" @bind="direccion" @bind:event="oninput" />
+                    </div>
+                    <div class="cn-svc__field">
+                        <label class="cn-svc__label" for="telefono-ce">Teléfono celular</label>
+                        <input id="telefono-ce" class="cn-svc__input" inputmode="tel" maxlength="20" autocomplete="tel" @bind="telefono" @bind:event="oninput" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <p class="cn-svc__error" role="alert">@errorMessage</p>
+                    }
+
+                    <button type="button" class="cn-svc__cta" @onclick="EnviarWhatsAppAsync">
+                        Escribir por WhatsApp
+                    </button>
+                </section>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string motivo = string.Empty;
+    private string direccion = string.Empty;
+    private string telefono = string.Empty;
+    private string errorMessage = string.Empty;
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+
+    private async Task EnviarWhatsAppAsync()
+    {
+        errorMessage = string.Empty;
+        var motivoOk = motivo.Trim();
+        var direccionOk = direccion.Trim();
+        var telefonoOk = WhatsAppLink.DigitsOnly(telefono);
+
+        if (motivoOk.Length < 3)
+        {
+            errorMessage = "Escribe el motivo del contacto.";
+            return;
+        }
+
+        if (direccionOk.Length < 5)
+        {
+            errorMessage = "Indica una dirección válida.";
+            return;
+        }
+
+        if (telefonoOk.Length < 10)
+        {
+            errorMessage = "Indica un celular válido (mínimo 10 dígitos).";
+            return;
+        }
+
+        var mensaje = string.Join(
+            Environment.NewLine,
+            "Contacto de emergencia",
+            $"Motivo: {motivoOk}",
+            $"Dirección: {direccionOk}",
+            $"Celular: {telefonoOk}");
+
+        var url = WhatsAppLink.Chat(AppSettings.WhatsAppCuidamed, mensaje);
+        if (url is null)
+        {
+            errorMessage = "El WhatsApp de Cuidamed no está configurado.";
+            return;
+        }
+
+        await JS.InvokeVoidAsync("open", url, "_blank");
+    }
+}

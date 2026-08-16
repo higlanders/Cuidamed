@@ -1,0 +1,65 @@
+﻿@page "/notificaciones"
+@layout EmptyLayout
+@using Cuidanet.Services
+@inject NavigationManager Navigation
+@inject AfiliadoPerfilService PerfilService
+
+<PageTitle>Cuidanet — Notificaciones</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-svc">
+            <div class="cn-svc__shell">
+                <header class="cn-svc__hero">
+                    <button type="button" class="cn-svc__back" @onclick="GoHome" aria-label="Volver al inicio">
+                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                    </button>
+                    <h1 class="cn-svc__heading">Notificaciones</h1>
+                    <span class="cn-svc__spacer" aria-hidden="true"></span>
+                </header>
+
+                <section class="cn-svc__sheet">
+                    @if (cargando)
+                    {
+                        <p class="cn-svc__muted">Cargando…</p>
+                    }
+                    else
+                    {
+                        <p class="cn-svc__lead">Te avisaremos cuando ocurra alguno de estos eventos:</p>
+                        <ul class="cn-svc__list">
+                            <li>Servicio de APS</li>
+                            @if (esLis)
+                            {
+                                <li>Farmacia</li>
+                            }
+                            else
+                            {
+                                <li>Farmacia</li>
+                                <li>Aprobación de carta aval</li>
+                                <li>Aprobación de reembolso</li>
+                            }
+                        </ul>
+                        <p class="cn-svc__muted">Aún no hay avisos nuevos.</p>
+                    }
+                </section>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool cargando = true;
+    private bool esLis;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var perfil = await PerfilService.GetAsync();
+        esLis = perfil.EsLis;
+        cargando = false;
+    }
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+}

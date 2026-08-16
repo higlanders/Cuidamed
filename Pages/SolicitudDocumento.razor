@@ -1,0 +1,175 @@
+﻿@page "/cartas-avales"
+@page "/reembolso"
+@layout EmptyLayout
+@using System.IO
+@using Cuidanet.Models
+@using Cuidanet.Services
+@inject NavigationManager Navigation
+@inject AfiliadoPerfilService PerfilService
+@inject CuidanetAppSettings AppSettings
+@inject CuidanetApiClient CuidanetService
+@inject IJSRuntime JS
+
+<PageTitle>Cuidanet — @Titulo</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        @if (!cargando && !esLis)
+        {
+            <div class="cn-svc">
+                <div class="cn-svc__shell">
+                    <header class="cn-svc__hero">
+                        <button type="button" class="cn-svc__back" @onclick="GoHome" aria-label="Volver al inicio">
+                            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                        </button>
+                        <h1 class="cn-svc__heading">@Titulo</h1>
+                        <span class="cn-svc__spacer" aria-hidden="true"></span>
+                    </header>
+
+                    <section class="cn-svc__sheet">
+                        <p class="cn-svc__lead">Toma o carga las imágenes de la documentación para enviar la solicitud.</p>
+
+                        <div class="cn-svc__cam">
+                            <div class="cn-svc__viewport">
+                                <video id="doc-webcam" autoplay playsinline muted class="cn-svc__video"></video>
+                                <canvas id="doc-capture" class="cn-svc__canvas"></canvas>
+                            </div>
+
+                            @if (!cameraInitialized)
+                            {
+                                <button type="button" class="cn-svc__cta" @onclick="InicializarCamara" disabled="@isUploading">
+                                    Encender cámara
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="button" class="cn-svc__cta" @onclick="TomarYSubirFoto" disabled="@isUploading">
+                                    @(isUploading ? "Enviando…" : "Capturar y enviar")
+                                </button>
+                            }
+
+                            <label class="cn-svc__label" for="doc-file">O elige un archivo</label>
+                            <InputFile id="doc-file"
+                                       class="cn-svc__file"
+                                       OnChange="HandleFileSelected"
+                                       accept="image/png,image/jpeg,application/pdf"
+                                       disabled="@isUploading" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(statusMessage))
+                        {
+                            <p class="cn-svc__status" role="status">@statusMessage</p>
+                        }
+                    </section>
+                </div>
+            </div>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool cargando = true;
+    private bool esLis;
+    private bool cameraInitialized;
+    private bool isUploading;
+    private string statusMessage = string.Empty;
+    private AppModule? modulo;
+    private const long MaxFileSizeBytes = 100 * 1024 * 1024;
+
+    private string Titulo => modulo?.Label ?? "Solicitud";
+    private string Carpeta => modulo?.Id == "reembolso" ? "Reembolso" : "CartaAval";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
+        modulo = AppModules.FindByRoute(path);
+
+        var perfil = await PerfilService.GetAsync();
+        esLis = perfil.EsLis;
+        cargando = false;
+
+        if (esLis)
+            Navigation.NavigateTo("Home");
+    }
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+
+    private async Task InicializarCamara()
+    {
+        statusMessage = "Solicitando permisos de cámara…";
+        var ok = await JS.InvokeAsync<bool>("BlazorCamera.start", "doc-webcam");
+        cameraInitialized = ok;
+        statusMessage = ok
+            ? "Cámara lista. Centra el documento y captura."
+            : "No se pudo acceder a la cámara. Revisa los permisos o carga un archivo.";
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+
+        if (file.Size > MaxFileSizeBytes)
+        {
+            statusMessage = "El archivo excede el límite de 100 MB.";
+            return;
+        }
+
+        try
+        {
+            isUploading = true;
+            statusMessage = "Enviando archivo…";
+            using var stream = file.OpenReadStream(MaxFileSizeBytes);
+            await CuidanetService.UploadImagenAsync(
+                fileStream: stream,
+                fileName: file.Name,
+                carpeta: Carpeta,
+                servicioId: AppSettings.ServicioImagenDocumentos);
+            statusMessage = "Documento enviado.";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"No se pudo enviar el archivo: {ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private async Task TomarYSubirFoto()
+    {
+        try
+        {
+            isUploading = true;
+            statusMessage = "Procesando captura…";
+
+            var dataUrl = await JS.InvokeAsync<string>("BlazorCamera.capture", "doc-webcam", "doc-capture");
+            if (string.IsNullOrEmpty(dataUrl) || !dataUrl.Contains(','))
+                throw new InvalidOperationException("La captura falló o el video está vacío.");
+
+            var bytes = Convert.FromBase64String(dataUrl.Split(',')[1]);
+            using var memory = new MemoryStream(bytes);
+            var nombre = $"Captura_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+
+            await CuidanetService.UploadImagenAsync(
+                fileStream: memory,
+                fileName: nombre,
+                carpeta: Carpeta,
+                servicioId: AppSettings.ServicioImagenDocumentos);
+
+            statusMessage = "Documento enviado.";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"No se pudo enviar la captura: {ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+}

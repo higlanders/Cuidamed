@@ -6,6 +6,7 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject CuidanetApiClient CuidanetService
+@inject AfiliadoPerfilService PerfilService
 
 <PageTitle>Cuidanet — Inicio</PageTitle>
 
@@ -45,7 +46,7 @@
                 <section class="cn-home__sheet">
                     <h1 class="cn-home__title">Servicios</h1>
                     <nav class="cn-home__grid" aria-label="Servicios">
-                        @foreach (var modulo in AppModules.All)
+                        @foreach (var modulo in modulosVisibles)
                         {
                             <button type="button"
                                     class="cn-home__tile"
@@ -142,6 +143,7 @@
     private string nombrePlan = string.Empty;
     private BeneficiarioDto? afiliadoDetalle;
     private CoberturaPlanDto? planActivo;
+    private IReadOnlyList<AppModule> modulosVisibles = AppModules.All;
 
     private string NombreAfiliado =>
         afiliadoDetalle?.NombreCompleto
@@ -184,12 +186,15 @@
 
             try
             {
-                if (!string.IsNullOrWhiteSpace(cedulaUsuario))
+                var perfil = await PerfilService.GetAsync();
+                nombrePlan = perfil.NombrePlan?.Trim() ?? string.Empty;
+                modulosVisibles = AppModules.VisibleFor(perfil.EsLis);
+                planActivo = new CoberturaPlanDto
                 {
-                    var planes = await CuidanetService.GetCoberturaPlanAsync(cedulaUsuario);
-                    planActivo = planes?.FirstOrDefault();
-                    nombrePlan = planActivo?.NombrePlan?.Trim() ?? string.Empty;
-                }
+                    NombrePlan = perfil.NombrePlan,
+                    NombreCliente = perfil.NombreCliente,
+                    ClienteId = perfil.ClienteId
+                };
             }
             catch (Exception)
             {
