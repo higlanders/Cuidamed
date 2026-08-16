@@ -32,6 +32,8 @@ jobs:
         env:
           CUIDANET_USER: ${{ secrets.CUIDANET_USER }}
           CUIDANET_PASS: ${{ secrets.CUIDANET_PASS }}
+          CUIDANET_CONSULTA_USER: ${{ secrets.CUIDANET_CONSULTA_USER }}
+          CUIDANET_CONSULTA_PASS: ${{ secrets.CUIDANET_CONSULTA_PASS }}
           CUIDANET_LOGIN_URL: ${{ secrets.CUIDANET_LOGIN_URL }}
           CUIDANET_BASE_URL: ${{ secrets.CUIDANET_BASE_URL }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}

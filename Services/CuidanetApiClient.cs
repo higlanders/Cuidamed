@@ -25,6 +25,12 @@ namespace Cuidanet.Services
         private readonly string _consultaUrl;
         private readonly string _coberturaPlanUrl;
         private readonly string _coberturaConsumosUrl;
+        private readonly string _loginUrl;
+        private readonly string _consultaUser;
+        private readonly string _consultaPass;
+        private readonly Uri _apiBaseAddress;
+        private string? _consultaToken;
+        private readonly SemaphoreSlim _consultaTokenLock = new(1, 1);
 
         // 3. Modificar el constructor para inyectar IConfiguration
         public CuidanetApiClient(HttpClient httpClient, IConfiguration configuration)
@@ -33,7 +39,12 @@ namespace Cuidanet.Services
 
             // Leer la URL base del appsettings (con fallback)
             string baseUrl = configuration["CuidanetServices:BaseUrl"] ?? "https://admin.cuidanet.net/APILIS/api/";
-            _httpClient.BaseAddress = new Uri(baseUrl);
+            _apiBaseAddress = new Uri(baseUrl);
+            _httpClient.BaseAddress = _apiBaseAddress;
+            _loginUrl = configuration["CuidanetServices:loginUrl"]
+                ?? "https://admin.cuidanet.net/APILIS/api/Auth/login";
+            _consultaUser = configuration["CuidanetServices:consultaUser"]?.Trim() ?? string.Empty;
+            _consultaPass = configuration["CuidanetServices:consultaPass"] ?? string.Empty;
 
             _httpClient.DefaultRequestHeaders.Accept.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
@@ -310,24 +321,96 @@ namespace Cuidanet.Services
 
         private async Task<ConsultaResponseDto> PostConsultaAsync(ConsultaRequestDto request)
         {
-            var response = await _httpClient.PostAsJsonAsync(_consultaUrl, request);
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<ConsultaResponseDto>()
-                       ?? new ConsultaResponseDto();
-            }
+            var first = await SendConsultaOnceAsync(request, forceRefreshToken: false);
+            var result = first.Status == HttpStatusCode.Unauthorized
+                ? await SendConsultaOnceAsync(request, forceRefreshToken: true)
+                : first;
 
-            var detail = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode == HttpStatusCode.Forbidden)
+            if (result.Status == HttpStatusCode.OK && result.Body is not null)
+                return result.Body;
+
+            if (result.Status == HttpStatusCode.Forbidden)
             {
                 throw new HttpRequestException(
                     "No autorizado para POST /api/Consulta (403). " +
-                    "El usuario de la app no está en consulta general. " +
-                    TrimError(detail));
+                    "El usuario de consulta general no está habilitado en APILIS. " +
+                    TrimError(result.Detail));
             }
 
             throw new HttpRequestException(
-                $"Consulta de farmacias falló ({(int)response.StatusCode}). {TrimError(detail)}");
+                $"Consulta de farmacias falló ({(int)result.Status}). {TrimError(result.Detail)}");
+        }
+
+        private async Task<(HttpStatusCode Status, ConsultaResponseDto? Body, string Detail)> SendConsultaOnceAsync(
+            ConsultaRequestDto request,
+            bool forceRefreshToken)
+        {
+            var token = await GetConsultaTokenAsync(forceRefreshToken);
+            if (string.IsNullOrEmpty(token))
+            {
+                using var fallbackResponse = await _httpClient.PostAsJsonAsync(_consultaUrl, request);
+                return await ReadConsultaResultAsync(fallbackResponse);
+            }
+
+            using var client = new HttpClient { BaseAddress = _apiBaseAddress };
+            client.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            using var response = await client.PostAsJsonAsync(_consultaUrl, request);
+            return await ReadConsultaResultAsync(response);
+        }
+
+        private static async Task<(HttpStatusCode Status, ConsultaResponseDto? Body, string Detail)> ReadConsultaResultAsync(
+            HttpResponseMessage response)
+        {
+            var detail = await response.Content.ReadAsStringAsync();
+            ConsultaResponseDto? body = null;
+            if (response.IsSuccessStatusCode && !string.IsNullOrWhiteSpace(detail))
+            {
+                body = JsonSerializer.Deserialize<ConsultaResponseDto>(detail, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            return (response.StatusCode, body, detail);
+        }
+
+        private async Task<string?> GetConsultaTokenAsync(bool forceRefresh)
+        {
+            if (string.IsNullOrWhiteSpace(_consultaUser) || string.IsNullOrWhiteSpace(_consultaPass))
+                return null;
+
+            if (!forceRefresh && !string.IsNullOrEmpty(_consultaToken))
+                return _consultaToken;
+
+            await _consultaTokenLock.WaitAsync();
+            try
+            {
+                if (!forceRefresh && !string.IsNullOrEmpty(_consultaToken))
+                    return _consultaToken;
+
+                using var authClient = new HttpClient();
+                var payload = new LoginRequest { Usuario = _consultaUser, Password = _consultaPass };
+                var loginResponse = await authClient.PostAsJsonAsync(_loginUrl, payload);
+                if (!loginResponse.IsSuccessStatusCode)
+                {
+                    var detail = await loginResponse.Content.ReadAsStringAsync();
+                    throw new HttpRequestException(
+                        $"Login de consulta falló ({(int)loginResponse.StatusCode}). {TrimError(detail)}");
+                }
+
+                var loginData = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+                _consultaToken = loginData?.Token;
+                if (string.IsNullOrWhiteSpace(_consultaToken))
+                    throw new HttpRequestException("Login de consulta no devolvió token.");
+
+                return _consultaToken;
+            }
+            finally
+            {
+                _consultaTokenLock.Release();
+            }
         }
 
         private static ProveedorRedDto? MapAfiliadoConsultaToRed(JsonElement row)

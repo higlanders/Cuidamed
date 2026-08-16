@@ -9,6 +9,8 @@
  * Optional:
  *   CUIDANET_LOGIN_URL  (default: https://admin.cuidanet.net/APILIS/api/Auth/login)
  *   CUIDANET_BASE_URL   (default: https://admin.cuidanet.net/APILIS/api/)
+ *   CUIDANET_CONSULTA_USER (default: general) — JWT para POST /api/Consulta
+ *   CUIDANET_CONSULTA_PASS
  *   AZURE_CLIENT_ID
  */
 const fs = require("fs");
@@ -41,6 +43,8 @@ const settings = {
   CuidanetServices: {
     user,
     pass,
+    consultaUser: process.env.CUIDANET_CONSULTA_USER || "general",
+    consultaPass: process.env.CUIDANET_CONSULTA_PASS || "",
     loginUrl,
     BaseUrl: baseUrl,
     Endpoints: {
@@ -81,4 +85,4 @@ const settings = {
 
 const outPath = path.join(__dirname, "..", "wwwroot", "appsettings.json");
 fs.writeFileSync(outPath, JSON.stringify(settings, null, 2) + "\n", "utf8");
-console.log(`[generate-appsettings] Wrote ${outPath} (user=${user})`);
+console.log(`[generate-appsettings] Wrote ${outPath} (user=${user}, consultaUser=${settings.CuidanetServices.consultaUser})`);
