@@ -161,6 +161,10 @@
                             </div>
                             <h2 class="cn-lab__success-title">Documento enviado</h2>
                             <p class="cn-lab__success-lead">Tu archivo quedó registrado en CuidaNet.</p>
+                            @if (!string.IsNullOrWhiteSpace(previewLocalUrl) && !previewLocalUrl.StartsWith("data:application/pdf", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <img class="cn-lab__preview" src="@previewLocalUrl" alt="Vista previa del documento" />
+                            }
                             <dl class="cn-lab__meta">
                                 <div>
                                     <dt>ID imagen</dt>
@@ -175,7 +179,7 @@
                                 }
                             </dl>
                             <div class="cn-lab__success-actions">
-                                @if (!string.IsNullOrWhiteSpace(UrlParaVer))
+                                @if (PuedeVerDocumento)
                                 {
                                     <button type="button" class="cn-lab__btn cn-lab__btn--ghost" @onclick="VerDocumentoAsync">
                                         <i class="bi bi-eye" aria-hidden="true"></i>
@@ -213,6 +217,7 @@
     private string statusTone = "info";
     private string selectedFileName = string.Empty;
     private UploadImagenResponse? ultimoRegistroUploaded;
+    private string? previewLocalUrl;
 
     private int servicioContextoId = 1024;
     private const long MaxFileSizeBytes = 100 * 1024 * 1024;
@@ -235,8 +240,13 @@
 
     private void GoHome() => Navigation.NavigateTo("Home");
 
-    private string? UrlParaVer =>
+    private string? UrlServidor =>
         ImagenViewer.ResolveUrl(ultimoRegistroUploaded, AppSettings.ServirAdjuntoUrl);
+
+    private string? UrlParaVer =>
+        !string.IsNullOrWhiteSpace(previewLocalUrl) ? previewLocalUrl : UrlServidor;
+
+    private bool PuedeVerDocumento => !string.IsNullOrWhiteSpace(UrlParaVer);
 
     private async Task VerDocumentoAsync()
     {
@@ -257,6 +267,7 @@
         statusMessage = string.Empty;
         selectedFileName = string.Empty;
         ultimoRegistroUploaded = null;
+        previewLocalUrl = null;
     }
 
     private void ResetUpload()
@@ -264,6 +275,7 @@
         statusMessage = string.Empty;
         selectedFileName = string.Empty;
         ultimoRegistroUploaded = null;
+        previewLocalUrl = null;
     }
 
     private async Task InicializarCamara()
@@ -306,11 +318,18 @@
             statusMessage = "Enviando archivo a CuidaNet…";
             statusTone = "info";
             ultimoRegistroUploaded = null;
+            previewLocalUrl = null;
             StateHasChanged();
 
-            using var stream = file.OpenReadStream(MaxFileSizeBytes);
+            await using var stream = file.OpenReadStream(MaxFileSizeBytes);
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory);
+            var bytes = memory.ToArray();
+            previewLocalUrl = BuildDataUrl(file.Name, bytes);
+
+            memory.Position = 0;
             ultimoRegistroUploaded = await CuidanetService.UploadImagenAsync(
-                fileStream: stream,
+                fileStream: memory,
                 fileName: file.Name,
                 carpeta: "Servicio",
                 servicioId: servicioContextoId
@@ -338,6 +357,7 @@
             statusMessage = "Procesando captura…";
             statusTone = "info";
             ultimoRegistroUploaded = null;
+            previewLocalUrl = null;
             StateHasChanged();
 
             string base64DataUrl = await JS.InvokeAsync<string>("BlazorCamera.capture", "webcam", "captureCanvas");
@@ -346,6 +366,7 @@
                 throw new Exception("La captura falló o el video está vacío.");
             }
 
+            previewLocalUrl = base64DataUrl;
             string base64Data = base64DataUrl.Split(',')[1];
             byte[] imageBytes = Convert.FromBase64String(base64Data);
             using var memoryStream = new MemoryStream(imageBytes);
@@ -373,5 +394,21 @@
         {
             isUploading = false;
         }
+    }
+
+    private static string? BuildDataUrl(string fileName, byte[] bytes)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        var mime = ext switch
+        {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".pdf" => "application/pdf",
+            _ => null
+        };
+        if (mime is null)
+            return null;
+
+        return $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
     }
 }

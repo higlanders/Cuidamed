@@ -2,42 +2,40 @@
 
 namespace Cuidanet.Services;
 
-/// <summary>
-/// Resuelve la URL de visualización de imágenes vía ServirAdjunto (token),
-/// no la ruta física /online/Imagenes/...
-/// </summary>
-public static class ImagenViewer
-{
-    public static string? ResolveUrl(UploadImagenResponse? imagen, string servirAdjuntoBase)
+    /// <summary>
+    /// Resuelve la URL de visualización de imágenes vía ServirAdjunto (token),
+    /// no la ruta física /online/Imagenes/...
+    /// </summary>
+    public static class ImagenViewer
     {
-        if (imagen is null)
+        public static string? ResolveUrl(UploadImagenResponse? imagen, string servirAdjuntoBase)
+        {
+            if (imagen is null)
+                return null;
+
+            var candidates = new[]
+            {
+                imagen.UrlServir,
+                imagen.Url,
+                imagen.Token,
+                imagen.UrlPublica
+            };
+
+            foreach (var raw in candidates)
+            {
+                var resolved = Normalize(raw, servirAdjuntoBase);
+                if (resolved is null)
+                    continue;
+
+                // Nunca devolver la ruta física: da 404 y no es como CuidaNet muestra adjuntos.
+                if (IsDirectImagenesPath(resolved))
+                    continue;
+
+                return resolved;
+            }
+
             return null;
-
-        var candidates = new[]
-        {
-            imagen.UrlServir,
-            imagen.Url,
-            imagen.Token,
-            imagen.UrlPublica
-        };
-
-        foreach (var raw in candidates)
-        {
-            var resolved = Normalize(raw, servirAdjuntoBase);
-            if (resolved is null)
-                continue;
-
-            // Preferir siempre ServirAdjunto; omitir rutas físicas /Imagenes/ si hay otra opción.
-            if (IsDirectImagenesPath(resolved))
-                continue;
-
-            return resolved;
         }
-
-        // Último recurso: si solo vino UrlPublica física, devolverla (puede 404).
-        return Normalize(imagen.UrlPublica, servirAdjuntoBase)
-            ?? Normalize(imagen.Url, servirAdjuntoBase);
-    }
 
     private static string? Normalize(string? value, string servirAdjuntoBase)
     {
