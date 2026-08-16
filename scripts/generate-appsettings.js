@@ -67,6 +67,9 @@ const settings = {
       process.env.CUIDANET_SERVICIO_IMAGEN || 1024
     ),
     ImagenFuente: process.env.CUIDANET_IMAGEN_FUENTE || "App",
+    ServirAdjuntoUrl:
+      process.env.CUIDANET_SERVIR_ADJUNTO_URL ||
+      "https://admin.cuidanet.net/online/ServirAdjunto.aspx",
   },
 };
 

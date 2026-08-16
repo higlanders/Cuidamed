@@ -23,6 +23,12 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
     public string ImagenFuente =>
         FirstNonEmpty(configuration["CuidanetApp:ImagenFuente"], "App");
 
+    /// <summary>Página de CuidaNet que sirve adjuntos con token (oculta la ruta física).</summary>
+    public string ServirAdjuntoUrl =>
+        FirstNonEmpty(
+            configuration["CuidanetApp:ServirAdjuntoUrl"],
+            "https://admin.cuidanet.net/online/ServirAdjunto.aspx");
+
     private int ReadInt(string key, int fallback) =>
         int.TryParse(configuration[key], out var value) ? value : fallback;
 

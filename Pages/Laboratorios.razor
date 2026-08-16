@@ -8,6 +8,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject CuidanetApiClient CuidanetService
+@inject CuidanetAppSettings AppSettings
 
 <PageTitle>Cuidanet — Consultas y Laboratorios</PageTitle>
 
@@ -234,18 +235,8 @@
 
     private void GoHome() => Navigation.NavigateTo("Home");
 
-    private string? UrlParaVer
-    {
-        get
-        {
-            if (ultimoRegistroUploaded is null) return null;
-            if (!string.IsNullOrWhiteSpace(ultimoRegistroUploaded.UrlPublica))
-                return ultimoRegistroUploaded.UrlPublica;
-            if (!string.IsNullOrWhiteSpace(ultimoRegistroUploaded.Url))
-                return ultimoRegistroUploaded.Url;
-            return null;
-        }
-    }
+    private string? UrlParaVer =>
+        ImagenViewer.ResolveUrl(ultimoRegistroUploaded, AppSettings.ServirAdjuntoUrl);
 
     private async Task VerDocumentoAsync()
     {

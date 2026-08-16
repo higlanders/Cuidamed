@@ -45,7 +45,7 @@
     <script>
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260815k';
+            const flag = 'cn_cache_bust_20260815l';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
@@ -178,7 +178,8 @@
             }
         };
 
-        // Abre la imagen/PDF en about:blank para no mostrar la URL del servidor en la barra.
+        // Abre la imagen/PDF sin mostrar la ruta física /Imagenes/... en la barra.
+        // Preferir ServirAdjunto.aspx?t=... (como en CuidaNet online).
         window.CuidanetUi = {
             openUrlHidden: function (url) {
                 if (!url) return false;
@@ -191,17 +192,21 @@
                     .replace(/</g, '&lt;')
                     .replace(/>/g, '&gt;');
                 var isPdf = /\.pdf(\?|#|$)/i.test(url);
-                var body = isPdf
-                    ? '<iframe src="' + safe + '" title="Documento" style="border:0;width:100%;height:100%"></iframe>'
-                    : '<img src="' + safe + '" alt="Documento" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
+                var isServir = /ServirAdjunto/i.test(url);
+                var body;
+                if (isPdf || isServir) {
+                    body = '<iframe src="' + safe + '" title="Documento" style="border:0;width:100%;height:100%"></iframe>';
+                } else {
+                    body = '<img src="' + safe + '" alt="Documento" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
+                }
 
                 w.document.open();
                 w.document.write(
                     '<!DOCTYPE html><html><head><meta charset="utf-8">' +
                     '<meta name="viewport" content="width=device-width,initial-scale=1">' +
                     '<title>Documento</title>' +
-                    '<style>html,body{margin:0;padding:0;min-height:100%;background:#111;color:#fff;}</style>' +
-                    '</head><body>' + body + '</body></html>'
+                    '<style>html,body{margin:0;padding:0;height:100%;background:#111;color:#fff;}</style>' +
+                    '</head><body style="height:100%">' + body + '</body></html>'
                 );
                 w.document.close();
                 return true;

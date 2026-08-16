@@ -213,18 +213,8 @@
     // Usamos Servicio (mismo flujo que Laboratorios) para poder guardar la documentación.
     private string Carpeta => "Servicio";
 
-    private string? UrlParaVer
-    {
-        get
-        {
-            if (ultimoRegistroUploaded is null) return null;
-            if (!string.IsNullOrWhiteSpace(ultimoRegistroUploaded.UrlPublica))
-                return ultimoRegistroUploaded.UrlPublica;
-            if (!string.IsNullOrWhiteSpace(ultimoRegistroUploaded.Url))
-                return ultimoRegistroUploaded.Url;
-            return null;
-        }
-    }
+    private string? UrlParaVer =>
+        ImagenViewer.ResolveUrl(ultimoRegistroUploaded, AppSettings.ServirAdjuntoUrl);
 
     private string StatusClass => statusTone switch
     {
