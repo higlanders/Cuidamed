@@ -63,6 +63,7 @@ const settings = {
       process.env.CUIDANET_VENEMERGENCIA_URL || "https://venemergencia.com/",
     SymptomateUrl:
       process.env.CUIDANET_SYMPTOMATE_URL || "https://symptomate.com/es",
+    TipoAfiliadoFarmacia: process.env.CUIDANET_TIPO_FARMACIA || "Farmacia",
     WhatsAppRedyplan: process.env.CUIDANET_WA_REDYPLAN || "+584241271422",
     WhatsAppCuidamed: process.env.CUIDANET_WA_CUIDAMED || "+584142387774",
     ServicioImagenDocumentos: Number(

@@ -13,6 +13,10 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
     public string SymptomateUrl =>
         FirstNonEmpty(configuration["CuidanetApp:SymptomateUrl"], "https://symptomate.com/es");
 
+    /// <summary>Valor de Afiliado.Tipo para el módulo de farmacias (filtro de Afiliado/red).</summary>
+    public string TipoAfiliadoFarmacia =>
+        FirstNonEmpty(configuration["CuidanetApp:TipoAfiliadoFarmacia"], "Farmacia");
+
     public string WhatsAppRedyplan =>
         FirstNonEmpty(configuration["CuidanetApp:WhatsAppRedyplan"], "+584241271422");
 

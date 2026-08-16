@@ -1,0 +1,25 @@
+﻿---
+description: No modificar APILISPoblacion ni la API de admin.cuidanet.net sin autorización explícita
+alwaysApply: true
+---
+
+# No cambiar APILIS sin autorización
+
+No edites, crees, borres ni hagas commit/push en **APILISPoblacion** (u otros repos de la API CuidaNet) salvo que el usuario lo pida **en ese mensaje**, con palabras claras del estilo: «cambia APILIS», «publica APILIS», «autorizo cambiar la API».
+
+## Qué cuenta como APILIS
+
+- Carpetas como `APILISPoblacion`, `APILIS`, `admin.cuidanet.net`
+- Código bajo `c:\Users\cuidamed\source\repos\APILISPoblacion`
+- Endpoints `/api/...` del backend (SQL, controladores, SP)
+
+## Si hace falta un cambio de API
+
+1. Propón el contrato (ruta, SQL, impacto) **solo en el chat**.
+2. Espera el sí.
+3. Hasta entonces, resuelve en **Cuidamed** con lo que ya expone la API (`Afiliado/red`, `Cobertura/plan`, etc.).
+
+## Ejemplo
+
+- Mal: agregar `GET /api/Afiliado/farmacias` en APILIS porque Cuidamed lo necesita.
+- Bien: en Cuidamed llamar `GET Afiliado/red?tipo=Farmacia` y decir que `Status = Activo` en SQL requiere autorización para APILIS.
