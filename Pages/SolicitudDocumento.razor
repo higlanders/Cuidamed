@@ -212,7 +212,8 @@
     private const long MaxFileSizeBytes = 100 * 1024 * 1024;
 
     private string Titulo => modulo?.Label ?? "Solicitud";
-    private string Carpeta => modulo?.Id == "reembolso" ? "Reembolso" : "CartaAval";
+    // API Imagenes/upload: Consulta, Medicamento, Orden, PresupuestoCA, Proveedores, Reembolsos, Servicio, Titular
+    private string Carpeta => modulo?.Id == "reembolso" ? "Reembolsos" : "PresupuestoCA";
 
     private string StatusClass => statusTone switch
     {
