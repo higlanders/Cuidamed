@@ -178,28 +178,11 @@
             try
             {
                 var resultados = await CuidanetService.GetBeneficiariosAsync(cedula: cedulaUsuario);
-                var deLista = resultados?.FirstOrDefault();
-                if (deLista is not null)
-                {
-                    afiliadoDetalle = deLista;
-                    try
-                    {
-                        var detalle = await CuidanetService.GetBeneficiarioDetalleAsync(deLista.BeneficiarioId);
-                        if (detalle is not null)
-                        {
-                            CompletarNombre(detalle, deLista.Nombre, deLista.Apellido);
-                            afiliadoDetalle = detalle;
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // Se conserva el nombre de la lista si el detalle (foto) falla
-                    }
-                }
+                afiliadoDetalle = resultados?.FirstOrDefault();
             }
             catch (Exception)
             {
-                // El home sigue usable sin foto/detalle
+                // El home sigue usable sin ficha; el nombre sale de Cobertura/plan
             }
 
             try

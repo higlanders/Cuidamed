@@ -1,0 +1,58 @@
+﻿@page "/mis-sintomas"
+@layout EmptyLayout
+@using Cuidanet.Services
+@inject NavigationManager Navigation
+@inject CuidanetAppSettings AppSettings
+
+<PageTitle>Cuidanet — Mis síntomas</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-svc">
+            <div class="cn-svc__shell">
+                <header class="cn-svc__hero">
+                    <button type="button" class="cn-svc__back" @onclick="GoHome" aria-label="Volver al inicio">
+                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                    </button>
+                    <h1 class="cn-svc__heading">Mis síntomas</h1>
+                    <span class="cn-svc__spacer" aria-hidden="true"></span>
+                </header>
+
+                <section class="cn-svc__sheet">
+                    <p class="cn-svc__lead">Te llevamos a Symptomate para evaluar tus síntomas.</p>
+                    @if (AppSettings.EsUrlSymptomateValida)
+                    {
+                        <p class="cn-svc__muted">Si no se abre solo, usa el enlace.</p>
+                        <a class="cn-svc__link"
+                           href="@AppSettings.SymptomateUrl"
+                           rel="noopener noreferrer">
+                            Ir a Symptomate
+                        </a>
+                    }
+                    else
+                    {
+                        <p class="cn-svc__error">El enlace de Symptomate no está configurado.</p>
+                    }
+                </section>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool redirigio;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender || redirigio || !AppSettings.EsUrlSymptomateValida)
+            return;
+
+        redirigio = true;
+        Navigation.NavigateTo(AppSettings.SymptomateUrl, forceLoad: true);
+    }
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+}

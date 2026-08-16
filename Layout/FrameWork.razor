@@ -326,11 +326,7 @@
             try
             {
                 var resultados = await CuidanetService.GetBeneficiariosAsync(cedula: cedulaUsuario);
-                if (resultados != null && resultados.Any())
-                {
-                    var primerAfiliado = resultados.First();
-                    afiliadoDetalle = await CuidanetService.GetBeneficiarioDetalleAsync(primerAfiliado.BeneficiarioId);
-                }
+                afiliadoDetalle = resultados?.FirstOrDefault();
             }
             catch (Exception) { }
             finally { isLoading = false; }

@@ -1,4 +1,5 @@
 ﻿@page "/proveedores"
+@page "/farmacias"
 @layout EmptyLayout
 @using Microsoft.AspNetCore.Components.Authorization
 @using Cuidanet.Services
@@ -7,7 +8,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject CuidanetApiClient CuidanetService
 
-<PageTitle>Cuidanet — Red de Proveedores</PageTitle>
+<PageTitle>Cuidanet — @TituloPagina</PageTitle>
 
 <AuthorizeView>
     <Authorized>
@@ -19,10 +20,10 @@
                         <button type="button" class="cn-prov__back" @onclick="GoHome" aria-label="Volver al inicio">
                             <i class="bi bi-arrow-left" aria-hidden="true"></i>
                         </button>
-                        <h1 class="cn-prov__heading">Red de Proveedores</h1>
+                        <h1 class="cn-prov__heading">@TituloPagina</h1>
                         <span class="cn-prov__topbar-spacer" aria-hidden="true"></span>
                     </div>
-                    <p class="cn-prov__lead">Encuentra clínicas, laboratorios y farmacias de tu red.</p>
+                    <p class="cn-prov__lead">@LeadPagina</p>
                 </header>
 
                 <section class="cn-prov__sheet">
@@ -50,16 +51,19 @@
                                 }
                             </select>
                         </label>
-                        <label class="cn-prov__field">
-                            <span>Tipo</span>
-                            <select class="cn-prov__select" value="@filtroTipo" @onchange="OnTipoChanged">
-                                <option value="">Todos</option>
-                                @foreach (var t in TiposDisponibles)
-                                {
-                                    <option value="@t">@t</option>
-                                }
-                            </select>
-                        </label>
+                        @if (!SoloFarmacias)
+                        {
+                            <label class="cn-prov__field">
+                                <span>Tipo</span>
+                                <select class="cn-prov__select" value="@filtroTipo" @onchange="OnTipoChanged">
+                                    <option value="">Todos</option>
+                                    @foreach (var t in TiposDisponibles)
+                                    {
+                                        <option value="@t">@t</option>
+                                    }
+                                </select>
+                            </label>
+                        }
                     </div>
 
                     <div class="cn-prov__search">
@@ -100,8 +104,8 @@
                         {
                             <div class="cn-prov__empty">
                                 <i class="bi bi-geo-alt" aria-hidden="true"></i>
-                                <p>No encontramos proveedores con esos criterios.</p>
-                                <button type="button" class="cn-prov__empty-btn" @onclick="ResetFilters">Ver todos</button>
+                                <p>@(SoloFarmacias ? "No encontramos farmacias con esos criterios." : "No encontramos proveedores con esos criterios.")</p>
+                                <button type="button" class="cn-prov__empty-btn" @onclick="ResetFilters">@(SoloFarmacias ? "Ver todas" : "Ver todos")</button>
                             </div>
                         }
                         else
@@ -179,6 +183,21 @@
     private bool isLoading = true;
     private string? errorMessage;
 
+    private bool SoloFarmacias
+    {
+        get
+        {
+            var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].Trim('/');
+            return path.Equals("farmacias", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private string TituloPagina => SoloFarmacias ? "Farmacias afiliadas" : "Red de Proveedores";
+
+    private string LeadPagina => SoloFarmacias
+        ? "Encuentra farmacias de tu red."
+        : "Encuentra clínicas, laboratorios y farmacias de tu red.";
+
     private List<ProveedorRedDto> todosProveedores = new();
 
     private IEnumerable<string> EstadosDisponibles =>
@@ -225,7 +244,9 @@
             if (!string.IsNullOrWhiteSpace(filtroCiudad))
                 q = q.Where(p => string.Equals(p.Ciudad, filtroCiudad, StringComparison.OrdinalIgnoreCase));
 
-            if (!string.IsNullOrWhiteSpace(filtroTipo))
+            if (SoloFarmacias)
+                q = q.Where(p => EsFarmacia(p.Tipo));
+            else if (!string.IsNullOrWhiteSpace(filtroTipo))
                 q = q.Where(p => string.Equals(p.Tipo, filtroTipo, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(searchQuery))
@@ -308,7 +329,8 @@
         searchQuery = string.Empty;
         filtroEstado = string.Empty;
         filtroCiudad = string.Empty;
-        filtroTipo = string.Empty;
+        if (!SoloFarmacias)
+            filtroTipo = string.Empty;
     }
 
     private void GoHome() => Navigation.NavigateTo("Home");
@@ -319,6 +341,10 @@
 
     private static bool Contains(string? source, string query) =>
         !string.IsNullOrEmpty(source) && source.Contains(query, StringComparison.OrdinalIgnoreCase);
+
+    private static bool EsFarmacia(string? tipo) =>
+        !string.IsNullOrWhiteSpace(tipo)
+        && tipo.Contains("farm", StringComparison.OrdinalIgnoreCase);
 
     private static string FormatUbicacion(ProveedorRedDto p)
     {

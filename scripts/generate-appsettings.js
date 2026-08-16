@@ -61,6 +61,8 @@ const settings = {
     LisClienteId: Number(process.env.CUIDANET_LIS_CLIENTE_ID || 10),
     VenemergenciaUrl:
       process.env.CUIDANET_VENEMERGENCIA_URL || "https://venemergencia.com/",
+    SymptomateUrl:
+      process.env.CUIDANET_SYMPTOMATE_URL || "https://symptomate.com/es",
     WhatsAppRedyplan: process.env.CUIDANET_WA_REDYPLAN || "+584241271422",
     WhatsAppCuidamed: process.env.CUIDANET_WA_CUIDAMED || "+584142387774",
     ServicioImagenDocumentos: Number(

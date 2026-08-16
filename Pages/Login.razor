@@ -602,17 +602,11 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
         StopTimer();
     }
 
-    private async Task SelectAfiliadoAsync(int beneficiarioId)
+    private Task SelectAfiliadoAsync(int beneficiarioId)
     {
         AfiliadoSeleccionadoValue = beneficiarioId.ToString();
-        try
-        {
-            afiliadoDetalle = await CuidanetService.GetBeneficiarioDetalleAsync(beneficiarioId);
-        }
-        catch (Exception)
-        {
-            afiliadoDetalle = null;
-        }
+        afiliadoDetalle = listaAfiliados.FirstOrDefault(a => a.BeneficiarioId == beneficiarioId);
+        return Task.CompletedTask;
     }
 
     public class LoginViewModel

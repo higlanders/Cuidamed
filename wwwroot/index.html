@@ -43,9 +43,20 @@
     </div>
 
     <script>
+        // Deep links de GitHub Pages (/reembolso) vuelven al index con la ruta guardada.
+        (function restoreSpaPath() {
+            try {
+                var path = sessionStorage.getItem('cn_restore_path');
+                if (path) {
+                    sessionStorage.removeItem('cn_restore_path');
+                    history.replaceState(null, '', path);
+                }
+            } catch (e) { /* sessionStorage bloqueado */ }
+        })();
+
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260815n';
+            const flag = 'cn_cache_bust_20260816a';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
@@ -59,11 +70,15 @@
                 console.warn('PWA cache clear:', e);
             }
 
-            // Un solo reload por sesión tras limpiar, para tomar el build nuevo.
+            // Recargar el index (200), no la ruta Blazor (GitHub Pages responde 404).
             try {
                 if (!sessionStorage.getItem(flag)) {
                     sessionStorage.setItem(flag, '1');
-                    location.reload();
+                    sessionStorage.setItem(
+                        'cn_restore_path',
+                        location.pathname + location.search + location.hash);
+                    var base = document.querySelector('base');
+                    location.replace((base && base.href) ? base.href : './');
                     return;
                 }
             } catch (e) { /* sessionStorage bloqueado */ }

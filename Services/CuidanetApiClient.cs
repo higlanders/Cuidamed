@@ -211,9 +211,9 @@ namespace Cuidanet.Services
             // Usar la variable configurada para armar la ruta con el ID
             var response = await _httpClient.GetAsync($"{_beneficiarioUrl}/{beneficiarioId}");
 
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+            if (!response.IsSuccessStatusCode)
+                return null;
 
-            response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<BeneficiarioDto>();
         }
 

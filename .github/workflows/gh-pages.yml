@@ -49,8 +49,7 @@ jobs:
           # Jekyll ignores _* folders; without this, _framework 404s on GitHub Pages
           touch publish/wwwroot/.nojekyll
 
-          # SPA fallback for Blazor client-side routes
-          cp publish/wwwroot/index.html publish/wwwroot/404.html
+          # 404.html del repo redirige deep links al index (no copiar index.html).
 
       - uses: actions/upload-pages-artifact@v3
         with:

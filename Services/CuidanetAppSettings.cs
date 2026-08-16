@@ -10,6 +10,9 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
     public string VenemergenciaUrl =>
         FirstNonEmpty(configuration["CuidanetApp:VenemergenciaUrl"], "https://venemergencia.com/");
 
+    public string SymptomateUrl =>
+        FirstNonEmpty(configuration["CuidanetApp:SymptomateUrl"], "https://symptomate.com/es");
+
     public string WhatsAppRedyplan =>
         FirstNonEmpty(configuration["CuidanetApp:WhatsAppRedyplan"], "+584241271422");
 
@@ -35,7 +38,11 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
     private static string FirstNonEmpty(string? value, string fallback) =>
         string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
 
-    public bool EsUrlVenemergenciaValida =>
-        Uri.TryCreate(VenemergenciaUrl, UriKind.Absolute, out var uri)
+    public bool EsUrlVenemergenciaValida => EsHttpUrl(VenemergenciaUrl);
+
+    public bool EsUrlSymptomateValida => EsHttpUrl(SymptomateUrl);
+
+    private static bool EsHttpUrl(string value) =>
+        Uri.TryCreate(value, UriKind.Absolute, out var uri)
         && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
 }

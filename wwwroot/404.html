@@ -1,0 +1,21 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Cuidanet</title>
+    <script>
+        // GitHub Pages no tiene archivos por ruta Blazor (/reembolso, /Home, …).
+        // Guardamos la ruta y vamos al index; index.html la restaura.
+        try {
+            sessionStorage.setItem(
+                'cn_restore_path',
+                location.pathname + location.search + location.hash);
+        } catch (e) { /* sessionStorage bloqueado */ }
+        var path = location.pathname.replace(/\/+$/, '');
+        var slash = path.lastIndexOf('/');
+        var root = slash <= 0 ? '/' : path.slice(0, slash + 1);
+        location.replace(root);
+    </script>
+</head>
+<body>Redirigiendo…</body>
+</html>
