@@ -14,7 +14,7 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
         FirstNonEmpty(configuration["CuidanetApp:WhatsAppRedyplan"], "+584241271422");
 
     public string WhatsAppCuidamed =>
-        FirstNonEmpty(configuration["CuidanetApp:WhatsAppCuidamed"], "+584242186707");
+        FirstNonEmpty(configuration["CuidanetApp:WhatsAppCuidamed"], "+584142387774");
 
     public int ServicioImagenDocumentos =>
         ReadInt("CuidanetApp:ServicioImagenDocumentos", 1024);

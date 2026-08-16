@@ -62,7 +62,7 @@ const settings = {
     VenemergenciaUrl:
       process.env.CUIDANET_VENEMERGENCIA_URL || "https://venemergencia.com/",
     WhatsAppRedyplan: process.env.CUIDANET_WA_REDYPLAN || "+584241271422",
-    WhatsAppCuidamed: process.env.CUIDANET_WA_CUIDAMED || "+584242186707",
+    WhatsAppCuidamed: process.env.CUIDANET_WA_CUIDAMED || "+584142387774",
     ServicioImagenDocumentos: Number(
       process.env.CUIDANET_SERVICIO_IMAGEN || 1024
     ),
