@@ -174,15 +174,12 @@
                                 }
                             </dl>
                             <div class="cn-lab__success-actions">
-                                @if (!string.IsNullOrWhiteSpace(ultimoRegistroUploaded.UrlPublica))
+                                @if (!string.IsNullOrWhiteSpace(UrlParaVer))
                                 {
-                                    <a class="cn-lab__btn cn-lab__btn--ghost"
-                                       href="@ultimoRegistroUploaded.UrlPublica"
-                                       target="_blank"
-                                       rel="noopener noreferrer">
-                                        <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
-                                        Ver en servidor
-                                    </a>
+                                    <button type="button" class="cn-lab__btn cn-lab__btn--ghost" @onclick="VerDocumentoAsync">
+                                        <i class="bi bi-eye" aria-hidden="true"></i>
+                                        Ver documento
+                                    </button>
                                 }
                                 <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="ResetUpload">
                                     <i class="bi bi-plus-lg" aria-hidden="true"></i>
@@ -236,6 +233,32 @@
     };
 
     private void GoHome() => Navigation.NavigateTo("Home");
+
+    private string? UrlParaVer
+    {
+        get
+        {
+            if (ultimoRegistroUploaded is null) return null;
+            if (!string.IsNullOrWhiteSpace(ultimoRegistroUploaded.UrlPublica))
+                return ultimoRegistroUploaded.UrlPublica;
+            if (!string.IsNullOrWhiteSpace(ultimoRegistroUploaded.Url))
+                return ultimoRegistroUploaded.Url;
+            return null;
+        }
+    }
+
+    private async Task VerDocumentoAsync()
+    {
+        if (string.IsNullOrWhiteSpace(UrlParaVer))
+            return;
+
+        var ok = await JS.InvokeAsync<bool>("CuidanetUi.openUrlHidden", UrlParaVer);
+        if (!ok)
+        {
+            statusMessage = "No se pudo abrir el documento. Permite ventanas emergentes e intenta de nuevo.";
+            statusTone = "warning";
+        }
+    }
 
     private void CambiarOrigen(OrigenMedia nuevoOrigen)
     {

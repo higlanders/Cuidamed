@@ -45,7 +45,7 @@
     <script>
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260815j';
+            const flag = 'cn_cache_bust_20260815k';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
@@ -175,6 +175,36 @@
 
                 // Retorna la imagen en formato Base64 comprimida como JPEG
                 return canvas.toDataURL('image/jpeg', 0.85);
+            }
+        };
+
+        // Abre la imagen/PDF en about:blank para no mostrar la URL del servidor en la barra.
+        window.CuidanetUi = {
+            openUrlHidden: function (url) {
+                if (!url) return false;
+                var w = window.open('about:blank', '_blank');
+                if (!w) return false;
+
+                var safe = String(url)
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                var isPdf = /\.pdf(\?|#|$)/i.test(url);
+                var body = isPdf
+                    ? '<iframe src="' + safe + '" title="Documento" style="border:0;width:100%;height:100%"></iframe>'
+                    : '<img src="' + safe + '" alt="Documento" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
+
+                w.document.open();
+                w.document.write(
+                    '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+                    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+                    '<title>Documento</title>' +
+                    '<style>html,body{margin:0;padding:0;min-height:100%;background:#111;color:#fff;}</style>' +
+                    '</head><body>' + body + '</body></html>'
+                );
+                w.document.close();
+                return true;
             }
         };
 
