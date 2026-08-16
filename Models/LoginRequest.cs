@@ -155,5 +155,66 @@ namespace Cuidanet.Models
         [JsonPropertyName("tipos")]
         public List<string> Tipos { get; set; } = new();
     }
+
+    /// <summary>POST /api/Consulta — SELECT parametrizado sobre tablas whitelist.</summary>
+    public class ConsultaRequestDto
+    {
+        [JsonPropertyName("tabla")]
+        public string Tabla { get; set; } = string.Empty;
+
+        [JsonPropertyName("campos")]
+        public List<string> Campos { get; set; } = new();
+
+        [JsonPropertyName("filtros")]
+        public List<ConsultaFiltroRequestDto> Filtros { get; set; } = new();
+
+        [JsonPropertyName("orden")]
+        public List<ConsultaOrdenRequestDto> Orden { get; set; } = new();
+
+        [JsonPropertyName("top")]
+        public int Top { get; set; }
+
+        [JsonPropertyName("offset")]
+        public int Offset { get; set; }
+    }
+
+    public class ConsultaFiltroRequestDto
+    {
+        [JsonPropertyName("campo")]
+        public string Campo { get; set; } = string.Empty;
+
+        [JsonPropertyName("op")]
+        public string Op { get; set; } = "eq";
+
+        [JsonPropertyName("valor")]
+        public string? Valor { get; set; }
+    }
+
+    public class ConsultaOrdenRequestDto
+    {
+        [JsonPropertyName("campo")]
+        public string Campo { get; set; } = string.Empty;
+
+        [JsonPropertyName("dir")]
+        public string Dir { get; set; } = "asc";
+    }
+
+    public class ConsultaResponseDto
+    {
+        [JsonPropertyName("tabla")]
+        public string Tabla { get; set; } = string.Empty;
+
+        [JsonPropertyName("total")]
+        public int Total { get; set; }
+
+        [JsonPropertyName("top")]
+        public int Top { get; set; }
+
+        [JsonPropertyName("offset")]
+        public int Offset { get; set; }
+
+        [JsonPropertyName("filas")]
+        public List<System.Text.Json.JsonElement> Filas { get; set; } = new();
+    }
 }
 

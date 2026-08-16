@@ -53,6 +53,7 @@ const settings = {
       VerificarSms: process.env.CUIDANET_SMS_VERIFICAR || "sms/verificar-codigo",
       AfiliadoRed: "Afiliado/red",
       AfiliadoRedFiltros: "Afiliado/red/filtros",
+      Consulta: process.env.CUIDANET_CONSULTA || "Consulta",
       CoberturaPlan: "Cobertura/plan",
       CoberturaConsumos: "Cobertura/consumos",
     },
@@ -64,6 +65,8 @@ const settings = {
     SymptomateUrl:
       process.env.CUIDANET_SYMPTOMATE_URL || "https://symptomate.com/es",
     TipoAfiliadoFarmacia: process.env.CUIDANET_TIPO_FARMACIA || "Farmacia",
+    StatusAfiliadoActivo: process.env.CUIDANET_STATUS_ACTIVO || "Activo",
+    ConsultaTablaAfiliado: process.env.CUIDANET_TABLA_AFILIADO || "Afiliado",
     WhatsAppRedyplan: process.env.CUIDANET_WA_REDYPLAN || "+584241271422",
     WhatsAppCuidamed: process.env.CUIDANET_WA_CUIDAMED || "+584142387774",
     ServicioImagenDocumentos: Number(

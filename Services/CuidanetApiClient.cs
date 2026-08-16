@@ -1,6 +1,8 @@
 ﻿using Cuidanet.Models;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Web;
 
 
@@ -20,6 +22,7 @@ namespace Cuidanet.Services
         private readonly string _verificarSmsUrl;
         private readonly string _afiliadoRedUrl;
         private readonly string _afiliadoRedFiltrosUrl;
+        private readonly string _consultaUrl;
         private readonly string _coberturaPlanUrl;
         private readonly string _coberturaConsumosUrl;
 
@@ -45,6 +48,7 @@ namespace Cuidanet.Services
             _verificarSmsUrl = configuration["CuidanetServices:Endpoints:VerificarSms"] ?? "sms/verificar-codigo";
             _afiliadoRedUrl = configuration["CuidanetServices:Endpoints:AfiliadoRed"] ?? "Afiliado/red";
             _afiliadoRedFiltrosUrl = configuration["CuidanetServices:Endpoints:AfiliadoRedFiltros"] ?? "Afiliado/red/filtros";
+            _consultaUrl = configuration["CuidanetServices:Endpoints:Consulta"] ?? "Consulta";
             _coberturaPlanUrl = configuration["CuidanetServices:Endpoints:CoberturaPlan"] ?? "Cobertura/plan";
             _coberturaConsumosUrl = configuration["CuidanetServices:Endpoints:CoberturaConsumos"] ?? "Cobertura/consumos";
         }
@@ -249,6 +253,118 @@ namespace Cuidanet.Services
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<ProveedorRedFiltrosDto>()
                    ?? new ProveedorRedFiltrosDto();
+        }
+
+        /// <summary>
+        /// POST /api/Consulta sobre dbo.Afiliado: Tipo + Status, mismos campos que la red de proveedores.
+        /// dbo.Afiliado no tiene Estado/Ciudad; Localidad se mapea a Ciudad.
+        /// </summary>
+        public async Task<List<ProveedorRedDto>> GetFarmaciasActivasAsync(
+            string tabla,
+            string tipo,
+            string status)
+        {
+            const int pageSize = 500;
+            const int maxPages = 20;
+            var list = new List<ProveedorRedDto>();
+
+            for (var page = 0; page < maxPages; page++)
+            {
+                var request = new ConsultaRequestDto
+                {
+                    Tabla = tabla,
+                    Campos =
+                    [
+                        "Nombre",
+                        "Direccion",
+                        "Telefono",
+                        "ContactoWhatsApp",
+                        "TelefonoPersonaContacto",
+                        "Localidad",
+                        "Tipo"
+                    ],
+                    Filtros =
+                    [
+                        new() { Campo = "Tipo", Op = "eq", Valor = tipo },
+                        new() { Campo = "Status", Op = "eq", Valor = status }
+                    ],
+                    Orden = [new() { Campo = "Nombre", Dir = "asc" }],
+                    Top = pageSize,
+                    Offset = page * pageSize
+                };
+
+                var pageRows = await PostConsultaAsync(request);
+                foreach (var row in pageRows.Filas)
+                {
+                    var mapped = MapAfiliadoConsultaToRed(row);
+                    if (mapped is not null)
+                        list.Add(mapped);
+                }
+
+                if (pageRows.Filas.Count < pageSize)
+                    break;
+            }
+
+            return list;
+        }
+
+        private async Task<ConsultaResponseDto> PostConsultaAsync(ConsultaRequestDto request)
+        {
+            var response = await _httpClient.PostAsJsonAsync(_consultaUrl, request);
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<ConsultaResponseDto>()
+                       ?? new ConsultaResponseDto();
+            }
+
+            var detail = await response.Content.ReadAsStringAsync();
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                throw new HttpRequestException(
+                    "No autorizado para POST /api/Consulta (403). " +
+                    "El usuario de la app no está en consulta general. " +
+                    TrimError(detail));
+            }
+
+            throw new HttpRequestException(
+                $"Consulta de farmacias falló ({(int)response.StatusCode}). {TrimError(detail)}");
+        }
+
+        private static ProveedorRedDto? MapAfiliadoConsultaToRed(JsonElement row)
+        {
+            if (row.ValueKind != JsonValueKind.Object)
+                return null;
+
+            var whatsapp = ReadConsultaString(row, "ContactoWhatsApp");
+            if (string.IsNullOrWhiteSpace(whatsapp))
+                whatsapp = ReadConsultaString(row, "TelefonoPersonaContacto");
+
+            return new ProveedorRedDto
+            {
+                Nombre = ReadConsultaString(row, "Nombre") ?? string.Empty,
+                Direccion = ReadConsultaString(row, "Direccion") ?? string.Empty,
+                Telefono = ReadConsultaString(row, "Telefono") ?? string.Empty,
+                ContactoWhatsApp = whatsapp ?? string.Empty,
+                Ciudad = ReadConsultaString(row, "Localidad"),
+                Tipo = ReadConsultaString(row, "Tipo")
+            };
+        }
+
+        private static string? ReadConsultaString(JsonElement row, string column)
+        {
+            foreach (var prop in row.EnumerateObject())
+            {
+                if (!prop.Name.Equals(column, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (prop.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+                    return null;
+                if (prop.Value.ValueKind == JsonValueKind.String)
+                    return prop.Value.GetString()?.Trim();
+                var text = prop.Value.ToString()?.Trim();
+                return string.IsNullOrEmpty(text) ? null : text;
+            }
+
+            return null;
         }
 
         /// <summary>

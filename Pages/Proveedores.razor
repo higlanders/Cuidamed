@@ -196,7 +196,7 @@
     private string TituloPagina => SoloFarmacias ? "Farmacias afiliadas" : "Red de Proveedores";
 
     private string LeadPagina => SoloFarmacias
-        ? "Encuentra farmacias de tu red."
+        ? "Encuentra farmacias activas de CuidaNet."
         : "Encuentra clínicas, laboratorios y farmacias de tu red.";
 
     private List<ProveedorRedDto> todosProveedores = new();
@@ -245,7 +245,9 @@
             if (!string.IsNullOrWhiteSpace(filtroCiudad))
                 q = q.Where(p => string.Equals(p.Ciudad, filtroCiudad, StringComparison.OrdinalIgnoreCase));
 
-            if (!string.IsNullOrWhiteSpace(filtroTipo))
+            if (SoloFarmacias)
+                q = q.Where(p => EsFarmacia(p.Tipo));
+            else if (!string.IsNullOrWhiteSpace(filtroTipo))
                 q = q.Where(p => string.Equals(p.Tipo, filtroTipo, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(searchQuery))
@@ -289,14 +291,19 @@
         try
         {
             todosProveedores = SoloFarmacias
-                ? await CuidanetService.GetRedProveedoresAsync(cedulaUsuario, tipo: AppSettings.TipoAfiliadoFarmacia)
+                ? await CuidanetService.GetFarmaciasActivasAsync(
+                    AppSettings.ConsultaTablaAfiliado,
+                    AppSettings.TipoAfiliadoFarmacia,
+                    AppSettings.StatusAfiliadoActivo)
                 : await CuidanetService.GetRedProveedoresAsync(cedulaUsuario);
         }
         catch (Exception ex)
         {
             todosProveedores = new();
             errorMessage = SoloFarmacias
-                ? "No se pudo cargar las farmacias afiliadas. Intenta de nuevo."
+                ? (ex is HttpRequestException
+                    ? ex.Message
+                    : "No se pudo cargar las farmacias afiliadas. Intenta de nuevo.")
                 : "No se pudo cargar la red de proveedores. Intenta de nuevo.";
             Console.WriteLine($"Red proveedores: {ex.Message}");
         }
@@ -344,6 +351,10 @@
 
     private static bool Contains(string? source, string query) =>
         !string.IsNullOrEmpty(source) && source.Contains(query, StringComparison.OrdinalIgnoreCase);
+
+    private static bool EsFarmacia(string? tipo) =>
+        !string.IsNullOrWhiteSpace(tipo)
+        && tipo.Contains("farm", StringComparison.OrdinalIgnoreCase);
 
     private static string FormatUbicacion(ProveedorRedDto p)
     {
