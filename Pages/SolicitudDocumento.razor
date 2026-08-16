@@ -212,8 +212,9 @@
     private const long MaxFileSizeBytes = 100 * 1024 * 1024;
 
     private string Titulo => modulo?.Label ?? "Solicitud";
-    // API Imagenes/upload: Consulta, Medicamento, Orden, PresupuestoCA, Proveedores, Reembolsos, Servicio, Titular
-    private string Carpeta => modulo?.Id == "reembolso" ? "Reembolsos" : "PresupuestoCA";
+    // Reembolsos/PresupuestoCA exigen IDs de solicitud que la app aún no crea.
+    // Usamos Servicio (mismo flujo que Laboratorios) para poder guardar la documentación.
+    private string Carpeta => "Servicio";
 
     private string StatusClass => statusTone switch
     {
