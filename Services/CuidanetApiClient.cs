@@ -3,7 +3,6 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Web;
 
 
@@ -269,7 +268,7 @@ namespace Cuidanet.Services
 
         /// <summary>
         /// POST /api/Consulta sobre dbo.Afiliado: Tipo + Status, mismos campos que la red de proveedores.
-        /// dbo.Afiliado no tiene Estado/Ciudad; Localidad se mapea a Ciudad.
+        /// Sucursal = Estado, Localidad = Ciudad.
         /// </summary>
         public async Task<List<ProveedorRedDto>> GetFarmaciasActivasAsync(
             string tabla,
@@ -425,71 +424,18 @@ namespace Cuidanet.Services
                 whatsapp = ReadConsultaString(row, "TelefonoPersonaContacto");
 
             var localidad = ReadConsultaString(row, "Localidad");
-            var direccion = ReadConsultaString(row, "Direccion") ?? string.Empty;
             var sucursal = ReadConsultaString(row, "Sucursal");
-            var (estado, ciudad) = SplitEstadoCiudad(localidad, sucursal, direccion);
 
             return new ProveedorRedDto
             {
                 Nombre = ReadConsultaString(row, "Nombre") ?? string.Empty,
-                Direccion = direccion,
+                Direccion = ReadConsultaString(row, "Direccion") ?? string.Empty,
                 Telefono = ReadConsultaString(row, "Telefono") ?? string.Empty,
                 ContactoWhatsApp = whatsapp ?? string.Empty,
-                Estado = estado,
-                Ciudad = ciudad,
+                Estado = sucursal,
+                Ciudad = localidad,
                 Tipo = ReadConsultaString(row, "Tipo")
             };
-        }
-
-        /// <summary>
-        /// dbo.Afiliado no tiene Estado/Ciudad. El estado suele ir en Localidad o Dirección
-        /// como "LA FRIA-EDO. TACHIRA" o "PUERTO ORDAZ · EDO. BOLIVAR".
-        /// </summary>
-        private static (string? Estado, string? Ciudad) SplitEstadoCiudad(
-            string? localidad,
-            string? sucursal,
-            string? direccion)
-        {
-            if (TrySplitEdo(localidad, out var estado, out var ciudad))
-                return (estado, FirstNonEmpty(ciudad, sucursal));
-            if (TrySplitEdo(direccion, out estado, out ciudad))
-                return (estado, FirstNonEmpty(ciudad, localidad, sucursal));
-            if (TrySplitEdo($"{localidad} {direccion}", out estado, out ciudad))
-                return (estado, FirstNonEmpty(ciudad, sucursal));
-
-            return (null, FirstNonEmpty(localidad, sucursal));
-        }
-
-        private static readonly Regex EdoRegex = new(
-            @"^(?<ciudad>.*?)[\s\-·,]*(?:EDO\.?|ESTADO)\s+(?<estado>.+)$",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-        private static bool TrySplitEdo(string? text, out string estado, out string? ciudad)
-        {
-            estado = string.Empty;
-            ciudad = null;
-            if (string.IsNullOrWhiteSpace(text))
-                return false;
-
-            var match = EdoRegex.Match(text.Trim());
-            if (!match.Success)
-                return false;
-
-            estado = match.Groups["estado"].Value.Split([',', '·'], 2)[0].Trim().Trim('-', '.');
-            var ciudadRaw = match.Groups["ciudad"].Value.Trim().Trim('-', '·', ',', ' ');
-            ciudad = string.IsNullOrWhiteSpace(ciudadRaw) ? null : ciudadRaw;
-            return !string.IsNullOrWhiteSpace(estado);
-        }
-
-        private static string? FirstNonEmpty(params string?[] values)
-        {
-            foreach (var value in values)
-            {
-                if (!string.IsNullOrWhiteSpace(value))
-                    return value.Trim();
-            }
-
-            return null;
         }
 
         private static string? ReadConsultaString(JsonElement row, string column)
