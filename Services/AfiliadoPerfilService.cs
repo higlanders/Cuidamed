@@ -9,7 +9,19 @@ public sealed class AfiliadoPerfil
     public int? ClienteId { get; init; }
     public string? NombreCliente { get; init; }
     public string? NombrePlan { get; init; }
+    public string? Nombre { get; init; }
+    public string? Apellido { get; init; }
     public bool EsLis { get; init; }
+
+    /// <summary>Nombre y apellido del asegurado según Cobertura/plan.</summary>
+    public string NombreCompleto
+    {
+        get
+        {
+            var full = $"{Nombre} {Apellido}".Trim();
+            return string.IsNullOrWhiteSpace(full) ? string.Empty : full;
+        }
+    }
 }
 
 /// <summary>Resuelve si el afiliado logueado pertenece a la empresa LIS.</summary>
@@ -47,6 +59,8 @@ public sealed class AfiliadoPerfilService(
             ClienteId = plan?.ClienteId,
             NombreCliente = plan?.NombreCliente,
             NombrePlan = plan?.NombrePlan,
+            Nombre = plan?.Nombre,
+            Apellido = plan?.Apellido,
             EsLis = plan?.ClienteId is int id && id == appSettings.LisClienteId
         };
 

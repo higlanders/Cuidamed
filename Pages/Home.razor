@@ -145,19 +145,24 @@
     private CoberturaPlanDto? planActivo;
     private IReadOnlyList<AppModule> modulosVisibles = AppModules.All;
 
-    private string NombreAfiliado =>
-        afiliadoDetalle?.NombreCompleto
-        ?? planActivo?.NombreCompleto
-        ?? "Afiliado";
+    private string NombreAfiliado
+    {
+        get
+        {
+            if (TieneNombreReal(afiliadoDetalle?.Nombre, afiliadoDetalle?.Apellido))
+                return afiliadoDetalle!.NombreCompleto;
+            if (TieneNombreReal(planActivo?.Nombre, planActivo?.Apellido))
+                return planActivo!.NombreCompleto;
+            return "Afiliado";
+        }
+    }
 
     private string Saludo
     {
         get
         {
-            var nombre = afiliadoDetalle?.Nombre ?? planActivo?.Nombre;
-            if (!string.IsNullOrWhiteSpace(nombre))
-                return $"Hola, {nombre.Trim()}";
-            return "Hola";
+            var nombre = PrimerNombre();
+            return string.IsNullOrWhiteSpace(nombre) ? "Hola" : $"Hola, {nombre}";
         }
     }
 
@@ -173,10 +178,23 @@
             try
             {
                 var resultados = await CuidanetService.GetBeneficiariosAsync(cedula: cedulaUsuario);
-                if (resultados != null && resultados.Any())
+                var deLista = resultados?.FirstOrDefault();
+                if (deLista is not null)
                 {
-                    var primerAfiliado = resultados.First();
-                    afiliadoDetalle = await CuidanetService.GetBeneficiarioDetalleAsync(primerAfiliado.BeneficiarioId);
+                    afiliadoDetalle = deLista;
+                    try
+                    {
+                        var detalle = await CuidanetService.GetBeneficiarioDetalleAsync(deLista.BeneficiarioId);
+                        if (detalle is not null)
+                        {
+                            CompletarNombre(detalle, deLista.Nombre, deLista.Apellido);
+                            afiliadoDetalle = detalle;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Se conserva el nombre de la lista si el detalle (foto) falla
+                    }
                 }
             }
             catch (Exception)
@@ -191,10 +209,16 @@
                 modulosVisibles = AppModules.VisibleFor(perfil.EsLis);
                 planActivo = new CoberturaPlanDto
                 {
+                    Nombre = perfil.Nombre,
+                    Apellido = perfil.Apellido,
                     NombrePlan = perfil.NombrePlan,
                     NombreCliente = perfil.NombreCliente,
-                    ClienteId = perfil.ClienteId
+                    ClienteId = perfil.ClienteId,
+                    Cedula = cedulaUsuario
                 };
+
+                if (afiliadoDetalle is not null)
+                    CompletarNombre(afiliadoDetalle, perfil.Nombre, perfil.Apellido);
             }
             catch (Exception)
             {
@@ -218,7 +242,9 @@
 
     private string GetInitials()
     {
-        var source = afiliadoDetalle?.NombreCompleto ?? planActivo?.NombreCompleto ?? cedulaUsuario;
+        var source = NombreAfiliado;
+        if (string.IsNullOrWhiteSpace(source) || source == "Afiliado")
+            source = cedulaUsuario;
         if (string.IsNullOrWhiteSpace(source))
             return "?";
 
@@ -228,6 +254,31 @@
         if (source.Length >= 2 && source.All(char.IsDigit))
             return source[^2..].ToUpperInvariant();
         return source[..1].ToUpperInvariant();
+    }
+
+    private string? PrimerNombre()
+    {
+        if (!string.IsNullOrWhiteSpace(afiliadoDetalle?.Nombre))
+            return afiliadoDetalle.Nombre.Trim();
+        if (!string.IsNullOrWhiteSpace(planActivo?.Nombre))
+            return planActivo.Nombre.Trim();
+
+        var completo = NombreAfiliado;
+        if (string.IsNullOrWhiteSpace(completo) || completo == "Afiliado")
+            return null;
+
+        return completo.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
+    }
+
+    private static bool TieneNombreReal(string? nombre, string? apellido) =>
+        !string.IsNullOrWhiteSpace(nombre) || !string.IsNullOrWhiteSpace(apellido);
+
+    private static void CompletarNombre(BeneficiarioDto destino, string? nombre, string? apellido)
+    {
+        if (string.IsNullOrWhiteSpace(destino.Nombre) && !string.IsNullOrWhiteSpace(nombre))
+            destino.Nombre = nombre;
+        if (string.IsNullOrWhiteSpace(destino.Apellido) && !string.IsNullOrWhiteSpace(apellido))
+            destino.Apellido = apellido;
     }
 
     public async Task BeginLogOut()
