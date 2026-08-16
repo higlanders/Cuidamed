@@ -45,7 +45,7 @@
     <script>
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260815m';
+            const flag = 'cn_cache_bust_20260815n';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
@@ -178,39 +178,39 @@
             }
         };
 
-        // Abre la imagen/PDF sin mostrar la ruta física /Imagenes/... en la barra.
-        // Preferir ServirAdjunto.aspx?t=... (como en CuidaNet online).
+        // Vista a pantalla completa sin mostrar la ruta física /Imagenes/...
         window.CuidanetUi = {
             openUrlHidden: function (url) {
                 if (!url) return false;
                 var w = window.open('about:blank', '_blank');
                 if (!w) return false;
 
+                var isPdf = /\.pdf(\?|#|$)/i.test(url) || /^data:application\/pdf/i.test(url);
+                var isServir = /ServirAdjunto/i.test(url);
+                var useFrame = isPdf || isServir;
+
+                // Escapar solo lo necesario para atributo HTML (data: URLs no deben romperse).
                 var safe = String(url)
                     .replace(/&/g, '&amp;')
                     .replace(/"/g, '&quot;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;');
-                var isPdf = /\.pdf(\?|#|$)/i.test(url);
-                var isServir = /ServirAdjunto/i.test(url);
-                var isData = /^data:/i.test(url) || /^blob:/i.test(url);
-                var body;
-                if (isPdf || isServir) {
-                    body = '<iframe src="' + safe + '" title="Documento" style="border:0;width:100%;height:100%"></iframe>';
-                } else {
-                    body = '<img src="' + safe + '" alt="Documento" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
-                }
-                if (isData) {
-                    body = '<img src="' + safe + '" alt="Documento" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
-                }
+                    .replace(/</g, '&lt;');
+
+                var body = useFrame
+                    ? '<iframe class="doc" src="' + safe + '" title="Documento" allowfullscreen></iframe>'
+                    : '<img class="doc" src="' + safe + '" alt="Documento" />';
 
                 w.document.open();
                 w.document.write(
                     '<!DOCTYPE html><html><head><meta charset="utf-8">' +
-                    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+                    '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover">' +
                     '<title>Documento</title>' +
-                    '<style>html,body{margin:0;padding:0;height:100%;background:#111;color:#fff;}</style>' +
-                    '</head><body style="height:100%">' + body + '</body></html>'
+                    '<style>' +
+                    '*{box-sizing:border-box;}' +
+                    'html,body{margin:0;padding:0;width:100%;height:100%;background:#000;}' +
+                    'body{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;overflow:auto;-webkit-overflow-scrolling:touch;}' +
+                    'img.doc{display:block;width:100%;max-width:100vw;height:auto;max-height:100vh;max-height:100dvh;object-fit:contain;margin:auto;}' +
+                    'iframe.doc{display:block;border:0;width:100vw;height:100vh;height:100dvh;}' +
+                    '</style></head><body>' + body + '</body></html>'
                 );
                 w.document.close();
                 return true;
