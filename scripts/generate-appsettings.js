@@ -80,6 +80,16 @@ const settings = {
     ServirAdjuntoUrl:
       process.env.CUIDANET_SERVIR_ADJUNTO_URL ||
       "https://admin.cuidanet.net/online/ServirAdjunto.aspx",
+    TwitterUrl: process.env.CUIDANET_TWITTER_URL || "https://twitter.com/Cuidamed",
+    FacebookUrl:
+      process.env.CUIDANET_FACEBOOK_URL ||
+      "https://www.facebook.com/people/Servicios-Cuidamed-CA/61564849946533/",
+    InstagramUrl:
+      process.env.CUIDANET_INSTAGRAM_URL ||
+      "https://instagram.com/Servicios_cuidamed",
+    LinkedInUrl:
+      process.env.CUIDANET_LINKEDIN_URL ||
+      "https://www.linkedin.com/company/servicios-cuidamed-c-a/",
   },
 };
 

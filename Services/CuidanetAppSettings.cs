@@ -44,6 +44,42 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
             configuration["CuidanetApp:ServirAdjuntoUrl"],
             "https://admin.cuidanet.net/online/ServirAdjunto.aspx");
 
+    /// <summary>Enlaces de redes (mismos de CuidaNet.Web / MasterPage.master).</summary>
+    public string TwitterUrl =>
+        FirstNonEmpty(configuration["CuidanetApp:TwitterUrl"], "https://twitter.com/Cuidamed");
+
+    public string FacebookUrl =>
+        FirstNonEmpty(
+            configuration["CuidanetApp:FacebookUrl"],
+            "https://www.facebook.com/people/Servicios-Cuidamed-CA/61564849946533/");
+
+    public string InstagramUrl =>
+        FirstNonEmpty(configuration["CuidanetApp:InstagramUrl"], "https://instagram.com/Servicios_cuidamed");
+
+    public string LinkedInUrl =>
+        FirstNonEmpty(
+            configuration["CuidanetApp:LinkedInUrl"],
+            "https://www.linkedin.com/company/servicios-cuidamed-c-a/");
+
+    public IReadOnlyList<RedSocial> RedesSociales
+    {
+        get
+        {
+            var list = new List<RedSocial>(4);
+            AddRed(list, "Twitter", TwitterUrl, "bi-twitter-x");
+            AddRed(list, "Facebook", FacebookUrl, "bi-facebook");
+            AddRed(list, "Instagram", InstagramUrl, "bi-instagram");
+            AddRed(list, "LinkedIn", LinkedInUrl, "bi-linkedin");
+            return list;
+        }
+    }
+
+    private static void AddRed(List<RedSocial> list, string nombre, string url, string icono)
+    {
+        if (EsHttpUrl(url))
+            list.Add(new RedSocial(nombre, url, icono));
+    }
+
     private int ReadInt(string key, int fallback) =>
         int.TryParse(configuration[key], out var value) ? value : fallback;
 
@@ -58,3 +94,5 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
         Uri.TryCreate(value, UriKind.Absolute, out var uri)
         && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
 }
+
+public sealed record RedSocial(string Nombre, string Url, string Icono);

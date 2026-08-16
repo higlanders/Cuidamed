@@ -1,0 +1,19 @@
+﻿@using Cuidanet.Services
+@inject CuidanetAppSettings AppSettings
+
+@if (AppSettings.RedesSociales.Count > 0)
+{
+    <nav class="cn-social" aria-label="Redes de CuidaNet">
+        @foreach (var red in AppSettings.RedesSociales)
+        {
+            <a class="cn-social__btn"
+               href="@red.Url"
+               target="_blank"
+               rel="noopener noreferrer"
+               aria-label="@red.Nombre"
+               title="@red.Nombre">
+                <i class="bi @red.Icono" aria-hidden="true"></i>
+            </a>
+        }
+    </nav>
+}
