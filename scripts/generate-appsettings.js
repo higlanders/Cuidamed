@@ -66,6 +66,7 @@ const settings = {
     ServicioImagenDocumentos: Number(
       process.env.CUIDANET_SERVICIO_IMAGEN || 1024
     ),
+    ImagenFuente: process.env.CUIDANET_IMAGEN_FUENTE || "App",
   },
 };
 

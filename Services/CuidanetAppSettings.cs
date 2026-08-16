@@ -19,6 +19,10 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
     public int ServicioImagenDocumentos =>
         ReadInt("CuidanetApp:ServicioImagenDocumentos", 1024);
 
+    /// <summary>Origen de la imagen para carpetas que exigen Fuente (Reembolsos, PresupuestoCA).</summary>
+    public string ImagenFuente =>
+        FirstNonEmpty(configuration["CuidanetApp:ImagenFuente"], "App");
+
     private int ReadInt(string key, int fallback) =>
         int.TryParse(configuration[key], out var value) ? value : fallback;
 

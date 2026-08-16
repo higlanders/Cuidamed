@@ -301,7 +301,8 @@
                 fileStream: stream,
                 fileName: file.Name,
                 carpeta: Carpeta,
-                servicioId: AppSettings.ServicioImagenDocumentos);
+                servicioId: AppSettings.ServicioImagenDocumentos,
+                fuente: AppSettings.ImagenFuente);
 
             statusMessage = "Archivo subido correctamente.";
             statusTone = "success";
@@ -342,7 +343,8 @@
                 fileStream: memory,
                 fileName: nombre,
                 carpeta: Carpeta,
-                servicioId: AppSettings.ServicioImagenDocumentos);
+                servicioId: AppSettings.ServicioImagenDocumentos,
+                fuente: AppSettings.ImagenFuente);
 
             statusMessage = "Captura guardada correctamente.";
             statusTone = "success";

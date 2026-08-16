@@ -331,7 +331,8 @@ namespace Cuidanet.Services
             string carpeta,
             int? servicioId = null,
             int? ordenIdOrMedicamentoId = null,
-            int? presupuestoCAId = null)
+            int? presupuestoCAId = null,
+            string? fuente = null)
         {
             // El endpoint requiere multipart/form-data
             using var content = new MultipartFormDataContent();
@@ -343,6 +344,10 @@ namespace Cuidanet.Services
 
             // 2. Agregar parámetros obligatorios del formulario
             content.Add(new StringContent(carpeta), "carpeta");
+
+            // Reembolsos / PresupuestoCA exigen Fuente en ValidacionMetadatos
+            if (!string.IsNullOrWhiteSpace(fuente))
+                content.Add(new StringContent(fuente.Trim()), "fuente");
 
             // 3. Agregar parámetros condicionales según las reglas de la carpeta
             if (servicioId.HasValue)
