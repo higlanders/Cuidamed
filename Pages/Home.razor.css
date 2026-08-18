@@ -148,22 +148,21 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    gap: 0.5rem;
-    min-height: 8rem;
-    padding: 1rem 0.55rem 0.85rem;
-    border: 1px solid #e6eef1;
-    border-radius: 14px;
-    background: #fff;
+    justify-content: center;
+    gap: 0.65rem;
+    min-height: 8.15rem;
+    padding: 1.1rem 0.55rem 0.9rem;
+    border: none;
+    border-radius: 16px;
+    background: #f3f5f7;
     text-align: center;
     font-family: var(--cn-font);
     cursor: pointer;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .cn-home__tile:hover {
-    border-color: #cfe3ea;
-    box-shadow: 0 4px 12px rgba(1, 112, 160, 0.06);
+    background: #e8eef2;
 }
 
 .cn-home__tile:active {
@@ -172,19 +171,17 @@
 
 .cn-home__tile-icon {
     flex-shrink: 0;
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 50%;
-    background: #eef7f9;
+    width: 2.85rem;
+    height: 2.85rem;
     display: grid;
     place-items: center;
 }
 
 .cn-home__tile-icon::after {
     content: "";
-    width: 2.15rem;
-    height: 2.15rem;
-    background-color: var(--cn-primary);
+    width: 2.85rem;
+    height: 2.85rem;
+    background-color: var(--cn-deep);
     -webkit-mask: var(--cn-icon) center / contain no-repeat;
     mask: var(--cn-icon) center / contain no-repeat;
 }
