@@ -56,7 +56,7 @@
 
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260818a';
+            const flag = 'cn_cache_bust_20260818b';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
@@ -89,28 +89,61 @@
 
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js" autostart="false"></script>
     <script>
+        function cnResolveBootUri(name, defaultUri) {
+            if (defaultUri && defaultUri.endsWith('.br')) {
+                defaultUri = defaultUri.replace(/\.br$/, '');
+            }
+            try {
+                var mapEl = document.querySelector('script[type="importmap"]');
+                var imports = mapEl ? (JSON.parse(mapEl.textContent || '{}').imports || {}) : {};
+                var file = (name || defaultUri).split('?')[0].split('/').pop();
+                for (var key in imports) {
+                    if (key.split('/').pop() === file) {
+                        return new URL(imports[key], document.baseURI).href;
+                    }
+                }
+            } catch (e) { /* importmap ausente o inválido */ }
+            return defaultUri;
+        }
+
+        function cnIsHtmlResponse(res) {
+            var ct = (res.headers.get('content-type') || '').toLowerCase();
+            return ct.indexOf('text/html') !== -1;
+        }
+
+        async function cnFetchBootResource(url) {
+            var delays = [0, 600, 1500, 3000, 6000];
+            var lastErr;
+            for (var i = 0; i < delays.length; i++) {
+                if (delays[i]) {
+                    await new Promise(function (resolve) { setTimeout(resolve, delays[i]); });
+                }
+                var attemptUrl = i === 0
+                    ? url
+                    : url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cnr=' + i;
+                try {
+                    // Sin integrity: un 503 HTML de GitHub Pages no debe bloquear la URL por SRI.
+                    var res = await fetch(attemptUrl, { cache: 'no-store' });
+                    if (res.ok && !cnIsHtmlResponse(res)) return res;
+                    lastErr = new Error('HTTP ' + res.status + ' ' + url);
+                } catch (e) {
+                    lastErr = e;
+                }
+            }
+            throw lastErr;
+        }
+
         Blazor.start({
             loadBootResource: function (type, name, defaultUri, integrity) {
-                // GitHub Pages no sirve .br con Content-Encoding; usa el archivo plano.
-                if (defaultUri && defaultUri.endsWith('.br')) {
-                    defaultUri = defaultUri.replace(/\.br$/, '');
+                var uri = cnResolveBootUri(name, defaultUri);
+
+                // dotnetjs EXIGE URI string. Devolver fetch() ahí rompe Mono
+                // (MONO_WASM: s is not a function en mono_download_assets).
+                if (type === 'dotnetjs') {
+                    return uri;
                 }
 
-                try {
-                    var mapEl = document.querySelector('script[type="importmap"]');
-                    var imports = mapEl ? (JSON.parse(mapEl.textContent || '{}').imports || {}) : {};
-                    var file = (name || defaultUri).split('?')[0].split('/').pop();
-                    for (var key in imports) {
-                        if (key.split('/').pop() === file) {
-                            defaultUri = new URL(imports[key], document.baseURI).href;
-                            break;
-                        }
-                    }
-                } catch (e) { /* importmap ausente o inválido */ }
-
-                // Siempre URI string. Devolver fetch() rompe Mono
-                // (MONO_WASM: s is not a function en mono_download_assets).
-                return defaultUri;
+                return cnFetchBootResource(uri);
             }
         }).catch(function (err) {
             console.error('Blazor.start failed', err);
