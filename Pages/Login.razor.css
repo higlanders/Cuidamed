@@ -20,8 +20,9 @@
     z-index: 20;
     box-sizing: border-box;
     width: 100%;
-    min-height: 100dvh;
     min-height: 100vh;
+    min-height: 100dvh;
+    min-height: 100svh;
     display: flex;
     justify-content: center;
     background: #ffffff;
@@ -29,6 +30,8 @@
     color: var(--cn-text);
     -webkit-font-smoothing: antialiased;
     overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
 }
 
 .cn-login-page *,
@@ -40,12 +43,14 @@
 .cn-login-shell {
     width: 100%;
     max-width: 440px;
-    min-height: 100dvh;
+    min-height: 100%;
     min-height: 100vh;
+    min-height: 100dvh;
+    min-height: 100svh;
     display: flex;
     flex-direction: column;
     position: relative;
-    /* Evitar overflow:hidden en móvil: bloquea el scroll táctil anidado */
+    /* Evitar overflow:hidden en móvil: recorta el botón Entrar */
     overflow: visible;
 }
 
@@ -58,7 +63,7 @@
     background: #ffffff;
     border-bottom: 3px solid var(--cn-primary);
     position: relative;
-    animation: cn-hero-in 0.55s ease-out both;
+    animation: cn-hero-in 0.55s ease-out backwards;
     transition: padding 0.25s ease;
 }
 
@@ -109,7 +114,7 @@
     display: flex;
     flex-direction: column;
     box-shadow: none;
-    animation: cn-sheet-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: cn-sheet-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
     animation-delay: 0.08s;
     /* Un solo scroll en la página (cn-login-page), no anidar overflow aquí en móvil */
     overflow: visible;
@@ -144,7 +149,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    animation: cn-step-fade 0.35s ease both;
+    animation: cn-step-fade 0.35s ease backwards;
 }
 
 .cn-login-step__title {
@@ -566,7 +571,32 @@
 
 .cn-login-footer-space {
     margin-top: auto;
-    padding-top: 1rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.25rem;
+    background: #fff;
+}
+
+/* En el paso afiliado el CTA queda fijo sobre la barra del sistema / Chrome. */
+.cn-login-step--afiliado {
+    padding-bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+.cn-login-step--afiliado .cn-login-footer-space {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 25;
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto;
+    padding: 0.7rem 1.5rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid #e6eef1;
+    box-shadow: 0 -10px 24px rgba(255, 255, 255, 0.95);
+}
+
+.cn-login-step--afiliado .cn-login-cta {
+    margin-top: 0;
 }
 
 /* —— Animations —— */
@@ -636,6 +666,24 @@
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
+    }
+
+    .cn-login-step--afiliado {
+        padding-bottom: 0;
+    }
+
+    .cn-login-step--afiliado .cn-login-footer-space {
+        position: static;
+        max-width: none;
+        padding: 1rem 0 0.25rem;
+        border-top: none;
+        box-shadow: none;
+    }
+}
+
+@media (max-height: 720px) {
+    .cn-login-terms__panel {
+        max-height: 72px;
     }
 }
 

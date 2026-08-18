@@ -1,4 +1,5 @@
 ﻿@page "/"
+@layout EmptyLayout
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Authorization
 @using Cuidanet.Services
@@ -169,7 +170,19 @@
                                            maxlength="8"
                                            name="one-time-code"
                                            autocomplete="one-time-code"
+                                           autocorrect="off"
+                                           autocapitalize="none"
+                                           spellcheck="false"
+                                           enterkeyhint="done"
                                            autofocus="true" />
+                                @if (EsIos)
+                                {
+                                    <p class="cn-login-hint">En iPhone no aparece el aviso de “Permitir”. Toca el campo y elige el código que sale sobre el teclado cuando llegue el SMS.</p>
+                                }
+                                else if (WebOtpDisponible)
+                                {
+                                    <p class="cn-login-hint">Cuando llegue el SMS, acepta el aviso del navegador para completar el código automáticamente.</p>
+                                }
                                 <div class="cn-login-timer" role="status">
                                     <span>Expira en <strong>@FormatTime(timeLeft)</strong></span>
                                     <button type="button"
@@ -231,6 +244,9 @@
     private int timeLeft = 120;
     private BeneficiarioDto? afiliadoDetalle;
     private string _afiliadoSeleccionado = string.Empty;
+    private bool EsIos { get; set; }
+    private bool WebOtpDisponible { get; set; }
+    private bool _pendingOtpFocus;
 
     private string AfiliadoSeleccionadoValue
     {
@@ -310,6 +326,36 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                EsIos = await JS.InvokeAsync<bool>("BlazorSmsOtp.isIos");
+                WebOtpDisponible = await JS.InvokeAsync<bool>("BlazorSmsOtp.webOtpSupported");
+                await InvokeAsync(StateHasChanged);
+            }
+            catch
+            {
+                // Sin JS: el usuario ingresa el código a mano
+            }
+        }
+
+        if (_pendingOtpFocus && CurrentStep == LoginStep.SmsCodigo)
+        {
+            _pendingOtpFocus = false;
+            try
+            {
+                await JS.InvokeVoidAsync("BlazorSmsOtp.focusCodigo", "codigoSms");
+            }
+            catch
+            {
+                // iOS puede bloquear el foco programático; el usuario toca el campo
+            }
+        }
+    }
+
     private async Task HandleSubmit()
     {
         errorMessage = string.Empty;
@@ -374,7 +420,9 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
 
         try
         {
-            await AbortWebOtpAsync();
+            // Arrancar Web OTP en el mismo gesto del clic (Android muestra “Permitir”).
+            // En iOS OTPCredential no existe: listen() vuelve null de inmediato.
+            _ = ListenAndVerifyWebOtpAsync();
 
             string? origen = null;
             try
@@ -393,17 +441,19 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
 
             if (response.IsExplicitFailure)
             {
+                await AbortWebOtpAsync();
                 errorMessage = response.UserMessage ?? "No se pudo enviar el SMS. Intenta de nuevo.";
                 return;
             }
 
             loginModel.CodigoSms = string.Empty;
             CurrentStep = LoginStep.SmsCodigo;
+            _pendingOtpFocus = true;
             StartCountdown();
-            _ = ListenAndVerifyWebOtpAsync();
         }
         catch (Exception ex)
         {
+            await AbortWebOtpAsync();
             errorMessage = $"No se pudo enviar el SMS: {ex.Message}";
         }
     }
@@ -450,11 +500,18 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
         try
         {
             var code = await JS.InvokeAsync<string?>("BlazorSmsOtp.listen");
-            if (string.IsNullOrWhiteSpace(code) || CurrentStep != LoginStep.SmsCodigo || isLoading)
+            if (string.IsNullOrWhiteSpace(code))
                 return;
 
             loginModel.CodigoSms = code.Trim();
             await InvokeAsync(StateHasChanged);
+
+            // El listen arranca antes de cambiar de paso; esperar el envío del SMS.
+            for (var i = 0; i < 40 && CurrentStep != LoginStep.SmsCodigo; i++)
+                await Task.Delay(50);
+
+            if (CurrentStep != LoginStep.SmsCodigo)
+                return;
 
             isLoading = true;
             errorMessage = string.Empty;

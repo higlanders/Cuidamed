@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Cuidanet</title>
     <base href="/" />
 
@@ -56,7 +56,7 @@
 
         // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
         (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260816a';
+            const flag = 'cn_cache_bust_20260818a';
             try {
                 if ('serviceWorker' in navigator) {
                     const regs = await navigator.serviceWorker.getRegistrations();
@@ -133,9 +133,32 @@
             hostname: function () {
                 return window.location.hostname || '';
             },
+            isIos: function () {
+                var ua = navigator.userAgent || '';
+                if (/iPad|iPhone|iPod/.test(ua)) return true;
+                // iPadOS 13+ se reporta como MacIntel con touch
+                return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+            },
+            webOtpSupported: function () {
+                return ('OTPCredential' in window) && !!(navigator.credentials && navigator.credentials.get);
+            },
+            focusCodigo: function (id) {
+                var el = document.getElementById(id);
+                if (!el) return false;
+                try {
+                    el.focus({ preventScroll: false });
+                    if (typeof el.setSelectionRange === 'function') {
+                        var len = (el.value || '').length;
+                        el.setSelectionRange(len, len);
+                    }
+                } catch (_) {
+                    try { el.focus(); } catch (__) { /* ignore */ }
+                }
+                return document.activeElement === el;
+            },
             listen: async function () {
                 this.abort();
-                if (!('OTPCredential' in window) || !navigator.credentials || !navigator.credentials.get) {
+                if (!this.webOtpSupported()) {
                     return null;
                 }
                 this._controller = new AbortController();
