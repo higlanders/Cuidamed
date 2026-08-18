@@ -681,22 +681,6 @@ code {
     margin-bottom: 1rem;
 }
 
-.cn-login-terms__panel {
-    height: 120px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0.85rem 1rem;
-    border-radius: 12px;
-    background: var(--cn-sheet-bg);
-    border: 1px solid #e2ebef;
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: #5a6b73;
-    line-height: 1.55;
-    white-space: pre-wrap;
-    margin-bottom: 0.85rem;
-}
-
 .cn-login-check {
     display: flex;
     align-items: flex-start;
@@ -753,6 +737,13 @@ code {
     font-weight: 500;
     color: var(--cn-teal-bright);
     line-height: 1.35;
+}
+
+.cn-login-check__link {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 
 .cn-login-footer-space {
@@ -859,12 +850,6 @@ code {
         padding: 1rem 0 0.25rem;
         border-top: none;
         box-shadow: none;
-    }
-}
-
-@media (max-height: 720px) {
-    .cn-login-terms__panel {
-        max-height: 72px;
     }
 }
 

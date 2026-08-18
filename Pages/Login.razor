@@ -7,6 +7,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject CuidanetApiClient CuidanetService
+@inject LoginFlowState LoginFlow
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -82,11 +83,16 @@
                     }
 
                     <div class="cn-login-terms">
-                        <div class="cn-login-terms__panel" tabindex="0">@TermsText</div>
                         <label class="cn-login-check">
                             <input type="checkbox" @bind="AceptoTerminos" />
                             <span class="cn-login-check__box" aria-hidden="true"></span>
-                            <span class="cn-login-check__label">Acepto los Términos y Condiciones</span>
+                            <span class="cn-login-check__label">
+                                <a class="cn-login-check__link"
+                                   href="terminos"
+                                   @onclick="OpenTerminos"
+                                   @onclick:preventDefault
+                                   @onclick:stopPropagation>Acepto los Términos y Condiciones</a>
+                            </span>
                         </label>
                     </div>
 
@@ -288,27 +294,6 @@
         _ => "Ingresando…"
     };
 
-    private const string TermsText =
-@"CONTRATO DE TÉRMINOS Y CONDICIONES DEL SERVICIO
-
-1. ACEPTACIÓN DE LOS TÉRMINOS
-Al acceder y utilizar este portal, usted acepta cumplir y estar sujeto a los siguientes términos y condiciones de uso. Si no está de acuerdo con alguna parte de estos términos, no deberá acceder al servicio.
-
-2. DESCRIPCIÓN DEL SERVICIO
-El portal provee una plataforma de verificación y gestión para los afiliados y su grupo familiar, permitiendo agilizar los trámites correspondientes a su cobertura de salud y beneficios integrales.
-
-3. OBLIGACIONES DEL USUARIO
-El usuario se compromete a proporcionar información verídica, exacta y actualizada durante el proceso de validación. Queda estrictamente prohibido el uso de identidades falsas o información de terceros sin su debida autorización legal.
-
-4. PRIVACIDAD Y PROTECCIÓN DE DATOS
-Toda la información recolectada a través de este portal será tratada bajo estrictas políticas de confidencialidad y de conformidad con las leyes vigentes de protección de datos personales. Los datos del titular y su grupo familiar se procesan únicamente con fines de autenticación y servicio.
-
-5. MODIFICACIONES AL ACUERDO
-Nos reservamos el derecho de modificar estos términos en cualquier momento. Las modificaciones entrarán en vigencia inmediatamente después de su publicación en el portal. Su uso continuo del servicio constituirá su aceptación de tales cambios.
-
-6. LIMITACIÓN DE RESPONSABILIDAD
-La entidad no se hace responsable por interrupciones temporales del servicio debidas a mantenimiento técnico, fallas de conectividad externas o causas de fuerza mayor. El usuario es responsable de salvaguardar sus datos de acceso.";
-
     [CascadingParameter]
     private Task<AuthenticationState>? AuthState { get; set; }
 
@@ -321,9 +306,13 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
 
             if (user.Identity != null && user.Identity.IsAuthenticated)
             {
+                LoginFlow.Clear();
                 Navigation.NavigateTo("Home");
+                return;
             }
         }
+
+        RestoreLoginFlow();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -667,6 +656,36 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
         return Task.CompletedTask;
     }
 
+    private void OpenTerminos()
+    {
+        LoginFlow.Capture(
+            (int)CurrentStep,
+            loginModel.Cedula,
+            loginModel.Telefono,
+            loginModel.CodigoSms,
+            AceptoTerminos,
+            AfiliadoSeleccionadoValue,
+            listaAfiliados,
+            afiliadoDetalle);
+        Navigation.NavigateTo("terminos");
+    }
+
+    private void RestoreLoginFlow()
+    {
+        if (!LoginFlow.HasSnapshot)
+            return;
+
+        if (Enum.IsDefined(typeof(LoginStep), LoginFlow.Step))
+            CurrentStep = (LoginStep)LoginFlow.Step;
+        loginModel.Cedula = LoginFlow.Cedula;
+        loginModel.Telefono = LoginFlow.Telefono;
+        loginModel.CodigoSms = LoginFlow.CodigoSms;
+        AceptoTerminos = LoginFlow.AceptoTerminos;
+        AfiliadoSeleccionadoValue = LoginFlow.AfiliadoSeleccionado;
+        listaAfiliados = LoginFlow.Afiliados;
+        afiliadoDetalle = LoginFlow.AfiliadoDetalle;
+    }
+
     public class LoginViewModel
     {
         public long? Cedula { get; set; }
@@ -685,6 +704,7 @@ La entidad no se hace responsable por interrupciones temporales del servicio deb
             var customAuth = (CustomAuthStateProvider)AuthStateProvider;
             long temp = loginModel.Cedula is null ? 0 : Convert.ToInt64(loginModel.Cedula);
             await customAuth.MarkUserAsAuthenticated(temp);
+            LoginFlow.Clear();
             Navigation.NavigateTo($"{page}");
         }
         finally

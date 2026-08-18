@@ -1,0 +1,26 @@
+﻿@page "/terminos"
+@layout EmptyLayout
+@using Cuidanet.Models
+@inject NavigationManager Navigation
+
+<PageTitle>Cuidanet — Términos y Condiciones</PageTitle>
+
+<div class="cn-terms">
+    <div class="cn-terms__shell">
+        <header class="cn-terms__hero">
+            <button type="button" class="cn-terms__back" @onclick="Volver" aria-label="Volver">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+            </button>
+            <h1 class="cn-terms__heading">Términos y Condiciones</h1>
+            <span class="cn-terms__spacer" aria-hidden="true"></span>
+        </header>
+
+        <section class="cn-terms__sheet">
+            <p class="cn-terms__body">@TerminosCondiciones.Texto</p>
+        </section>
+    </div>
+</div>
+
+@code {
+    private void Volver() => Navigation.NavigateTo("/");
+}
