@@ -1,6 +1,18 @@
-﻿html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+﻿:root {
+    --cn-font: 'Poppins', system-ui, sans-serif;
+    --bs-body-font-family: var(--cn-font);
+}
+
+html, body {
+    font-family: var(--cn-font);
+    font-weight: 400;
     background: #ffffff;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+    font-family: var(--cn-font);
+    font-weight: 700;
 }
 
 h1:focus {
@@ -182,7 +194,7 @@ code {
     --cn-danger: #c0392b;
     --cn-radius-sheet: 28px;
     --cn-radius-ctrl: 14px;
-    --cn-font: 'Montserrat', system-ui, sans-serif;
+    --cn-font: 'Poppins', system-ui, sans-serif;
     position: fixed;
     inset: 0;
     z-index: 20;
@@ -307,7 +319,7 @@ code {
 .cn-login-step__title {
     margin: 0 0 0.35rem;
     font-size: 1.5rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--cn-deep);
     letter-spacing: -0.02em;
     line-height: 1.25;
@@ -905,7 +917,7 @@ code {
     --cn-surface: #ffffff;
     --cn-sheet-bg: #f4f7f8;
     --cn-line: #d9e4e8;
-    --cn-font: 'Montserrat', system-ui, sans-serif;
+    --cn-font: 'Poppins', system-ui, sans-serif;
     min-height: 100dvh;
     min-height: 100vh;
     display: flex;

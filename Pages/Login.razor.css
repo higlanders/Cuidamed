@@ -13,7 +13,7 @@
     --cn-danger: #c0392b;
     --cn-radius-sheet: 28px;
     --cn-radius-ctrl: 14px;
-    --cn-font: 'Montserrat', system-ui, sans-serif;
+    --cn-font: 'Poppins', system-ui, sans-serif;
 
     position: fixed;
     inset: 0;
@@ -155,7 +155,7 @@
 .cn-login-step__title {
     margin: 0 0 0.35rem;
     font-size: 1.5rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--cn-deep);
     letter-spacing: -0.02em;
     line-height: 1.25;

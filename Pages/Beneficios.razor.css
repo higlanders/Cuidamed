@@ -10,7 +10,7 @@
         radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0, 164, 186, 0.12), transparent 60%),
         #f7fafb;
     color: var(--cn-ink);
-    font-family: "Montserrat", system-ui, sans-serif;
+    font-family: "Poppins", system-ui, sans-serif;
 }
 
 .cn-ben__top {

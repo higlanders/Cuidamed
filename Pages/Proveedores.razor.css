@@ -10,7 +10,7 @@
     --cn-surface: #ffffff;
     --cn-sheet-bg: #f7fafb;
     --cn-radius-sheet: 28px;
-    --cn-font: 'Montserrat', system-ui, sans-serif;
+    --cn-font: 'Poppins', system-ui, sans-serif;
 
     min-height: 100dvh;
     min-height: 100vh;
@@ -89,7 +89,7 @@
     flex: 1;
     margin: 0;
     font-size: 1.15rem;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: -0.01em;
     text-align: center;
 }
