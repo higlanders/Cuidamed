@@ -5,10 +5,10 @@
     --cn-muted: #6b7c83;
     --cn-line: #e6eef0;
     min-height: 100dvh;
-    padding: 1rem 1rem 2rem;
-    background:
-        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0, 164, 186, 0.12), transparent 60%),
-        #f7fafb;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 1rem 2rem;
+    background: #ffffff;
     color: var(--cn-ink);
     font-family: "Poppins", system-ui, sans-serif;
 }
@@ -46,7 +46,9 @@
 }
 
 .cn-ben__badge {
-    justify-self: start;
+    display: block;
+    width: fit-content;
+    margin: 0.55rem auto 0;
     background: rgba(25, 135, 84, 0.12);
     color: #198754;
     border: 1px solid rgba(25, 135, 84, 0.35);
@@ -54,6 +56,11 @@
     padding: 0.35rem 0.75rem;
     font-size: 0.75rem;
     font-weight: 600;
+}
+
+.cn-ben .cn-page__hero {
+    margin-left: -1rem;
+    margin-right: -1rem;
 }
 
 .cn-ben__state,

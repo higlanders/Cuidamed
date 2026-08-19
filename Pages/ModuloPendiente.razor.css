@@ -10,7 +10,7 @@
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    background: var(--cn-sheet-bg);
+    background: #ffffff;
     font-family: var(--cn-font);
     color: var(--cn-text);
 }
@@ -66,8 +66,6 @@
 .cn-mod__sheet {
     flex: 1;
     background: var(--cn-surface);
-    border-radius: 24px 24px 0 0;
-    margin-top: -12px;
     padding: 2.25rem 1.5rem 2rem;
     text-align: center;
 }

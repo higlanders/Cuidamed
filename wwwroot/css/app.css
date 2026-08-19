@@ -19,6 +19,73 @@ h1:focus {
     outline: none;
 }
 
+/* —— Chrome compartido (todas las pantallas internas) —— */
+.cn-page__hero {
+    flex: 0 0 auto;
+    padding: calc(0.85rem + env(safe-area-inset-top, 0px)) 1.25rem 1.15rem;
+    background: #ffffff;
+    color: #1a2b33;
+    border-bottom: 3px solid #0170a0;
+}
+
+.cn-page__topbar {
+    display: grid;
+    grid-template-columns: 2.35rem 1fr 2.35rem;
+    align-items: center;
+    margin-bottom: 0.65rem;
+}
+
+.cn-page__logo {
+    display: block;
+    max-height: 36px;
+    width: auto;
+    max-width: min(148px, 52vw);
+    margin: 0 auto;
+}
+
+.cn-page__back {
+    width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
+    border: 1.5px solid #0170a0;
+    border-radius: 12px;
+    background: #eef7f9;
+    color: #0170a0;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+.cn-page__spacer {
+    width: 2.35rem;
+    height: 2.35rem;
+}
+
+.cn-page__title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    color: #0a4180;
+    text-align: center;
+}
+
+.cn-page__lead {
+    margin: 0.4rem 0 0;
+    font-size: 0.84rem;
+    font-weight: 400;
+    line-height: 1.45;
+    color: #6b7c85;
+    text-align: center;
+}
+
+.cn-page__sheet {
+    flex: 1 1 auto;
+    background: #ffffff;
+    padding: 1.25rem 1.15rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+}
+
 a, .btn-link {
     color: #0071c1;
 }
@@ -907,7 +974,7 @@ code {
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    background: var(--cn-sheet-bg);
+    background: #ffffff;
     font-family: var(--cn-font);
     color: var(--cn-text);
 }
@@ -932,17 +999,18 @@ code {
     align-items: center;
     gap: 0.65rem;
     padding: calc(0.85rem + env(safe-area-inset-top, 0px)) 1.1rem 1.15rem;
-    background: var(--cn-primary);
-    color: #fff;
+    background: #ffffff;
+    color: var(--cn-text);
+    border-bottom: 3px solid var(--cn-primary);
 }
 
 .cn-svc__back {
     width: 2.35rem;
     height: 2.35rem;
-    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    border: 1.5px solid var(--cn-primary);
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+    background: #eef7f9;
+    color: var(--cn-primary);
     display: grid;
     place-items: center;
     cursor: pointer;
@@ -954,6 +1022,7 @@ code {
     font-size: 1rem;
     font-weight: 700;
     text-align: center;
+    color: #0a4180;
 }
 
 .cn-svc__spacer {
@@ -963,8 +1032,6 @@ code {
 .cn-svc__sheet {
     flex: 1;
     background: var(--cn-surface);
-    border-radius: 24px 24px 0 0;
-    margin-top: -12px;
     padding: 1.75rem 1.35rem calc(1.75rem + env(safe-area-inset-bottom, 0px));
 }
 

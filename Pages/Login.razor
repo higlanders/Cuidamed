@@ -83,17 +83,17 @@
                     }
 
                     <div class="cn-login-terms">
-                        <label class="cn-login-check">
-                            <input type="checkbox" @bind="AceptoTerminos" />
-                            <span class="cn-login-check__box" aria-hidden="true"></span>
-                            <span class="cn-login-check__label">
-                                <a class="cn-login-check__link"
-                                   href="terminos"
-                                   @onclick="OpenTerminos"
-                                   @onclick:preventDefault
-                                   @onclick:stopPropagation>Acepto los Términos y Condiciones</a>
-                            </span>
-                        </label>
+                        <div class="cn-login-check">
+                            <label class="cn-login-check__control">
+                                <input type="checkbox" @bind="AceptoTerminos" />
+                                <span class="cn-login-check__box" aria-hidden="true"></span>
+                            </label>
+                            <button type="button"
+                                    class="cn-login-check__link"
+                                    @onclick="OpenTerminos">
+                                Acepto los Términos y Condiciones
+                            </button>
+                        </div>
                     </div>
 
                     <div class="cn-login-footer-space">
@@ -306,12 +306,13 @@
 
             if (user.Identity != null && user.Identity.IsAuthenticated)
             {
-                LoginFlow.Clear();
+                await LoginFlow.ClearAsync();
                 Navigation.NavigateTo("Home");
                 return;
             }
         }
 
+        await LoginFlow.HydrateAsync();
         RestoreLoginFlow();
     }
 
@@ -656,9 +657,9 @@
         return Task.CompletedTask;
     }
 
-    private void OpenTerminos()
+    private async Task OpenTerminos()
     {
-        LoginFlow.Capture(
+        await LoginFlow.CaptureAsync(
             (int)CurrentStep,
             loginModel.Cedula,
             loginModel.Telefono,
@@ -704,7 +705,7 @@
             var customAuth = (CustomAuthStateProvider)AuthStateProvider;
             long temp = loginModel.Cedula is null ? 0 : Convert.ToInt64(loginModel.Cedula);
             await customAuth.MarkUserAsAuthenticated(temp);
-            LoginFlow.Clear();
+            await LoginFlow.ClearAsync();
             Navigation.NavigateTo($"{page}");
         }
         finally

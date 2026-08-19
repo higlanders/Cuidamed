@@ -16,7 +16,7 @@
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    background: linear-gradient(165deg, var(--cn-deep) 0%, var(--cn-primary) 45%, var(--cn-teal) 100%);
+    background: #ffffff;
     font-family: var(--cn-font);
     color: var(--cn-text);
     -webkit-font-smoothing: antialiased;
@@ -114,7 +114,8 @@
     background: var(--cn-surface);
     border-radius: var(--cn-radius-sheet) var(--cn-radius-sheet) 0 0;
     padding: 1.25rem 1.15rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
-    box-shadow: 0 -8px 32px rgba(10, 65, 128, 0.18);
+    box-shadow: none;
+    border-radius: 0;
     animation: cn-prov-sheet-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 

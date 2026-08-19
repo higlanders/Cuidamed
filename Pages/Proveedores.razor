@@ -15,17 +15,7 @@
     <Authorized>
         <div class="cn-prov">
             <div class="cn-prov__shell">
-                <header class="cn-prov__hero">
-                    <div class="cn-prov__hero-glow" aria-hidden="true"></div>
-                    <div class="cn-prov__topbar">
-                        <button type="button" class="cn-prov__back" @onclick="GoHome" aria-label="Volver al inicio">
-                            <i class="bi bi-arrow-left" aria-hidden="true"></i>
-                        </button>
-                        <h1 class="cn-prov__heading">@TituloPagina</h1>
-                        <span class="cn-prov__topbar-spacer" aria-hidden="true"></span>
-                    </div>
-                    <p class="cn-prov__lead">@LeadPagina</p>
-                </header>
+                <PageHeader Title="@TituloPagina" Lead="@LeadPagina" Back="GoHome" />
 
                 <section class="cn-prov__sheet">
                     <div class="cn-prov__filters-form">

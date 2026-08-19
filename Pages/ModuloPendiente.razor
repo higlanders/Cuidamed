@@ -9,13 +9,7 @@
     <Authorized>
         <div class="cn-mod">
             <div class="cn-mod__shell">
-                <header class="cn-mod__hero">
-                    <button type="button" class="cn-mod__back" @onclick="GoHome" aria-label="Volver al inicio">
-                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
-                    </button>
-                    <h1 class="cn-mod__heading">@Titulo</h1>
-                    <span class="cn-mod__spacer" aria-hidden="true"></span>
-                </header>
+                <PageHeader Title="@Titulo" Back="GoHome" />
 
                 <section class="cn-mod__sheet">
                     @if (modulo is not null)

@@ -1,0 +1,23 @@
+﻿<header class="cn-page__hero">
+    <div class="cn-page__topbar">
+        <button type="button" class="cn-page__back" @onclick="Back" aria-label="@BackLabel">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        </button>
+        <img class="cn-page__logo" src="LogoCuidaNet.png" alt="CuidaNet" />
+        <span class="cn-page__spacer" aria-hidden="true"></span>
+    </div>
+    <h1 class="cn-page__title">@Title</h1>
+    @if (!string.IsNullOrWhiteSpace(Lead))
+    {
+        <p class="cn-page__lead">@Lead</p>
+    }
+    @ChildContent
+</header>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Lead { get; set; }
+    [Parameter] public string BackLabel { get; set; } = "Volver";
+    [Parameter] public EventCallback Back { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

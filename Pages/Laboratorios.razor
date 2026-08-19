@@ -16,17 +16,9 @@
     <Authorized>
         <div class="cn-lab">
             <div class="cn-lab__shell">
-                <header class="cn-lab__hero">
-                    <div class="cn-lab__hero-glow" aria-hidden="true"></div>
-                    <div class="cn-lab__topbar">
-                        <button type="button" class="cn-lab__back" @onclick="GoHome" aria-label="Volver al inicio">
-                            <i class="bi bi-arrow-left" aria-hidden="true"></i>
-                        </button>
-                        <h1 class="cn-lab__heading">Consultas y Labs</h1>
-                        <span class="cn-lab__topbar-spacer" aria-hidden="true"></span>
-                    </div>
-                    <p class="cn-lab__lead">Sube tu récipe o resultado con la cámara o desde tu dispositivo.</p>
-                </header>
+                    <PageHeader Title="Consultas y Labs"
+                                Lead="Sube tu récipe o resultado con la cámara o desde tu dispositivo."
+                                Back="GoHome" />
 
                 <section class="cn-lab__sheet">
                     <div class="cn-lab__steps" aria-hidden="true">

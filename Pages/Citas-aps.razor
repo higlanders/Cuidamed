@@ -1,18 +1,21 @@
 ﻿@page "/Citas-aps"
-@layout FrameWork
+@layout EmptyLayout
 @using System.IO
 @using Cuidanet.Services
 @using Cuidanet.Models
 @inject IJSRuntime JS
 @inject CuidanetApiClient CuidanetService
+@inject NavigationManager Navigation
 
+<AuthorizeView>
+    <Authorized>
+<div class="cn-svc">
+    <div class="cn-svc__shell">
+        <PageHeader Title="Solicitud de Cita APS"
+                    Lead="Agenda tu consulta de atención primaria de salud rápidamente."
+                    Back="GoHome" />
+        <section class="cn-page__sheet">
 <div class="container py-2" style="max-width: 500px;">
-
-    <!-- Encabezado del Módulo -->
-    <div class="text-center mb-3">
-        <h5 class="fw-bold text-info-custom mb-1">Solicitud de Cita APS</h5>
-        <p class="fuente-gris m-0">Agenda tu consulta de atención primaria de salud rápidamente.</p>
-    </div>
 
     <!-- Indicador de Pasos (Wizard Progress) -->
     <div class="d-flex justify-content-between align-items-center mb-4 px-2">
@@ -308,6 +311,14 @@
         </div>
     }
 </div>
+        </section>
+    </div>
+</div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
 
 <style>
     .text-info-custom {
@@ -413,6 +424,8 @@
     private string metodoPagoSeleccionado = "pago_movil";
     private string referenciaPago = string.Empty;
     private int solicitudIdGenerado = 0;
+
+    private void GoHome() => Navigation.NavigateTo("Home");
 
     private void SeleccionarModalidad(bool porSeguro)
     {

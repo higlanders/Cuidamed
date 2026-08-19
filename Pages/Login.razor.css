@@ -500,6 +500,11 @@
     user-select: none;
 }
 
+.cn-login-check__control {
+    display: flex;
+    cursor: pointer;
+}
+
 .cn-login-check input {
     position: absolute;
     opacity: 0;
@@ -551,10 +556,17 @@
 }
 
 .cn-login-check__link {
+    display: inline;
+    padding: 0;
+    border: none;
+    background: none;
     color: inherit;
+    font: inherit;
     font-weight: 600;
     text-decoration: underline;
     text-underline-offset: 2px;
+    cursor: pointer;
+    text-align: left;
 }
 
 .cn-login-check__link:focus-visible {
