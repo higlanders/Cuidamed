@@ -5,6 +5,7 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject CuidanetApiClient CuidanetService
+@inject LoginFlowState LoginFlow
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
@@ -396,6 +397,7 @@
     {
         var customAuth = (CustomAuthStateProvider)AuthStateProvider;
         await customAuth.MarkUserAsLoggedOut();
+        await LoginFlow.ClearAsync();
         Navigation.NavigateTo("./", forceLoad: true);
     }
 

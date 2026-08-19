@@ -7,6 +7,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject CuidanetApiClient CuidanetService
 @inject AfiliadoPerfilService PerfilService
+@inject LoginFlowState LoginFlow
 
 <PageTitle>Cuidanet — Inicio</PageTitle>
 
@@ -269,6 +270,7 @@
     {
         var customAuth = (CustomAuthStateProvider)AuthStateProvider;
         await customAuth.MarkUserAsLoggedOut();
-        Navigation.NavigateTo("/", forceLoad: true);
+        await LoginFlow.ClearAsync();
+        Navigation.NavigateTo("./", forceLoad: true);
     }
 }
