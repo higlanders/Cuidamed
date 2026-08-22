@@ -35,13 +35,14 @@ public sealed class LoginFlowState
         Step = step;
         Cedula = cedula;
         Telefono = telefono ?? string.Empty;
-        CodigoSms = codigoSms ?? string.Empty;
+        CodigoSms = string.Empty;
         AceptoTerminos = aceptoTerminos;
         AfiliadoSeleccionado = afiliadoSeleccionado ?? string.Empty;
-        Afiliados = afiliados ?? [];
-        AfiliadoDetalle = afiliadoDetalle;
+        Afiliados = StripFotos(afiliados ?? []);
+        AfiliadoDetalle = StripFoto(afiliadoDetalle);
         HasSnapshot = true;
         await PersistAsync();
+        _ = codigoSms;
     }
 
     public async Task HydrateAsync()
@@ -60,6 +61,9 @@ public sealed class LoginFlowState
                 return;
 
             Apply(dto);
+            CodigoSms = string.Empty;
+            Afiliados = StripFotos(Afiliados);
+            AfiliadoDetalle = StripFoto(AfiliadoDetalle);
             HasSnapshot = true;
         }
         catch
@@ -122,7 +126,7 @@ public sealed class LoginFlowState
         Step = Step,
         Cedula = Cedula,
         Telefono = Telefono,
-        CodigoSms = CodigoSms,
+        CodigoSms = string.Empty,
         AceptoTerminos = AceptoTerminos,
         AfiliadoSeleccionado = AfiliadoSeleccionado,
         Afiliados = Afiliados,
@@ -134,19 +138,31 @@ public sealed class LoginFlowState
         Step = dto.Step;
         Cedula = dto.Cedula;
         Telefono = dto.Telefono ?? string.Empty;
-        CodigoSms = dto.CodigoSms ?? string.Empty;
+        CodigoSms = string.Empty;
         AceptoTerminos = dto.AceptoTerminos;
         AfiliadoSeleccionado = dto.AfiliadoSeleccionado ?? string.Empty;
         Afiliados = dto.Afiliados ?? [];
         AfiliadoDetalle = dto.AfiliadoDetalle;
     }
 
+    private static BeneficiarioDto? StripFoto(BeneficiarioDto? dto)
+    {
+        if (dto is not null)
+            dto.FotoBase64 = null;
+        return dto;
+    }
+
+    private static List<BeneficiarioDto> StripFotos(List<BeneficiarioDto> list)
+    {
+        foreach (var a in list)
+            a.FotoBase64 = null;
+        return list;
+    }
+
     private static void StripFotos(SnapshotDto dto)
     {
-        if (dto.AfiliadoDetalle is not null)
-            dto.AfiliadoDetalle.FotoBase64 = null;
-        foreach (var a in dto.Afiliados)
-            a.FotoBase64 = null;
+        dto.AfiliadoDetalle = StripFoto(dto.AfiliadoDetalle);
+        dto.Afiliados = StripFotos(dto.Afiliados ?? []);
     }
 
     private sealed class SnapshotDto

@@ -1,37 +1,34 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+﻿using System.Security.Claims;
+using System.Text.Json;
+using Cuidanet.Services;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
-using System.Security.Claims;
 
 namespace Cuidanet
 {
     public class CustomAuthStateProvider : AuthenticationStateProvider
     {
         private readonly IJSRuntime _jsRuntime;
+        private readonly AfiliadoTokenHolder _tokenHolder;
         private readonly ClaimsPrincipal _anonymous = new(new ClaimsIdentity());
         private const string StorageKey = "user_session";
 
-        // Inyectamos IJSRuntime a través del constructor
-        public CustomAuthStateProvider(IJSRuntime jsRuntime)
+        public CustomAuthStateProvider(IJSRuntime jsRuntime, AfiliadoTokenHolder tokenHolder)
         {
             _jsRuntime = jsRuntime;
+            _tokenHolder = tokenHolder;
         }
 
-        // Este método se ejecuta AUTOMÁTICAMENTE cada vez que la app arranca o se recarga
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             try
             {
-                // Buscamos si existe la sesión guardada en el navegador
-                var cedula = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", StorageKey);
-
-                if (string.IsNullOrWhiteSpace(cedula))
-                {
+                var session = await ReadSessionAsync();
+                if (session is null)
                     return new AuthenticationState(_anonymous);
-                }
 
-                // Si existe, creamos la identidad directamente sin pedir credenciales
-                var user = CreateClaimsPrincipal(cedula);
-                return new AuthenticationState(user);
+                _tokenHolder.Set(session.Token, session.Cedula, session.ExpiresAt);
+                return new AuthenticationState(CreateClaimsPrincipal(session.Cedula));
             }
             catch
             {
@@ -39,32 +36,112 @@ namespace Cuidanet
             }
         }
 
-        // Modificamos este método para que sea asíncrono y guarde en LocalStorage
-        public async Task MarkUserAsAuthenticated(long cedula)
+        /// <summary>Token en memoria para cargar el grupo familiar antes de “Entrar”.</summary>
+        public void SetPendingToken(string token, string cedula, DateTimeOffset expiresAt)
         {
-            // Guardamos la cédula en el LocalStorage del navegador
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", StorageKey, cedula);
+            _tokenHolder.Set(token, cedula, expiresAt);
+        }
 
-            var user = CreateClaimsPrincipal(Convert.ToString(cedula));
+        public async Task MarkUserAsAuthenticated(long cedula, string token, DateTimeOffset expiresAt)
+        {
+            var session = new SessionDto
+            {
+                Cedula = cedula.ToString(),
+                Token = token,
+                ExpiresAt = expiresAt,
+                IssuedAt = DateTimeOffset.UtcNow
+            };
+            _tokenHolder.Set(session.Token, session.Cedula, session.ExpiresAt);
+            await WriteSessionAsync(session);
+
+            var user = CreateClaimsPrincipal(session.Cedula);
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
         }
 
-        // Modificamos el cierre de sesión para limpiar el LocalStorage
         public async Task MarkUserAsLoggedOut()
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", StorageKey);
+            _tokenHolder.Clear();
+            await ClearSessionAsync();
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_anonymous)));
         }
 
-        // Función auxiliar para evitar repetir código de Claims
-        private ClaimsPrincipal CreateClaimsPrincipal(string cedula)
+        public async Task ReplaceTokenAsync(string token, DateTimeOffset expiresAt)
         {
-            var claims = new[] {
-            new Claim(ClaimTypes.Name, cedula),
-            new Claim(ClaimTypes.Role, "Usuario")
-        };
-            var identity = new ClaimsIdentity(claims, "SMSAuth");
+            var session = await ReadSessionAsync(ignoreExpiry: true);
+            if (session is null || string.IsNullOrWhiteSpace(session.Cedula))
+                return;
+
+            session.Token = token;
+            session.ExpiresAt = expiresAt;
+            session.IssuedAt = DateTimeOffset.UtcNow;
+            _tokenHolder.Set(session.Token, session.Cedula, session.ExpiresAt);
+            await WriteSessionAsync(session);
+        }
+
+        /// <summary>La caducidad real está en el JWT (7 días deslizantes vía API).</summary>
+        public Task TouchSessionAsync() => Task.CompletedTask;
+
+        private async Task<SessionDto?> ReadSessionAsync(bool ignoreExpiry = false)
+        {
+            var raw = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+            if (string.IsNullOrWhiteSpace(raw))
+                return null;
+
+            SessionDto? session;
+            try
+            {
+                session = JsonSerializer.Deserialize<SessionDto>(raw);
+            }
+            catch
+            {
+                session = null;
+            }
+
+            if (session is null || string.IsNullOrWhiteSpace(session.Cedula) || string.IsNullOrWhiteSpace(session.Token))
+            {
+                await ClearSessionAsync();
+                _tokenHolder.Clear();
+                return null;
+            }
+
+            if (!ignoreExpiry && session.ExpiresAt != default && session.ExpiresAt <= DateTimeOffset.UtcNow)
+            {
+                await ClearSessionAsync();
+                _tokenHolder.Clear();
+                return null;
+            }
+
+            return session;
+        }
+
+        private async Task WriteSessionAsync(SessionDto session)
+        {
+            var json = JsonSerializer.Serialize(session);
+            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", StorageKey, json);
+        }
+
+        private async Task ClearSessionAsync()
+        {
+            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", StorageKey);
+        }
+
+        private static ClaimsPrincipal CreateClaimsPrincipal(string cedula)
+        {
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Name, cedula),
+                new Claim(ClaimTypes.Role, "Afiliado")
+            };
+            var identity = new ClaimsIdentity(claims, "AfiliadoJwt");
             return new ClaimsPrincipal(identity);
+        }
+
+        private sealed class SessionDto
+        {
+            public string Cedula { get; set; } = string.Empty;
+            public string Token { get; set; } = string.Empty;
+            public DateTimeOffset ExpiresAt { get; set; }
+            public DateTimeOffset IssuedAt { get; set; }
         }
     }
 }

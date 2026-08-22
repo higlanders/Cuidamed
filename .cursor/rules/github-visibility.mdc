@@ -1,0 +1,33 @@
+﻿---
+description: Atajos GPrivado / Gpublico para cambiar visibilidad del repo en GitHub
+alwaysApply: true
+---
+
+# Visibilidad del repositorio en GitHub
+
+Cuando el usuario escriba **GPrivado** o **Gpublico** (sin importar mayúsculas/minúsculas: `gprivado`, `GPUBLICO`, etc.), cambia de inmediato la visibilidad del remoto `origin` con `gh`. No pidas confirmación extra.
+
+## Comandos
+
+1. Obtén el repo del remoto actual:
+   ```bash
+   gh repo view --json nameWithOwner -q .nameWithOwner
+   ```
+2. Aplica el cambio:
+
+| Atajo | Acción |
+|-------|--------|
+| **GPrivado** | `gh repo edit <owner/repo> --visibility private --accept-visibility-change-consequences` |
+| **Gpublico** | `gh repo edit <owner/repo> --visibility public --accept-visibility-change-consequences` |
+
+3. Verifica y responde en una línea:
+   ```bash
+   gh repo view --json visibility,url
+   ```
+   Ejemplo: `Listo: el repo quedó **público** → https://github.com/...`
+
+## Notas
+
+- Usa el remoto del workspace actual (`origin`), no hardcodees otro repo.
+- Si `gh` falla (permisos, auth, org policy), muestra el error y no inventes el estado.
+- Estos atajos solo cambian visibilidad; no hacen commit, push ni otras operaciones git.

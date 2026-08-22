@@ -146,14 +146,9 @@
                                              readonly="true" />
                             </div>
                             <div class="cn-login-field">
-                                <label class="cn-login-label" for="telefono">Celular</label>
-                                <InputText id="telefono"
-                                           class="cn-login-input"
-                                           @bind-Value="loginModel.Telefono"
-                                           placeholder="Ej. 04141234567"
-                                           inputmode="tel"
-                                           autocomplete="tel" />
-                                <p class="cn-login-hint">Te enviaremos un código SMS a este número.</p>
+                                <label class="cn-login-label">Celular registrado</label>
+                                <p class="cn-login-input" style="display:flex;align-items:center;margin:0;">@loginModel.Telefono</p>
+                                <p class="cn-login-hint">Te enviaremos un código SMS a este número del padrón. No puedes cambiarlo en el acceso.</p>
                             </div>
                         }
 
@@ -254,6 +249,9 @@
     private bool WebOtpDisponible { get; set; }
     private bool _pendingOtpFocus;
 
+    private string? _pendingToken;
+    private DateTimeOffset _pendingExpires;
+
     private string AfiliadoSeleccionadoValue
     {
         get => _afiliadoSeleccionado;
@@ -273,8 +271,8 @@
     private string StepSubtitle => CurrentStep switch
     {
         LoginStep.Cedula => "Ingresa tu cédula para acceder a tu portal de salud.",
-        LoginStep.Telefono => "Confirma el número donde recibirás el código de verificación.",
-        LoginStep.SmsCodigo => $"Ingresa el código que enviamos a {MaskPhone(loginModel.Telefono)}.",
+        LoginStep.Telefono => "Confirma el celular registrado en CuidaNet para recibir el código.",
+        LoginStep.SmsCodigo => $"Ingresa el código que enviamos a {loginModel.Telefono}.",
         _ => string.Empty
     };
 
@@ -382,31 +380,30 @@
 
         try
         {
-            var resultado = await CuidanetService.GetBeneficiariosAsync(cedula: loginModel.Cedula.ToString());
-            if (resultado == null || !resultado.Any())
+            var contacto = await CuidanetService.GetContactoLoginAsync(loginModel.Cedula.ToString()!);
+            if (contacto.Ok != true || string.IsNullOrWhiteSpace(contacto.TelefonoEnmascarado))
             {
-                errorMessage = "La cédula ingresada no se encuentra registrada en el sistema de CuidaNet.";
+                errorMessage = contacto.UserMessage
+                    ?? "La cédula no se encuentra registrada o no tiene un celular en el padrón.";
                 return;
             }
 
+            loginModel.Telefono = contacto.TelefonoEnmascarado;
             CurrentStep = LoginStep.Telefono;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            errorMessage = $"Error de comunicación con la API: {ex.Message}";
+            errorMessage = "No se pudo validar la cédula. Intenta de nuevo.";
         }
     }
 
     private async Task EnviarSmsAsync()
     {
-        var telefono = NormalizePhone(loginModel.Telefono);
-        if (!IsValidPhone(telefono))
+        if (!loginModel.Cedula.HasValue || loginModel.Cedula <= 0)
         {
-            errorMessage = "Ingresa un celular válido (mínimo 10 dígitos).";
+            errorMessage = "Ingresa una cédula válida.";
             return;
         }
-
-        loginModel.Telefono = telefono;
 
         try
         {
@@ -425,9 +422,8 @@
             }
 
             var response = await CuidanetService.EnviarSmsAsync(
-                loginModel.Cedula!.Value.ToString(),
-                telefono,
-                origen);
+                loginModel.Cedula.Value.ToString(),
+                origen: origen);
 
             if (response.IsExplicitFailure)
             {
@@ -441,10 +437,10 @@
             _pendingOtpFocus = true;
             StartCountdown();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             await AbortWebOtpAsync();
-            errorMessage = $"No se pudo enviar el SMS: {ex.Message}";
+            errorMessage = "No se pudo enviar el SMS. Intenta de nuevo.";
         }
     }
 
@@ -463,7 +459,7 @@
 
             var response = await CuidanetService.VerificarSmsAsync(
                 loginModel.Cedula!.Value.ToString(),
-                loginModel.Telefono ?? string.Empty,
+                string.Empty,
                 codigo);
 
             if (response.IsExplicitFailure)
@@ -475,13 +471,26 @@
                 return;
             }
 
+            if (string.IsNullOrWhiteSpace(response.Token))
+            {
+                errorMessage = "No se pudo iniciar sesión. Intenta de nuevo.";
+                return;
+            }
+
+            _pendingToken = response.Token;
+            _pendingExpires = response.ExpiresAt ?? DateTimeOffset.UtcNow.AddDays(7);
+            ((CustomAuthStateProvider)AuthStateProvider).SetPendingToken(
+                _pendingToken,
+                loginModel.Cedula.Value.ToString(),
+                _pendingExpires);
+
             StopTimer();
             await LoadGrupoFamiliarAsync();
             CurrentStep = LoginStep.Afiliado;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            errorMessage = $"No se pudo verificar el SMS: {ex.Message}";
+            errorMessage = "No se pudo verificar el SMS. Intenta de nuevo.";
         }
     }
 
@@ -703,8 +712,11 @@
         try
         {
             var customAuth = (CustomAuthStateProvider)AuthStateProvider;
+            if (string.IsNullOrWhiteSpace(_pendingToken))
+                return;
+
             long temp = loginModel.Cedula is null ? 0 : Convert.ToInt64(loginModel.Cedula);
-            await customAuth.MarkUserAsAuthenticated(temp);
+            await customAuth.MarkUserAsAuthenticated(temp, _pendingToken, _pendingExpires);
             await LoginFlow.ClearAsync();
             Navigation.NavigateTo($"{page}");
         }

@@ -35,11 +35,13 @@ catch (Exception ex)
         $"[Cuidanet] No se pudo cargar appsettings.json desde {builder.HostEnvironment.BaseAddress}: {ex.Message}");
 }
 
-if (string.IsNullOrWhiteSpace(builder.Configuration["CuidanetServices:user"]))
+if (string.IsNullOrWhiteSpace(builder.Configuration["CuidanetServices:BaseUrl"]))
 {
-    Console.Error.WriteLine("[Cuidanet] CuidanetServices:user está vacío tras cargar configuración.");
+    Console.Error.WriteLine("[Cuidanet] CuidanetServices:BaseUrl está vacío tras cargar configuración.");
 }
 
+builder.Services.AddSingleton<CuidanetAppSettings>();
+builder.Services.AddSingleton<AfiliadoTokenHolder>();
 builder.Services.AddScoped<CustomAuthStateProvider>();
 
 builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
@@ -47,13 +49,8 @@ builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
 
 builder.Services.AddAuthorizationCore();
 
-builder.Services.AddTransient<CuidanetAuthHandler>(sp =>
-{
-    var config = sp.GetRequiredService<IConfiguration>();
-    return new CuidanetAuthHandler(config);
-});
+builder.Services.AddTransient<CuidanetAuthHandler>();
 
-builder.Services.AddSingleton<CuidanetAppSettings>();
 builder.Services.AddScoped<AfiliadoPerfilService>();
 builder.Services.AddScoped<LoginFlowState>();
 

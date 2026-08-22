@@ -175,9 +175,9 @@
             await LoadConsumosAsync();
             RebuildConsumoItems();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            errorMessage = ex.Message;
+            errorMessage = "No se pudo cargar la información de coberturas. Intenta de nuevo.";
         }
         finally
         {
@@ -191,10 +191,10 @@
         {
             planes = await CuidanetService.GetCoberturaPlanAsync(cedulaUsuario) ?? new();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             planes = new();
-            errorMessage = AppendError(errorMessage, $"Cliente/plan: {ex.Message}");
+            errorMessage = AppendError(errorMessage, "No se pudo cargar el cliente y plan.");
         }
     }
 
@@ -206,10 +206,10 @@
             if (consumo?.FechaDesde is DateTime d) fechaDesde = d.Date;
             if (consumo?.FechaHasta is DateTime h) fechaHasta = h.Date;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             consumo = null;
-            errorMessage = AppendError(errorMessage, $"Consumos: {ex.Message}");
+            errorMessage = AppendError(errorMessage, "No se pudo cargar los consumos.");
         }
     }
 

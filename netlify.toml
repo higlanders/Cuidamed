@@ -5,6 +5,8 @@
 #   CUIDANET_PASS       = password API CuidaNet  (required)
 #   CUIDANET_LOGIN_URL  = optional override
 #   CUIDANET_BASE_URL   = optional override
+#   CUIDANET_SESSION_MINUTES = caducidad sesión local (optional, default 30)
+#   CUIDANET_MAX_UPLOAD_MB   = tope subidas (optional, default 10)
 #   AZURE_CLIENT_ID     = optional
 
 [build]
@@ -21,3 +23,11 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "geolocation=(), microphone=(), payment=()"

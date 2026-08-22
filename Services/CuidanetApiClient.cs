@@ -2,7 +2,6 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Web;
 
 
@@ -20,37 +19,27 @@ namespace Cuidanet.Services
         private readonly string _ImagenesServicioUrl;
         private readonly string _enviarSmsUrl;
         private readonly string _verificarSmsUrl;
+        private readonly string _smsContactoUrl;
+        private readonly string _afiliadoRefreshUrl;
+        private readonly string _afiliadoCelularUrl;
+        private readonly string _afiliadoCelularEnviarUrl;
+        private readonly string _afiliadoCelularConfirmarUrl;
         private readonly string _afiliadoRedUrl;
         private readonly string _afiliadoRedFiltrosUrl;
-        private readonly string _consultaUrl;
         private readonly string _coberturaPlanUrl;
         private readonly string _coberturaConsumosUrl;
         private readonly string _pwaInstalacionUrl;
-        private readonly string _loginUrl;
-        private readonly string _consultaUser;
-        private readonly string _consultaPass;
-        private readonly Uri _apiBaseAddress;
-        private string? _consultaToken;
-        private readonly SemaphoreSlim _consultaTokenLock = new(1, 1);
 
-        // 3. Modificar el constructor para inyectar IConfiguration
         public CuidanetApiClient(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
 
-            // Leer la URL base del appsettings (con fallback)
             string baseUrl = configuration["CuidanetServices:BaseUrl"] ?? "https://admin.cuidanet.net/APILIS/api/";
-            _apiBaseAddress = new Uri(baseUrl);
-            _httpClient.BaseAddress = _apiBaseAddress;
-            _loginUrl = configuration["CuidanetServices:loginUrl"]
-                ?? "https://admin.cuidanet.net/APILIS/api/Auth/login";
-            _consultaUser = configuration["CuidanetServices:consultaUser"]?.Trim() ?? string.Empty;
-            _consultaPass = configuration["CuidanetServices:consultaPass"] ?? string.Empty;
+            _httpClient.BaseAddress = new Uri(baseUrl);
 
             _httpClient.DefaultRequestHeaders.Accept.Clear();
-            _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            // 4. Leer y asignar las rutas de los endpoints
             _validateUserUrl = configuration["CuidanetServices:Endpoints:ValidateUser"] ?? "Auth/validateuser";
             _beneficiarioUrl = configuration["CuidanetServices:Endpoints:Beneficiario"] ?? "Beneficiario";
             _movimientoConsultaUrl = configuration["CuidanetServices:Endpoints:MovimientoConsulta"] ?? "MovimientoServicio/consulta";
@@ -58,9 +47,13 @@ namespace Cuidanet.Services
             _ImagenesServicioUrl = configuration["CuidanetServices:Endpoints:ImagenesServicio"] ?? "Imagenes/servicio";
             _enviarSmsUrl = configuration["CuidanetServices:Endpoints:EnviarSms"] ?? "sms/enviar-codigo";
             _verificarSmsUrl = configuration["CuidanetServices:Endpoints:VerificarSms"] ?? "sms/verificar-codigo";
+            _smsContactoUrl = configuration["CuidanetServices:Endpoints:SmsContacto"] ?? "sms/contacto";
+            _afiliadoRefreshUrl = configuration["CuidanetServices:Endpoints:AfiliadoRefresh"] ?? "Auth/afiliado-refresh";
+            _afiliadoCelularUrl = configuration["CuidanetServices:Endpoints:AfiliadoCelular"] ?? "Afiliado/celular";
+            _afiliadoCelularEnviarUrl = configuration["CuidanetServices:Endpoints:AfiliadoCelularEnviar"] ?? "Afiliado/celular/enviar-codigo";
+            _afiliadoCelularConfirmarUrl = configuration["CuidanetServices:Endpoints:AfiliadoCelularConfirmar"] ?? "Afiliado/celular/confirmar";
             _afiliadoRedUrl = configuration["CuidanetServices:Endpoints:AfiliadoRed"] ?? "Afiliado/red";
             _afiliadoRedFiltrosUrl = configuration["CuidanetServices:Endpoints:AfiliadoRedFiltros"] ?? "Afiliado/red/filtros";
-            _consultaUrl = configuration["CuidanetServices:Endpoints:Consulta"] ?? "Consulta";
             _coberturaPlanUrl = configuration["CuidanetServices:Endpoints:CoberturaPlan"] ?? "Cobertura/plan";
             _coberturaConsumosUrl = configuration["CuidanetServices:Endpoints:CoberturaConsumos"] ?? "Cobertura/consumos";
             _pwaInstalacionUrl = configuration["CuidanetServices:Endpoints:PwaInstalacion"] ?? "Pwa/instalacion";
@@ -71,12 +64,12 @@ namespace Cuidanet.Services
         /// Endpoint: POST api/sms/enviar-codigo
         /// </summary>
         /// <param name="origen">Hostname de la app para Web OTP (p. ej. window.location.hostname).</param>
-        public async Task<SmsApiResponse> EnviarSmsAsync(string cedula, string telefono, string? origen = null)
+        public async Task<SmsApiResponse> EnviarSmsAsync(string cedula, string? telefono = null, string? origen = null)
         {
             var payload = new EnviarSmsRequest
             {
                 Cedula = cedula,
-                Telefono = telefono,
+                Telefono = telefono ?? string.Empty,
                 Origen = origen
             };
             var response = await _httpClient.PostAsJsonAsync(_enviarSmsUrl, payload);
@@ -88,15 +81,15 @@ namespace Cuidanet.Services
                 if (parsed != null && (!string.IsNullOrWhiteSpace(parsed.UserMessage) || parsed.IsExplicitFailure))
                     return parsed;
 
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
                 {
+                    Console.Error.WriteLine($"[CuidanetApi] SMS 401 {TrimError(body)}");
                     throw new HttpRequestException(
-                        "No autorizado (401). Suele ser caché vieja de appsettings o credenciales de API. " +
-                        "Borra los datos del sitio y recarga. Detalle: " + TrimError(body));
+                        "No se pudo enviar el SMS. Borra los datos del sitio, recarga e intenta de nuevo.");
                 }
 
-                throw new HttpRequestException(
-                    $"No se pudo enviar el SMS ({(int)response.StatusCode}). {TrimError(body)}");
+                Console.Error.WriteLine($"[CuidanetApi] SMS enviar {(int)response.StatusCode} {TrimError(body)}");
+                throw new HttpRequestException("No se pudo enviar el SMS. Intenta de nuevo.");
             }
 
             if (parsed != null && parsed.IsExplicitFailure)
@@ -129,12 +122,98 @@ namespace Cuidanet.Services
                     return parsed;
                 }
 
-                throw new HttpRequestException(
-                    $"No se pudo verificar el SMS ({(int)response.StatusCode}). {TrimError(body)}");
+                Console.Error.WriteLine($"[CuidanetApi] SMS verificar {(int)response.StatusCode} {TrimError(body)}");
+                throw new HttpRequestException("No se pudo verificar el SMS. Intenta de nuevo.");
             }
 
             if (parsed != null && parsed.IsExplicitFailure)
                 return parsed;
+
+            return parsed ?? new SmsApiResponse { Ok = true, Valid = true };
+        }
+
+        public async Task<SmsApiResponse> GetContactoLoginAsync(string cedula)
+        {
+            var query = HttpUtility.ParseQueryString(string.Empty);
+            query["cedula"] = cedula;
+            var response = await _httpClient.GetAsync($"{_smsContactoUrl}?{query}");
+            var body = await response.Content.ReadAsStringAsync();
+            var parsed = ParseSmsResponse(body);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (parsed != null)
+                {
+                    parsed.Ok = false;
+                    return parsed;
+                }
+
+                throw new HttpRequestException("No se pudo validar la cédula. Intenta de nuevo.");
+            }
+
+            return parsed ?? new SmsApiResponse { Ok = false };
+        }
+
+        public async Task<AfiliadoTokenDto?> RefreshAfiliadoAsync()
+        {
+            var response = await _httpClient.PostAsync(_afiliadoRefreshUrl, null);
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            return await response.Content.ReadFromJsonAsync<AfiliadoTokenDto>();
+        }
+
+        public async Task<SmsApiResponse> GetCelularAfiliadoAsync()
+        {
+            var response = await _httpClient.GetAsync(_afiliadoCelularUrl);
+            var body = await response.Content.ReadAsStringAsync();
+            return ParseSmsResponse(body) ?? new SmsApiResponse { Ok = false };
+        }
+
+        public async Task<SmsApiResponse> EnviarCodigoCambioCelularAsync(string telefono, string? origen = null)
+        {
+            var response = await _httpClient.PostAsJsonAsync(_afiliadoCelularEnviarUrl, new EnviarSmsRequest
+            {
+                Telefono = telefono,
+                Origen = origen
+            });
+            var body = await response.Content.ReadAsStringAsync();
+            var parsed = ParseSmsResponse(body);
+            if (!response.IsSuccessStatusCode)
+            {
+                if (parsed != null)
+                {
+                    parsed.Ok = false;
+                    parsed.Valid = false;
+                    return parsed;
+                }
+
+                throw new HttpRequestException("No se pudo enviar el SMS. Intenta de nuevo.");
+            }
+
+            return parsed ?? new SmsApiResponse { Ok = true };
+        }
+
+        public async Task<SmsApiResponse> ConfirmarCambioCelularAsync(string telefono, string codigo)
+        {
+            var response = await _httpClient.PostAsJsonAsync(_afiliadoCelularConfirmarUrl, new VerificarSmsRequest
+            {
+                Telefono = telefono,
+                Codigo = codigo
+            });
+            var body = await response.Content.ReadAsStringAsync();
+            var parsed = ParseSmsResponse(body);
+            if (!response.IsSuccessStatusCode)
+            {
+                if (parsed != null)
+                {
+                    parsed.Ok = false;
+                    parsed.Valid = false;
+                    return parsed;
+                }
+
+                throw new HttpRequestException("No se pudo verificar el SMS. Intenta de nuevo.");
+            }
 
             return parsed ?? new SmsApiResponse { Ok = true, Valid = true };
         }
@@ -203,17 +282,17 @@ namespace Cuidanet.Services
             // Usar la variable configurada
             var response = await _httpClient.GetAsync($"{_beneficiarioUrl}{queryString}");
 
-            if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            if (response.StatusCode == HttpStatusCode.Forbidden)
             {
-                throw new InvalidOperationException("Acceso denegado: El endpoint requiere parámetros de filtrado explícitos para este usuario (Regla Crítica de Privacidad).");
+                throw new InvalidOperationException("No se pudo consultar los datos del afiliado.");
             }
 
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
                 var detail = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"[CuidanetApi] Beneficiario 401 {TrimError(detail)}");
                 throw new HttpRequestException(
-                    "No autorizado (401). No se pudo autenticar el servicio API. " +
-                    "Borra los datos del sitio y recarga. " + TrimError(detail));
+                    "No se pudo consultar los datos. Borra los datos del sitio, recarga e intenta de nuevo.");
             }
 
             response.EnsureSuccessStatusCode();
@@ -269,195 +348,6 @@ namespace Cuidanet.Services
         }
 
         /// <summary>
-        /// POST /api/Consulta sobre dbo.Afiliado: Tipo + Status, mismos campos que la red de proveedores.
-        /// Sucursal = Estado, Localidad = Ciudad.
-        /// </summary>
-        public async Task<List<ProveedorRedDto>> GetFarmaciasActivasAsync(
-            string tabla,
-            string tipo,
-            string status)
-        {
-            const int pageSize = 500;
-            const int maxPages = 20;
-            var list = new List<ProveedorRedDto>();
-
-            for (var page = 0; page < maxPages; page++)
-            {
-                var request = new ConsultaRequestDto
-                {
-                    Tabla = tabla,
-                    Campos =
-                    [
-                        "Nombre",
-                        "Direccion",
-                        "Telefono",
-                        "ContactoWhatsApp",
-                        "TelefonoPersonaContacto",
-                        "Localidad",
-                        "Sucursal",
-                        "Tipo"
-                    ],
-                    Filtros =
-                    [
-                        new() { Campo = "Tipo", Op = "eq", Valor = tipo },
-                        new() { Campo = "Status", Op = "eq", Valor = status }
-                    ],
-                    Orden = [new() { Campo = "Nombre", Dir = "asc" }],
-                    Top = pageSize,
-                    Offset = page * pageSize
-                };
-
-                var pageRows = await PostConsultaAsync(request);
-                foreach (var row in pageRows.Filas)
-                {
-                    var mapped = MapAfiliadoConsultaToRed(row);
-                    if (mapped is not null)
-                        list.Add(mapped);
-                }
-
-                if (pageRows.Filas.Count < pageSize)
-                    break;
-            }
-
-            return list;
-        }
-
-        private async Task<ConsultaResponseDto> PostConsultaAsync(ConsultaRequestDto request)
-        {
-            var first = await SendConsultaOnceAsync(request, forceRefreshToken: false);
-            var result = first.Status == HttpStatusCode.Unauthorized
-                ? await SendConsultaOnceAsync(request, forceRefreshToken: true)
-                : first;
-
-            if (result.Status == HttpStatusCode.OK && result.Body is not null)
-                return result.Body;
-
-            if (result.Status == HttpStatusCode.Forbidden)
-            {
-                throw new HttpRequestException(
-                    "No autorizado para POST /api/Consulta (403). " +
-                    "El usuario de consulta general no está habilitado en APILIS. " +
-                    TrimError(result.Detail));
-            }
-
-            throw new HttpRequestException(
-                $"Consulta de farmacias falló ({(int)result.Status}). {TrimError(result.Detail)}");
-        }
-
-        private async Task<(HttpStatusCode Status, ConsultaResponseDto? Body, string Detail)> SendConsultaOnceAsync(
-            ConsultaRequestDto request,
-            bool forceRefreshToken)
-        {
-            var token = await GetConsultaTokenAsync(forceRefreshToken);
-            if (string.IsNullOrEmpty(token))
-            {
-                using var fallbackResponse = await _httpClient.PostAsJsonAsync(_consultaUrl, request);
-                return await ReadConsultaResultAsync(fallbackResponse);
-            }
-
-            using var client = new HttpClient { BaseAddress = _apiBaseAddress };
-            client.DefaultRequestHeaders.Accept.Add(
-                new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            using var response = await client.PostAsJsonAsync(_consultaUrl, request);
-            return await ReadConsultaResultAsync(response);
-        }
-
-        private static async Task<(HttpStatusCode Status, ConsultaResponseDto? Body, string Detail)> ReadConsultaResultAsync(
-            HttpResponseMessage response)
-        {
-            var detail = await response.Content.ReadAsStringAsync();
-            ConsultaResponseDto? body = null;
-            if (response.IsSuccessStatusCode && !string.IsNullOrWhiteSpace(detail))
-            {
-                body = JsonSerializer.Deserialize<ConsultaResponseDto>(detail, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            return (response.StatusCode, body, detail);
-        }
-
-        private async Task<string?> GetConsultaTokenAsync(bool forceRefresh)
-        {
-            if (string.IsNullOrWhiteSpace(_consultaUser) || string.IsNullOrWhiteSpace(_consultaPass))
-                return null;
-
-            if (!forceRefresh && !string.IsNullOrEmpty(_consultaToken))
-                return _consultaToken;
-
-            await _consultaTokenLock.WaitAsync();
-            try
-            {
-                if (!forceRefresh && !string.IsNullOrEmpty(_consultaToken))
-                    return _consultaToken;
-
-                using var authClient = new HttpClient();
-                var payload = new LoginRequest { Usuario = _consultaUser, Password = _consultaPass };
-                var loginResponse = await authClient.PostAsJsonAsync(_loginUrl, payload);
-                if (!loginResponse.IsSuccessStatusCode)
-                {
-                    var detail = await loginResponse.Content.ReadAsStringAsync();
-                    throw new HttpRequestException(
-                        $"Login de consulta falló ({(int)loginResponse.StatusCode}). {TrimError(detail)}");
-                }
-
-                var loginData = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
-                _consultaToken = loginData?.Token;
-                if (string.IsNullOrWhiteSpace(_consultaToken))
-                    throw new HttpRequestException("Login de consulta no devolvió token.");
-
-                return _consultaToken;
-            }
-            finally
-            {
-                _consultaTokenLock.Release();
-            }
-        }
-
-        private static ProveedorRedDto? MapAfiliadoConsultaToRed(JsonElement row)
-        {
-            if (row.ValueKind != JsonValueKind.Object)
-                return null;
-
-            var whatsapp = ReadConsultaString(row, "ContactoWhatsApp");
-            if (string.IsNullOrWhiteSpace(whatsapp))
-                whatsapp = ReadConsultaString(row, "TelefonoPersonaContacto");
-
-            var localidad = ReadConsultaString(row, "Localidad");
-            var sucursal = ReadConsultaString(row, "Sucursal");
-
-            return new ProveedorRedDto
-            {
-                Nombre = ReadConsultaString(row, "Nombre") ?? string.Empty,
-                Direccion = ReadConsultaString(row, "Direccion") ?? string.Empty,
-                Telefono = ReadConsultaString(row, "Telefono") ?? string.Empty,
-                ContactoWhatsApp = whatsapp ?? string.Empty,
-                Estado = sucursal,
-                Ciudad = localidad,
-                Tipo = ReadConsultaString(row, "Tipo")
-            };
-        }
-
-        private static string? ReadConsultaString(JsonElement row, string column)
-        {
-            foreach (var prop in row.EnumerateObject())
-            {
-                if (!prop.Name.Equals(column, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                if (prop.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
-                    return null;
-                if (prop.Value.ValueKind == JsonValueKind.String)
-                    return prop.Value.GetString()?.Trim();
-                var text = prop.Value.ToString()?.Trim();
-                return string.IsNullOrEmpty(text) ? null : text;
-            }
-
-            return null;
-        }
-
-        /// <summary>
         /// GET /api/Cobertura/plan?cedula= — cliente y plan(es) activos del asegurado.
         /// </summary>
         public async Task<List<CoberturaPlanDto>> GetCoberturaPlanAsync(string cedula)
@@ -469,8 +359,8 @@ namespace Cuidanet.Services
             if (!response.IsSuccessStatusCode)
             {
                 var detail = await response.Content.ReadAsStringAsync();
-                throw new HttpRequestException(
-                    $"Cobertura/plan falló ({(int)response.StatusCode}). {TrimError(detail)}");
+                Console.Error.WriteLine($"[CuidanetApi] Cobertura/plan {(int)response.StatusCode} {TrimError(detail)}");
+                throw new HttpRequestException("No se pudo cargar el plan de cobertura. Intenta de nuevo.");
             }
 
             return await response.Content.ReadFromJsonAsync<List<CoberturaPlanDto>>()
@@ -497,8 +387,8 @@ namespace Cuidanet.Services
             if (!response.IsSuccessStatusCode)
             {
                 var detail = await response.Content.ReadAsStringAsync();
-                throw new HttpRequestException(
-                    $"Cobertura/consumos falló ({(int)response.StatusCode}). {TrimError(detail)}");
+                Console.Error.WriteLine($"[CuidanetApi] Cobertura/consumos {(int)response.StatusCode} {TrimError(detail)}");
+                throw new HttpRequestException("No se pudo cargar los consumos. Intenta de nuevo.");
             }
 
             return await response.Content.ReadFromJsonAsync<CoberturaConsumoDto>();
@@ -576,7 +466,8 @@ namespace Cuidanet.Services
             if (!response.IsSuccessStatusCode)
             {
                 var errorMsg = await response.Content.ReadAsStringAsync();
-                throw new HttpRequestException($"Error {response.StatusCode} en la subida: {errorMsg}");
+                Console.Error.WriteLine($"[CuidanetApi] Upload {response.StatusCode} {TrimError(errorMsg)}");
+                throw new HttpRequestException("No se pudo subir el documento. Intenta de nuevo.");
             }
 
             return await response.Content.ReadFromJsonAsync<UploadImagenResponse>();
@@ -607,8 +498,8 @@ namespace Cuidanet.Services
             if (!response.IsSuccessStatusCode)
             {
                 var detail = await response.Content.ReadAsStringAsync();
-                throw new HttpRequestException(
-                    $"No se pudo registrar instalación PWA ({(int)response.StatusCode}). {TrimError(detail)}");
+                Console.Error.WriteLine($"[CuidanetApi] PWA {(int)response.StatusCode} {TrimError(detail)}");
+                throw new HttpRequestException("No se pudo registrar la instalación.");
             }
 
             return await response.Content.ReadFromJsonAsync<PwaInstalacionResponseDto>();

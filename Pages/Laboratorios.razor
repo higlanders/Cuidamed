@@ -116,7 +116,7 @@
                                     <i class="bi bi-cloud-arrow-up"></i>
                                 </span>
                                 <span class="cn-lab__drop-title">Toca para elegir un archivo</span>
-                                <span class="cn-lab__drop-hint">JPG, PNG o PDF · máx. 100 MB</span>
+                                    <span class="cn-lab__drop-hint">JPG, PNG o PDF · máx. @AppSettings.MaxUploadMb MB</span>
                             </label>
 
                             @if (!string.IsNullOrEmpty(selectedFileName))
@@ -212,7 +212,8 @@
     private string? previewLocalUrl;
 
     private int servicioContextoId = 1024;
-    private const long MaxFileSizeBytes = 100 * 1024 * 1024;
+
+    private long MaxFileSizeBytes => AppSettings.MaxUploadBytes;
 
     private string StatusClass => statusTone switch
     {
@@ -301,7 +302,7 @@
 
             if (file.Size > MaxFileSizeBytes)
             {
-                statusMessage = "El archivo excede el límite permitido de 100 MB.";
+                statusMessage = $"El archivo excede el límite permitido de {AppSettings.MaxUploadMb} MB.";
                 statusTone = "danger";
                 return;
             }
@@ -317,12 +318,27 @@
             using var memory = new MemoryStream();
             await stream.CopyToAsync(memory);
             var bytes = memory.ToArray();
-            previewLocalUrl = BuildDataUrl(file.Name, bytes);
+
+            if (!UploadFileGuard.TryValidate(
+                    file.Name,
+                    bytes,
+                    MaxFileSizeBytes,
+                    AppSettings.MaxUploadMb,
+                    out var safeName,
+                    out var validationError))
+            {
+                statusMessage = validationError ?? "Archivo no permitido.";
+                statusTone = "danger";
+                return;
+            }
+
+            selectedFileName = safeName;
+            previewLocalUrl = BuildDataUrl(safeName, bytes);
 
             memory.Position = 0;
             ultimoRegistroUploaded = await CuidanetService.UploadImagenAsync(
                 fileStream: memory,
-                fileName: file.Name,
+                fileName: safeName,
                 carpeta: "Servicio",
                 servicioId: servicioContextoId
             );
@@ -330,9 +346,9 @@
             statusMessage = "Archivo subido correctamente.";
             statusTone = "success";
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            statusMessage = $"Error al cargar el archivo: {ex.Message}";
+            statusMessage = "No se pudo cargar el archivo. Intenta de nuevo.";
             statusTone = "danger";
         }
         finally
@@ -355,21 +371,37 @@
             string base64DataUrl = await JS.InvokeAsync<string>("BlazorCamera.capture", "webcam", "captureCanvas");
             if (string.IsNullOrEmpty(base64DataUrl) || !base64DataUrl.Contains(','))
             {
-                throw new Exception("La captura falló o el video está vacío.");
+                statusMessage = "La captura falló o el video está vacío.";
+                statusTone = "danger";
+                return;
             }
 
             previewLocalUrl = base64DataUrl;
             string base64Data = base64DataUrl.Split(',')[1];
             byte[] imageBytes = Convert.FromBase64String(base64Data);
-            using var memoryStream = new MemoryStream(imageBytes);
             string nombreArchivo = $"Captura_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+
+            if (!UploadFileGuard.TryValidate(
+                    nombreArchivo,
+                    imageBytes,
+                    MaxFileSizeBytes,
+                    AppSettings.MaxUploadMb,
+                    out var safeName,
+                    out var validationError))
+            {
+                statusMessage = validationError ?? "La captura no es una imagen válida.";
+                statusTone = "danger";
+                return;
+            }
+
+            using var memoryStream = new MemoryStream(imageBytes);
 
             statusMessage = "Transmitiendo a CuidaNet…";
             StateHasChanged();
 
             ultimoRegistroUploaded = await CuidanetService.UploadImagenAsync(
                 fileStream: memoryStream,
-                fileName: nombreArchivo,
+                fileName: safeName,
                 carpeta: "Servicio",
                 servicioId: servicioContextoId
             );
@@ -377,9 +409,9 @@
             statusMessage = "Captura guardada correctamente.";
             statusTone = "success";
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            statusMessage = $"Error durante el proceso de cámara: {ex.Message}";
+            statusMessage = "No se pudo procesar la cámara. Intenta de nuevo.";
             statusTone = "danger";
         }
         finally

@@ -1,0 +1,169 @@
+﻿@page "/mi-celular"
+@layout EmptyLayout
+@using Cuidanet.Services
+@inject NavigationManager Navigation
+@inject CuidanetApiClient Api
+@inject IJSRuntime JS
+
+<PageTitle>Cuidanet — Cambiar celular</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-svc">
+            <div class="cn-svc__shell">
+                <PageHeader Title="Cambiar celular" Back="GoHome" />
+
+                <section class="cn-svc__sheet">
+                    <p class="cn-svc__lead">El SMS de confirmación llega al número nuevo. El padrón no cambia hasta que ingreses el código.</p>
+
+                    <p class="cn-svc__hint">Celular actual: <strong>@celularActual</strong></p>
+
+                    <div class="cn-svc__field">
+                        <label class="cn-svc__label" for="nuevo-cel">Celular nuevo</label>
+                        <input id="nuevo-cel" class="cn-svc__input" inputmode="tel" maxlength="20" autocomplete="tel"
+                               @bind="telefonoNuevo" @bind:event="oninput" />
+                    </div>
+
+                    @if (codigoEnviado)
+                    {
+                        <div class="cn-svc__field">
+                            <label class="cn-svc__label" for="codigo-cel">Código SMS</label>
+                            <input id="codigo-cel" class="cn-svc__input" inputmode="numeric" maxlength="8" autocomplete="one-time-code"
+                                   @bind="codigo" @bind:event="oninput" />
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <p class="cn-svc__error" role="alert">@errorMessage</p>
+                    }
+                    @if (!string.IsNullOrEmpty(okMessage))
+                    {
+                        <p class="cn-svc__lead">@okMessage</p>
+                    }
+
+                    <button type="button" class="cn-svc__cta" disabled="@isLoading" @onclick="OnCtaAsync">
+                        @if (isLoading)
+                        {
+                            <span>Procesando…</span>
+                        }
+                        else if (codigoEnviado)
+                        {
+                            <span>Confirmar cambio</span>
+                        }
+                        else
+                        {
+                            <span>Enviar código</span>
+                        }
+                    </button>
+                </section>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string celularActual = "••••";
+    private string telefonoNuevo = string.Empty;
+    private string codigo = string.Empty;
+    private bool codigoEnviado;
+    private bool isLoading;
+    private string errorMessage = string.Empty;
+    private string okMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var actual = await Api.GetCelularAfiliadoAsync();
+            if (!string.IsNullOrWhiteSpace(actual.TelefonoEnmascarado))
+                celularActual = actual.TelefonoEnmascarado;
+        }
+        catch
+        {
+            celularActual = "••••";
+        }
+    }
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+
+    private Task OnCtaAsync() => codigoEnviado ? ConfirmarAsync() : EnviarAsync();
+
+    private async Task EnviarAsync()
+    {
+        errorMessage = string.Empty;
+        okMessage = string.Empty;
+        var digits = new string(telefonoNuevo.Where(char.IsDigit).ToArray());
+        if (digits.Length < 10)
+        {
+            errorMessage = "Ingresa un celular válido (mínimo 10 dígitos).";
+            return;
+        }
+
+        isLoading = true;
+        try
+        {
+            string? origen = null;
+            try { origen = await JS.InvokeAsync<string>("BlazorSmsOtp.hostname"); }
+            catch { }
+
+            var response = await Api.EnviarCodigoCambioCelularAsync(digits, origen);
+            if (response.IsExplicitFailure)
+            {
+                errorMessage = response.UserMessage ?? "No se pudo enviar el SMS.";
+                return;
+            }
+
+            telefonoNuevo = digits;
+            codigoEnviado = true;
+            okMessage = "Código enviado al número nuevo.";
+        }
+        catch
+        {
+            errorMessage = "No se pudo enviar el SMS. Intenta de nuevo.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ConfirmarAsync()
+    {
+        errorMessage = string.Empty;
+        okMessage = string.Empty;
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            errorMessage = "Ingresa el código SMS.";
+            return;
+        }
+
+        isLoading = true;
+        try
+        {
+            var response = await Api.ConfirmarCambioCelularAsync(telefonoNuevo, codigo.Trim());
+            if (response.IsExplicitFailure)
+            {
+                errorMessage = response.UserMessage ?? "El código es incorrecto o expiró.";
+                return;
+            }
+
+            celularActual = response.TelefonoEnmascarado ?? celularActual;
+            codigoEnviado = false;
+            codigo = string.Empty;
+            telefonoNuevo = string.Empty;
+            okMessage = "Celular actualizado.";
+        }
+        catch
+        {
+            errorMessage = "No se pudo actualizar el celular. Intenta de nuevo.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

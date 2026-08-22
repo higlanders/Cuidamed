@@ -2,7 +2,6 @@
 @using Cuidanet.Services
 @inject IJSRuntime JS
 @inject CuidanetApiClient Api
-@inject AuthenticationStateProvider AuthStateProvider
 
 @code {
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -18,17 +17,6 @@
             var pending = await JS.InvokeAsync<List<PwaPendingEventDto>>("cuidanetPwa.drainPendingEvents");
             if (pending is null || pending.Count == 0) return;
 
-            string? cedula = null;
-            try
-            {
-                var auth = await AuthStateProvider.GetAuthenticationStateAsync();
-                cedula = auth.User?.Identity?.Name;
-            }
-            catch
-            {
-                // sin sesión: se registra igual
-            }
-
             var acked = new List<string>();
             foreach (var evt in pending)
             {
@@ -42,7 +30,6 @@
                         Evento = evt.Evento,
                         Plataforma = string.IsNullOrWhiteSpace(evt.Plataforma) ? "other" : evt.Plataforma,
                         ClientInstallId = evt.ClientInstallId,
-                        Cedula = cedula,
                         UserAgent = evt.UserAgent,
                         Origen = string.IsNullOrWhiteSpace(evt.Origen) ? "cuidamed" : evt.Origen
                     });
@@ -56,7 +43,6 @@
 
             if (acked.Count > 0)
             {
-                // JSON string: Blazor JSInterop no siempre entrega string[] como Array en JS.
                 var payload = System.Text.Json.JsonSerializer.Serialize(acked.Distinct().ToArray());
                 await JS.InvokeVoidAsync("cuidanetPwa.ackEvents", payload);
             }

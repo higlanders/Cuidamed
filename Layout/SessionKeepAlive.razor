@@ -1,0 +1,52 @@
+﻿@inject AuthenticationStateProvider AuthStateProvider
+@inject CuidanetApiClient CuidanetService
+@inject NavigationManager Navigation
+@using Cuidanet.Services
+@implements IDisposable
+
+@code {
+    private DateTimeOffset _lastRefreshUtc = DateTimeOffset.MinValue;
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+        _ = TouchAsync();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
+        _ = TouchAsync();
+
+    private async Task TouchAsync()
+    {
+        if (AuthStateProvider is not CustomAuthStateProvider custom)
+            return;
+
+        var auth = await custom.GetAuthenticationStateAsync();
+        if (auth.User.Identity?.IsAuthenticated != true)
+            return;
+
+        if (DateTimeOffset.UtcNow - _lastRefreshUtc < TimeSpan.FromMinutes(10))
+            return;
+
+        try
+        {
+            var refreshed = await CuidanetService.RefreshAfiliadoAsync();
+            if (refreshed is null || string.IsNullOrWhiteSpace(refreshed.Token))
+            {
+                await custom.MarkUserAsLoggedOut();
+                Navigation.NavigateTo("./", forceLoad: true);
+                return;
+            }
+
+            await custom.ReplaceTokenAsync(refreshed.Token, refreshed.ExpiresAt);
+            _lastRefreshUtc = DateTimeOffset.UtcNow;
+        }
+        catch
+        {
+            // Si el refresh falla por red, la sesión local sigue hasta que expire el JWT.
+        }
+    }
+
+    public void Dispose() =>
+        Navigation.LocationChanged -= OnLocationChanged;
+}

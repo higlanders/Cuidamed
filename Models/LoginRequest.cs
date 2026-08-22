@@ -74,6 +74,15 @@ namespace Cuidanet.Models
         [JsonPropertyName("messageId")]
         public long? MessageId { get; set; }
 
+        [JsonPropertyName("token")]
+        public string? Token { get; set; }
+
+        [JsonPropertyName("expiresAt")]
+        public DateTimeOffset? ExpiresAt { get; set; }
+
+        [JsonPropertyName("telefonoEnmascarado")]
+        public string? TelefonoEnmascarado { get; set; }
+
         public bool IsSuccessful =>
             (Ok ?? true) && (Success ?? true) && (Valid ?? true);
 
@@ -81,6 +90,15 @@ namespace Cuidanet.Models
             Ok == false || Success == false || Valid == false;
 
         public string? UserMessage => Mensaje ?? Message;
+    }
+
+    public class AfiliadoTokenDto
+    {
+        [JsonPropertyName("token")]
+        public string Token { get; set; } = string.Empty;
+
+        [JsonPropertyName("expiresAt")]
+        public DateTimeOffset ExpiresAt { get; set; }
     }
 
     // Puedes expandir estas propiedades según el JSON real de tu API

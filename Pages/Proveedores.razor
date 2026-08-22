@@ -281,21 +281,18 @@
         try
         {
             todosProveedores = SoloFarmacias
-                ? await CuidanetService.GetFarmaciasActivasAsync(
-                    AppSettings.ConsultaTablaAfiliado,
-                    AppSettings.TipoAfiliadoFarmacia,
-                    AppSettings.StatusAfiliadoActivo)
+                ? await CuidanetService.GetRedProveedoresAsync(
+                    cedulaUsuario,
+                    tipo: AppSettings.TipoAfiliadoFarmacia)
                 : await CuidanetService.GetRedProveedoresAsync(cedulaUsuario);
         }
         catch (Exception ex)
         {
             todosProveedores = new();
             errorMessage = SoloFarmacias
-                ? (ex is HttpRequestException
-                    ? ex.Message
-                    : "No se pudo cargar las farmacias afiliadas. Intenta de nuevo.")
+                ? "No se pudo cargar las farmacias afiliadas. Intenta de nuevo."
                 : "No se pudo cargar la red de proveedores. Intenta de nuevo.";
-            Console.WriteLine($"Red proveedores: {ex.Message}");
+            Console.Error.WriteLine($"Red proveedores: {ex.Message}");
         }
         finally
         {

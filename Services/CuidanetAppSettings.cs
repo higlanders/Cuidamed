@@ -17,13 +17,30 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
     public string TipoAfiliadoFarmacia =>
         FirstNonEmpty(configuration["CuidanetApp:TipoAfiliadoFarmacia"], "Farmacia");
 
-    /// <summary>Valor de Afiliado.Status para farmacias activas (POST /api/Consulta).</summary>
-    public string StatusAfiliadoActivo =>
-        FirstNonEmpty(configuration["CuidanetApp:StatusAfiliadoActivo"], "Activo");
+    /// <summary>
+    /// Caducidad de la sesión local (minutos). No es autorización de servidor:
+    /// solo acota localStorage en dispositivos compartidos.
+    /// </summary>
+    public int SessionMinutes
+    {
+        get
+        {
+            var minutes = ReadInt("CuidanetApp:SessionMinutes", 30);
+            return minutes < 1 ? 30 : minutes;
+        }
+    }
 
-    /// <summary>Tabla whitelist de POST /api/Consulta para el catálogo de farmacias.</summary>
-    public string ConsultaTablaAfiliado =>
-        FirstNonEmpty(configuration["CuidanetApp:ConsultaTablaAfiliado"], "Afiliado");
+    /// <summary>Tope de subida de documentos en el cliente (MB).</summary>
+    public int MaxUploadMb
+    {
+        get
+        {
+            var mb = ReadInt("CuidanetApp:MaxUploadMb", 10);
+            return mb < 1 ? 10 : mb;
+        }
+    }
+
+    public long MaxUploadBytes => MaxUploadMb * 1024L * 1024L;
 
     public string WhatsAppRedyplan =>
         FirstNonEmpty(configuration["CuidanetApp:WhatsAppRedyplan"], "+584241271422");
