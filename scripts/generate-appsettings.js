@@ -60,6 +60,7 @@ const settings = {
       Consulta: process.env.CUIDANET_CONSULTA || "Consulta",
       CoberturaPlan: "Cobertura/plan",
       CoberturaConsumos: "Cobertura/consumos",
+      PwaInstalacion: "Pwa/instalacion",
     },
   },
   CuidanetApp: {

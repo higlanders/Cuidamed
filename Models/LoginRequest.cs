@@ -216,5 +216,60 @@ namespace Cuidanet.Models
         [JsonPropertyName("filas")]
         public List<System.Text.Json.JsonElement> Filas { get; set; } = new();
     }
+
+    public class PwaInstalacionRequestDto
+    {
+        [JsonPropertyName("evento")]
+        public string Evento { get; set; } = string.Empty;
+
+        [JsonPropertyName("plataforma")]
+        public string Plataforma { get; set; } = string.Empty;
+
+        [JsonPropertyName("clientInstallId")]
+        public string ClientInstallId { get; set; } = string.Empty;
+
+        [JsonPropertyName("cedula")]
+        public string? Cedula { get; set; }
+
+        [JsonPropertyName("userAgent")]
+        public string? UserAgent { get; set; }
+
+        [JsonPropertyName("origen")]
+        public string? Origen { get; set; }
+    }
+
+    public class PwaInstalacionResponseDto
+    {
+        [JsonPropertyName("ok")]
+        public bool Ok { get; set; }
+
+        [JsonPropertyName("duplicado")]
+        public bool Duplicado { get; set; }
+
+        [JsonPropertyName("pwaInstalacionId")]
+        public long? PwaInstalacionId { get; set; }
+
+        [JsonPropertyName("mensaje")]
+        public string? Mensaje { get; set; }
+    }
+
+    /// <summary>Evento pendiente en localStorage (cuidanetPwa.drainPendingEvents).</summary>
+    public class PwaPendingEventDto
+    {
+        [JsonPropertyName("evento")]
+        public string Evento { get; set; } = string.Empty;
+
+        [JsonPropertyName("plataforma")]
+        public string Plataforma { get; set; } = string.Empty;
+
+        [JsonPropertyName("clientInstallId")]
+        public string ClientInstallId { get; set; } = string.Empty;
+
+        [JsonPropertyName("userAgent")]
+        public string? UserAgent { get; set; }
+
+        [JsonPropertyName("origen")]
+        public string? Origen { get; set; }
+    }
 }
 

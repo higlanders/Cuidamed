@@ -1,0 +1,67 @@
+﻿@using Cuidanet.Models
+@using Cuidanet.Services
+@inject IJSRuntime JS
+@inject CuidanetApiClient Api
+@inject AuthenticationStateProvider AuthStateProvider
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await FlushAsync();
+    }
+
+    private async Task FlushAsync()
+    {
+        try
+        {
+            var pending = await JS.InvokeAsync<List<PwaPendingEventDto>>("cuidanetPwa.drainPendingEvents");
+            if (pending is null || pending.Count == 0) return;
+
+            string? cedula = null;
+            try
+            {
+                var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+                cedula = auth.User?.Identity?.Name;
+            }
+            catch
+            {
+                // sin sesión: se registra igual
+            }
+
+            var acked = new List<string>();
+            foreach (var evt in pending)
+            {
+                if (string.IsNullOrWhiteSpace(evt.Evento) || string.IsNullOrWhiteSpace(evt.ClientInstallId))
+                    continue;
+
+                try
+                {
+                    await Api.RegistrarPwaInstalacionAsync(new PwaInstalacionRequestDto
+                    {
+                        Evento = evt.Evento,
+                        Plataforma = string.IsNullOrWhiteSpace(evt.Plataforma) ? "other" : evt.Plataforma,
+                        ClientInstallId = evt.ClientInstallId,
+                        Cedula = cedula,
+                        UserAgent = evt.UserAgent,
+                        Origen = string.IsNullOrWhiteSpace(evt.Origen) ? "cuidamed" : evt.Origen
+                    });
+                    acked.Add(evt.Evento);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"[PWA telemetry] {ex.Message}");
+                }
+            }
+
+            if (acked.Count > 0)
+            {
+                await JS.InvokeVoidAsync("cuidanetPwa.ackEvents", acked.Distinct().ToArray());
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[PWA telemetry] {ex.Message}");
+        }
+    }
+}

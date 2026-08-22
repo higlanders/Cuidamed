@@ -25,6 +25,7 @@ namespace Cuidanet.Services
         private readonly string _consultaUrl;
         private readonly string _coberturaPlanUrl;
         private readonly string _coberturaConsumosUrl;
+        private readonly string _pwaInstalacionUrl;
         private readonly string _loginUrl;
         private readonly string _consultaUser;
         private readonly string _consultaPass;
@@ -62,6 +63,7 @@ namespace Cuidanet.Services
             _consultaUrl = configuration["CuidanetServices:Endpoints:Consulta"] ?? "Consulta";
             _coberturaPlanUrl = configuration["CuidanetServices:Endpoints:CoberturaPlan"] ?? "Cobertura/plan";
             _coberturaConsumosUrl = configuration["CuidanetServices:Endpoints:CoberturaConsumos"] ?? "Cobertura/consumos";
+            _pwaInstalacionUrl = configuration["CuidanetServices:Endpoints:PwaInstalacion"] ?? "Pwa/instalacion";
         }
 
         /// <summary>
@@ -596,6 +598,20 @@ namespace Cuidanet.Services
             response.EnsureSuccessStatusCode();
 
             return await response.Content.ReadFromJsonAsync<List<UploadImagenResponse>>() ?? new List<UploadImagenResponse>();
+        }
+
+        /// <summary>POST /api/Pwa/instalacion — registra install o standalone_open (idempotente).</summary>
+        public async Task<PwaInstalacionResponseDto?> RegistrarPwaInstalacionAsync(PwaInstalacionRequestDto payload)
+        {
+            var response = await _httpClient.PostAsJsonAsync(_pwaInstalacionUrl, payload);
+            if (!response.IsSuccessStatusCode)
+            {
+                var detail = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException(
+                    $"No se pudo registrar instalación PWA ({(int)response.StatusCode}). {TrimError(detail)}");
+            }
+
+            return await response.Content.ReadFromJsonAsync<PwaInstalacionResponseDto>();
         }
 
         private string GetMimeType(string fileName)

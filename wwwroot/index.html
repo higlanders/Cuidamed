@@ -356,6 +356,9 @@
             }
 
             var dismissKey = 'cn_pwa_dismiss_until';
+            var clientIdKey = 'cn_pwa_client_id';
+            var pendingKey = 'cn_pwa_pending_events';
+            var reportedStandaloneKey = 'cn_pwa_reported_standalone';
 
             function isDismissed() {
                 try {
@@ -364,6 +367,66 @@
                 } catch (e) {
                     return false;
                 }
+            }
+
+            function getClientId() {
+                try {
+                    var id = localStorage.getItem(clientIdKey);
+                    if (id && id.length >= 8) return id;
+                    id = (window.crypto && crypto.randomUUID)
+                        ? crypto.randomUUID()
+                        : 'cn-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+                    localStorage.setItem(clientIdKey, id);
+                    return id;
+                } catch (e) {
+                    return 'cn-fallback-' + Date.now();
+                }
+            }
+
+            function detectPlatform() {
+                if (isIos()) return 'ios';
+                var ua = navigator.userAgent || '';
+                if (/Android/i.test(ua)) return 'android';
+                if (/Windows/i.test(ua)) return 'windows';
+                if (/Mac OS|Macintosh/i.test(ua)) return 'macos';
+                return 'other';
+            }
+
+            function readPending() {
+                try {
+                    var raw = localStorage.getItem(pendingKey);
+                    var list = raw ? JSON.parse(raw) : [];
+                    return Array.isArray(list) ? list : [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function writePending(list) {
+                try {
+                    localStorage.setItem(pendingKey, JSON.stringify(list || []));
+                } catch (e) { /* ignore */ }
+            }
+
+            function enqueueTelemetry(evento) {
+                var list = readPending();
+                if (list.some(function (x) { return x && x.evento === evento; })) return;
+                list.push({
+                    evento: evento,
+                    plataforma: detectPlatform(),
+                    clientInstallId: getClientId(),
+                    userAgent: (navigator.userAgent || '').slice(0, 400),
+                    origen: 'cuidamed'
+                });
+                writePending(list);
+            }
+
+            function queueStandaloneIfNeeded() {
+                if (!isInstalled()) return;
+                try {
+                    if (localStorage.getItem(reportedStandaloneKey) === '1') return;
+                } catch (e) { /* ignore */ }
+                enqueueTelemetry('standalone_open');
             }
 
             function getState() {
@@ -395,8 +458,11 @@
             window.addEventListener('appinstalled', function () {
                 deferredPrompt = null;
                 try { localStorage.removeItem(dismissKey); } catch (e) { /* ignore */ }
+                enqueueTelemetry('install');
                 notifyHelpers();
             });
+
+            queueStandaloneIfNeeded();
 
             window.cuidanetPwa = {
                 getState: getState,
@@ -424,6 +490,19 @@
                     } catch (e) { /* ignore */ }
                     notifyHelpers();
                 },
+                drainPendingEvents: function () {
+                    queueStandaloneIfNeeded();
+                    return readPending();
+                },
+                ackEvents: function (eventos) {
+                    var set = {};
+                    (eventos || []).forEach(function (e) { set[e] = true; });
+                    var left = readPending().filter(function (x) { return !(x && set[x.evento]); });
+                    writePending(left);
+                    if (set.standalone_open) {
+                        try { localStorage.setItem(reportedStandaloneKey, '1'); } catch (e2) { /* ignore */ }
+                    }
+                },
                 install: async function () {
                     if (isInstalled()) {
                         return { outcome: 'accepted', mode: 'native' };
@@ -432,6 +511,9 @@
                         deferredPrompt.prompt();
                         var choice = await deferredPrompt.userChoice;
                         deferredPrompt = null;
+                        if (choice.outcome === 'accepted') {
+                            enqueueTelemetry('install');
+                        }
                         notifyHelpers();
                         return { outcome: choice.outcome, mode: 'native' };
                     }
