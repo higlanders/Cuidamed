@@ -495,8 +495,30 @@
                     return readPending();
                 },
                 ackEvents: function (eventos) {
+                    var list = [];
+                    if (Array.isArray(eventos)) {
+                        list = eventos;
+                    } else if (typeof eventos === 'string') {
+                        try {
+                            var parsed = JSON.parse(eventos);
+                            list = Array.isArray(parsed) ? parsed : [parsed];
+                        } catch (e) {
+                            list = eventos ? [eventos] : [];
+                        }
+                    } else if (eventos && typeof eventos === 'object') {
+                        // Blazor a veces serializa arrays como objeto indexado.
+                        list = Object.keys(eventos)
+                            .filter(function (k) { return /^\d+$/.test(k); })
+                            .sort(function (a, b) { return Number(a) - Number(b); })
+                            .map(function (k) { return eventos[k]; });
+                        if (list.length === 0) {
+                            list = Object.values(eventos);
+                        }
+                    }
                     var set = {};
-                    (eventos || []).forEach(function (e) { set[e] = true; });
+                    list.forEach(function (e) {
+                        if (e != null && e !== '') set[String(e)] = true;
+                    });
                     var left = readPending().filter(function (x) { return !(x && set[x.evento]); });
                     writePending(left);
                     if (set.standalone_open) {

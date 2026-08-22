@@ -56,7 +56,9 @@
 
             if (acked.Count > 0)
             {
-                await JS.InvokeVoidAsync("cuidanetPwa.ackEvents", acked.Distinct().ToArray());
+                // JSON string: Blazor JSInterop no siempre entrega string[] como Array en JS.
+                var payload = System.Text.Json.JsonSerializer.Serialize(acked.Distinct().ToArray());
+                await JS.InvokeVoidAsync("cuidanetPwa.ackEvents", payload);
             }
         }
         catch (Exception ex)
