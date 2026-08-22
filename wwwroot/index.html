@@ -332,7 +332,7 @@
     <script>
         (function () {
             var deferredPrompt = null;
-            var helper = null;
+            var helpers = [];
 
             function isIos() {
                 var ua = navigator.userAgent || '';
@@ -355,42 +355,74 @@
                 return false;
             }
 
+            var dismissKey = 'cn_pwa_dismiss_until';
+
+            function isDismissed() {
+                try {
+                    var until = parseInt(localStorage.getItem(dismissKey) || '0', 10);
+                    return !!until && Date.now() < until;
+                } catch (e) {
+                    return false;
+                }
+            }
+
             function getState() {
                 return {
                     installed: isInstalled(),
                     canPrompt: !!deferredPrompt,
-                    isIos: isIos()
+                    isIos: isIos(),
+                    dismissed: isDismissed()
                 };
             }
 
-            function notifyHelper() {
-                if (!helper) return;
-                try {
-                    helper.invokeMethodAsync('OnPwaStateChanged', getState());
-                } catch (e) {
-                    console.warn('PWA helper:', e);
-                }
+            function notifyHelpers() {
+                var state = getState();
+                helpers.forEach(function (h) {
+                    try {
+                        h.invokeMethodAsync('OnPwaStateChanged', state);
+                    } catch (e) {
+                        console.warn('PWA helper:', e);
+                    }
+                });
             }
 
             window.addEventListener('beforeinstallprompt', function (e) {
                 e.preventDefault();
                 deferredPrompt = e;
-                notifyHelper();
+                notifyHelpers();
             });
 
             window.addEventListener('appinstalled', function () {
                 deferredPrompt = null;
-                notifyHelper();
+                try { localStorage.removeItem(dismissKey); } catch (e) { /* ignore */ }
+                notifyHelpers();
             });
 
             window.cuidanetPwa = {
                 getState: getState,
                 bind: function (dotNetHelper) {
-                    helper = dotNetHelper;
-                    notifyHelper();
+                    if (helpers.indexOf(dotNetHelper) < 0) {
+                        helpers.push(dotNetHelper);
+                    }
+                    try {
+                        dotNetHelper.invokeMethodAsync('OnPwaStateChanged', getState());
+                    } catch (e) {
+                        console.warn('PWA helper:', e);
+                    }
                 },
-                unbind: function () {
-                    helper = null;
+                unbind: function (dotNetHelper) {
+                    if (!dotNetHelper) {
+                        helpers = [];
+                        return;
+                    }
+                    helpers = helpers.filter(function (h) { return h !== dotNetHelper; });
+                },
+                dismiss: function (days) {
+                    var d = typeof days === 'number' && days > 0 ? days : 14;
+                    try {
+                        localStorage.setItem(dismissKey, String(Date.now() + d * 24 * 60 * 60 * 1000));
+                    } catch (e) { /* ignore */ }
+                    notifyHelpers();
                 },
                 install: async function () {
                     if (isInstalled()) {
@@ -400,7 +432,7 @@
                         deferredPrompt.prompt();
                         var choice = await deferredPrompt.userChoice;
                         deferredPrompt = null;
-                        notifyHelper();
+                        notifyHelpers();
                         return { outcome: choice.outcome, mode: 'native' };
                     }
                     if (isIos()) {

@@ -1,100 +1,112 @@
-﻿.cn-install {
-    position: fixed;
-    left: 50%;
-    bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
-    transform: translateX(-50%);
-    z-index: 1900;
-    width: min(92vw, 22rem);
-    pointer-events: none;
+﻿/* Soft prompt: en el flujo de contenido, no flotante encima de la UI */
+.cn-install-tip {
+    margin: 0 0 1rem;
+    padding: 0.85rem 0.9rem;
+    border: 1px solid #d9e4e8;
+    border-radius: 12px;
+    background: #f7fafb;
+    font-family: 'Poppins', system-ui, sans-serif;
 }
 
-.cn-install__fab,
-.cn-install__sheet,
-.cn-install__close,
-.cn-install__primary {
-    pointer-events: auto;
+.cn-install-tip--drawer {
+    margin-top: 0.75rem;
 }
 
-.cn-install__fab {
+.cn-install-tip__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.cn-install-tip__copy {
+    flex: 1;
+    min-width: 0;
+}
+
+.cn-install-tip__title {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1a2b33;
+}
+
+.cn-install-tip__text {
+    margin: 0.2rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: #6b7c85;
+}
+
+.cn-install-tip__steps {
+    margin: 0.35rem 0 0.5rem;
+    padding-left: 1.1rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: #6b7c85;
+}
+
+.cn-install-tip__steps li + li {
+    margin-top: 0.25rem;
+}
+
+.cn-install-tip__dismiss {
+    flex-shrink: 0;
+    border: none;
+    background: transparent;
+    color: #6b7c85;
+    padding: 0.15rem;
+    line-height: 1;
+    font-size: 0.9rem;
+}
+
+.cn-install-tip__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.7rem;
+}
+
+.cn-install-tip__primary,
+.cn-install-tip__secondary,
+.cn-install-tip__link {
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 0.75rem;
+}
+
+.cn-install-tip__primary {
+    background: #0170a0;
+    color: #fff;
+}
+
+.cn-install-tip__secondary {
+    background: transparent;
+    color: #6b7c85;
+}
+
+.cn-install-tip__link {
+    margin-top: 0.35rem;
+    padding: 0;
+    background: transparent;
+    color: #0170a0;
+}
+
+.cn-install-menu {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
     width: 100%;
-    border: none;
-    border-radius: 999px;
-    padding: 0.7rem 1.1rem;
-    background: #0170a0;
-    color: #fff;
-    font-family: 'Poppins', system-ui, sans-serif;
-    font-size: 0.9rem;
-    font-weight: 600;
-    box-shadow: 0 8px 24px rgba(3, 23, 61, 0.22);
-}
-
-.cn-install__fab:active {
-    transform: scale(0.98);
-}
-
-.cn-install__sheet {
-    position: relative;
+    margin-top: 0.75rem;
+    border: 1px solid #d9e4e8;
+    border-radius: 10px;
     background: #fff;
-    border: 2px solid #00a4ba;
-    border-radius: 12px;
-    padding: 1rem 1rem 0.85rem;
-    box-shadow: 0 10px 28px rgba(3, 23, 61, 0.18);
+    color: #0170a0;
     font-family: 'Poppins', system-ui, sans-serif;
-}
-
-.cn-install__close {
-    position: absolute;
-    top: 0.35rem;
-    right: 0.5rem;
-    border: none;
-    background: transparent;
-    font-size: 1.35rem;
-    line-height: 1;
-    color: #6b7c85;
-    padding: 0.15rem 0.35rem;
-}
-
-.cn-install__title {
-    margin: 0 1.5rem 0.55rem 0;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #1a2b33;
-}
-
-.cn-install__text,
-.cn-install__steps {
-    margin: 0 0 0.85rem;
-    padding: 0 0 0 1.1rem;
-    font-size: 0.8rem;
-    line-height: 1.45;
-    color: #6b7c85;
-}
-
-.cn-install__text {
-    padding-left: 0;
-}
-
-.cn-install__steps li + li {
-    margin-top: 0.35rem;
-}
-
-.cn-install__primary {
-    width: 100%;
-    border: none;
-    border-radius: 8px;
-    padding: 0.55rem 0.75rem;
-    background: #00a4ba;
-    color: #fff;
-    font-weight: 600;
     font-size: 0.85rem;
-}
-
-@media (min-width: 768px) {
-    .cn-install {
-        bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
-    }
+    font-weight: 600;
+    padding: 0.65rem 0.85rem;
 }

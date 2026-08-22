@@ -1,41 +1,87 @@
 ﻿@inject IJSRuntime JS
 @implements IAsyncDisposable
 
-@if (_visible)
+@if (_eligible)
 {
-    <div class="cn-install" role="region" aria-label="Instalar aplicación">
+    @if (Variant == InstallVariant.SoftPrompt && _showSoftPrompt)
+    {
+        <div class="cn-install-tip" role="region" aria-label="Instalar aplicación">
+            @if (_showManualHelp)
+            {
+                <div class="cn-install-tip__help">
+                    <p class="cn-install-tip__title">Cómo instalar</p>
+                    @if (_isIos)
+                    {
+                        <ol class="cn-install-tip__steps">
+                            <li>Toca <strong>Compartir</strong> en Safari.</li>
+                            <li>Elige <strong>Añadir a pantalla de inicio</strong>.</li>
+                            <li>Confirma con <strong>Añadir</strong>.</li>
+                        </ol>
+                    }
+                    else
+                    {
+                        <p class="cn-install-tip__text">En el menú del navegador (⋮) elige <strong>Instalar aplicación</strong>.</p>
+                    }
+                    <button type="button" class="cn-install-tip__link" @onclick="CerrarAyuda">Cerrar</button>
+                </div>
+            }
+            else
+            {
+                <div class="cn-install-tip__row">
+                    <div class="cn-install-tip__copy">
+                        <p class="cn-install-tip__title">Acceso más rápido</p>
+                        <p class="cn-install-tip__text">Instala Cuidanet en tu dispositivo.</p>
+                    </div>
+                    <button type="button" class="cn-install-tip__dismiss" @onclick="DismissSoftPromptAsync" aria-label="Cerrar">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="cn-install-tip__actions">
+                    <button type="button" class="cn-install-tip__secondary" @onclick="DismissSoftPromptAsync">Ahora no</button>
+                    <button type="button" class="cn-install-tip__primary" @onclick="OnInstalarClick">Instalar</button>
+                </div>
+            }
+        </div>
+    }
+    else if (Variant == InstallVariant.MenuItem)
+    {
+        <button type="button" class="cn-install-menu" @onclick="OnInstalarClick">
+            <i class="bi bi-download" aria-hidden="true"></i>
+            Instalar aplicación
+        </button>
+
         @if (_showManualHelp)
         {
-            <div class="cn-install__sheet" role="dialog" aria-modal="true" aria-labelledby="cn-install-title">
-                <button type="button" class="cn-install__close" aria-label="Cerrar" @onclick="CerrarAyuda">×</button>
-                <h2 id="cn-install-title" class="cn-install__title">Instalar Cuidanet</h2>
+            <div class="cn-install-tip cn-install-tip--drawer" role="dialog" aria-label="Cómo instalar">
                 @if (_isIos)
                 {
-                    <ol class="cn-install__steps">
-                        <li>Toca <strong>Compartir</strong> <span aria-hidden="true">□↑</span> en Safari.</li>
+                    <ol class="cn-install-tip__steps">
+                        <li>Toca <strong>Compartir</strong> en Safari.</li>
                         <li>Elige <strong>Añadir a pantalla de inicio</strong>.</li>
                         <li>Confirma con <strong>Añadir</strong>.</li>
                     </ol>
                 }
                 else
                 {
-                    <p class="cn-install__text">En el menú del navegador (⋮ o ⋯) elige <strong>Instalar aplicación</strong> o <strong>Añadir a la pantalla de inicio</strong>.</p>
+                    <p class="cn-install-tip__text">En el menú del navegador (⋮) elige <strong>Instalar aplicación</strong>.</p>
                 }
-                <button type="button" class="cn-install__primary" @onclick="CerrarAyuda">Entendido</button>
+                <button type="button" class="cn-install-tip__link" @onclick="CerrarAyuda">Entendido</button>
             </div>
         }
-        else
-        {
-            <button type="button" class="cn-install__fab" @onclick="OnInstalarClick">
-                <i class="bi bi-download" aria-hidden="true"></i>
-                <span>Instalar App</span>
-            </button>
-        }
-    </div>
+    }
 }
 
 @code {
-    private bool _visible;
+    public enum InstallVariant
+    {
+        SoftPrompt,
+        MenuItem
+    }
+
+    [Parameter] public InstallVariant Variant { get; set; } = InstallVariant.SoftPrompt;
+
+    private bool _eligible;
+    private bool _showSoftPrompt;
     private bool _showManualHelp;
     private bool _isIos;
     private DotNetObjectReference<InstallAppButton>? _dotNetRef;
@@ -52,7 +98,7 @@
         }
         catch
         {
-            // Sin JS PWA no bloqueamos la app.
+            _eligible = false;
         }
     }
 
@@ -60,25 +106,29 @@
     {
         try
         {
-            var state = await JS.InvokeAsync<PwaInstallState>("cuidanetPwa.getState");
-            ApplyState(state);
+            ApplyState(await JS.InvokeAsync<PwaInstallState>("cuidanetPwa.getState"));
         }
         catch
         {
-            _visible = false;
+            _eligible = false;
+            _showSoftPrompt = false;
         }
     }
 
     private void ApplyState(PwaInstallState? state)
     {
-        if (state is null)
+        if (state is null || state.Installed)
         {
-            _visible = false;
+            _eligible = false;
+            _showSoftPrompt = false;
+            StateHasChanged();
             return;
         }
 
         _isIos = state.IsIos;
-        _visible = !state.Installed;
+        _eligible = true;
+        // Soft prompt solo si no lo descartaron; el ítem de menú siempre si no está instalada.
+        _showSoftPrompt = Variant == InstallVariant.SoftPrompt && !state.Dismissed;
         StateHasChanged();
     }
 
@@ -95,17 +145,15 @@
             if (string.Equals(result.Mode, "native", StringComparison.OrdinalIgnoreCase)
                 && string.Equals(result.Outcome, "accepted", StringComparison.OrdinalIgnoreCase))
             {
-                _visible = false;
+                _eligible = false;
+                _showSoftPrompt = false;
+                _showManualHelp = false;
                 StateHasChanged();
                 return;
             }
 
-            if (string.Equals(result.Mode, "ios", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(result.Mode, "browser", StringComparison.OrdinalIgnoreCase))
-            {
-                _showManualHelp = true;
-                StateHasChanged();
-            }
+            _showManualHelp = true;
+            StateHasChanged();
         }
         catch
         {
@@ -114,13 +162,29 @@
         }
     }
 
+    private async Task DismissSoftPromptAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("cuidanetPwa.dismiss", 14);
+        }
+        catch
+        {
+            // ignore
+        }
+
+        _showSoftPrompt = false;
+        _showManualHelp = false;
+        StateHasChanged();
+    }
+
     private void CerrarAyuda() => _showManualHelp = false;
 
     public async ValueTask DisposeAsync()
     {
         try
         {
-            await JS.InvokeVoidAsync("cuidanetPwa.unbind");
+            await JS.InvokeVoidAsync("cuidanetPwa.unbind", _dotNetRef);
         }
         catch
         {
@@ -135,6 +199,7 @@
         public bool Installed { get; set; }
         public bool CanPrompt { get; set; }
         public bool IsIos { get; set; }
+        public bool Dismissed { get; set; }
     }
 
     public sealed class PwaInstallResult

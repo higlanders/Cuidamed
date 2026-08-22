@@ -47,6 +47,7 @@
 
                 <section class="cn-home__sheet">
                     <h1 class="cn-home__title">Servicios</h1>
+                    <InstallAppButton Variant="InstallAppButton.InstallVariant.SoftPrompt" />
                     <nav class="cn-home__grid" aria-label="Servicios">
                         @foreach (var modulo in modulosVisibles)
                         {
@@ -123,6 +124,8 @@
                             }
                         </div>
                     }
+
+                    <InstallAppButton Variant="InstallAppButton.InstallVariant.MenuItem" />
 
                     <button type="button" class="cn-home__logout" @onclick="BeginLogOut">
                         <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
