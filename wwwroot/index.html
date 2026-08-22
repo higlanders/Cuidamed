@@ -54,34 +54,28 @@
             } catch (e) { /* sessionStorage bloqueado */ }
         })();
 
-        // Limpia Service Workers / caches viejos (causan "unhandled error" tras cada deploy).
-        (async function clearStalePwa() {
-            const flag = 'cn_cache_bust_20260818b';
+        // Una sola limpieza por versión (caches offline viejos). No desregistrar SW en cada carga.
+        (async function clearStalePwaOnce() {
+            var flag = 'cn_pwa_bust_20260821a';
             try {
-                if ('serviceWorker' in navigator) {
-                    const regs = await navigator.serviceWorker.getRegistrations();
-                    await Promise.all(regs.map(function (r) { return r.unregister(); }));
-                }
+                if (localStorage.getItem(flag)) return;
                 if (window.caches && caches.keys) {
-                    const keys = await caches.keys();
-                    await Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                    var keys = await caches.keys();
+                    await Promise.all(keys
+                        .filter(function (k) { return k.indexOf('offline-cache-') === 0; })
+                        .map(function (k) { return caches.delete(k); }));
                 }
-            } catch (e) {
-                console.warn('PWA cache clear:', e);
-            }
-
-            // Recargar el index (200), no la ruta Blazor (GitHub Pages responde 404).
-            try {
-                if (!sessionStorage.getItem(flag)) {
-                    sessionStorage.setItem(flag, '1');
+                localStorage.setItem(flag, '1');
+                try {
                     sessionStorage.setItem(
                         'cn_restore_path',
                         location.pathname + location.search + location.hash);
-                    var base = document.querySelector('base');
-                    location.replace((base && base.href) ? base.href : './');
-                    return;
-                }
-            } catch (e) { /* sessionStorage bloqueado */ }
+                } catch (e2) { /* sessionStorage bloqueado */ }
+                var base = document.querySelector('base');
+                location.replace((base && base.href) ? base.href : './');
+            } catch (e) {
+                console.warn('PWA cache clear:', e);
+            }
         })();
     </script>
 
@@ -154,9 +148,16 @@
         });
     </script>
 
-    <!-- Service Worker desactivado temporalmente para evitar WASM en caché tras deploys.
-         Se puede volver a activar cuando la app esté estable. -->
-    <!-- <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script> -->
+    <script>
+        // SW en red (sin caché WASM). Necesario para beforeinstallprompt / instalar PWA.
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker
+                    .register('service-worker.js', { updateViaCache: 'none', scope: './' })
+                    .catch(function (err) { console.warn('SW register:', err); });
+            });
+        }
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
@@ -329,43 +330,95 @@
 
     </script>
     <script>
-        let deferredPrompt = null;
+        (function () {
+            var deferredPrompt = null;
+            var helper = null;
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            // Previene que el navegador muestre su barra nativa automática
-            e.preventDefault();
-            deferredPrompt = e;
-
-            // Notifica a Blazor que la App es instalable y no está instalada aún
-            if (window.dotNetInstallHelper) {
-                window.dotNetInstallHelper.invokeMethodAsync('MostrarBannerInstalacion');
+            function isIos() {
+                var ua = navigator.userAgent || '';
+                if (/iPad|iPhone|iPod/.test(ua)) return true;
+                return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
             }
-        });
 
-        window.registrarHelperInstalacion = (dotNetHelper) => {
-            window.dotNetInstallHelper = dotNetHelper;
-            // Diferir el callback para no reentrar durante OnAfterRender de Blazor
-            if (deferredPrompt) {
-                setTimeout(() => {
-                    try {
-                        dotNetHelper.invokeMethodAsync('MostrarBannerInstalacion');
-                    } catch (e) {
-                        console.warn('PWA banner helper:', e);
+            function isInstalled() {
+                try {
+                    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+                        return true;
                     }
-                }, 0);
+                } catch (e) { /* ignore */ }
+                if (navigator.standalone === true) return true;
+                try {
+                    if (window.matchMedia && window.matchMedia('(display-mode: window-controls-overlay)').matches) {
+                        return true;
+                    }
+                } catch (e2) { /* ignore */ }
+                return false;
             }
-        };
 
-        window.promptInstalarPwa = async () => {
-            if (!deferredPrompt) return false;
+            function getState() {
+                return {
+                    installed: isInstalled(),
+                    canPrompt: !!deferredPrompt,
+                    isIos: isIos()
+                };
+            }
 
-            // Muestra el prompt nativo de instalación
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            deferredPrompt = null;
+            function notifyHelper() {
+                if (!helper) return;
+                try {
+                    helper.invokeMethodAsync('OnPwaStateChanged', getState());
+                } catch (e) {
+                    console.warn('PWA helper:', e);
+                }
+            }
 
-            return outcome === 'accepted';
-        };
+            window.addEventListener('beforeinstallprompt', function (e) {
+                e.preventDefault();
+                deferredPrompt = e;
+                notifyHelper();
+            });
+
+            window.addEventListener('appinstalled', function () {
+                deferredPrompt = null;
+                notifyHelper();
+            });
+
+            window.cuidanetPwa = {
+                getState: getState,
+                bind: function (dotNetHelper) {
+                    helper = dotNetHelper;
+                    notifyHelper();
+                },
+                unbind: function () {
+                    helper = null;
+                },
+                install: async function () {
+                    if (isInstalled()) {
+                        return { outcome: 'accepted', mode: 'native' };
+                    }
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        var choice = await deferredPrompt.userChoice;
+                        deferredPrompt = null;
+                        notifyHelper();
+                        return { outcome: choice.outcome, mode: 'native' };
+                    }
+                    if (isIos()) {
+                        return { outcome: 'manual', mode: 'ios' };
+                    }
+                    return { outcome: 'manual', mode: 'browser' };
+                }
+            };
+
+            // Compatibilidad con layouts antiguos
+            window.registrarHelperInstalacion = function (dotNetHelper) {
+                window.cuidanetPwa.bind(dotNetHelper);
+            };
+            window.promptInstalarPwa = async function () {
+                var r = await window.cuidanetPwa.install();
+                return !!(r && r.mode === 'native' && r.outcome === 'accepted');
+            };
+        })();
     </script>
 </body>
 

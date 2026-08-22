@@ -1,0 +1,145 @@
+﻿@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@if (_visible)
+{
+    <div class="cn-install" role="region" aria-label="Instalar aplicación">
+        @if (_showManualHelp)
+        {
+            <div class="cn-install__sheet" role="dialog" aria-modal="true" aria-labelledby="cn-install-title">
+                <button type="button" class="cn-install__close" aria-label="Cerrar" @onclick="CerrarAyuda">×</button>
+                <h2 id="cn-install-title" class="cn-install__title">Instalar Cuidanet</h2>
+                @if (_isIos)
+                {
+                    <ol class="cn-install__steps">
+                        <li>Toca <strong>Compartir</strong> <span aria-hidden="true">□↑</span> en Safari.</li>
+                        <li>Elige <strong>Añadir a pantalla de inicio</strong>.</li>
+                        <li>Confirma con <strong>Añadir</strong>.</li>
+                    </ol>
+                }
+                else
+                {
+                    <p class="cn-install__text">En el menú del navegador (⋮ o ⋯) elige <strong>Instalar aplicación</strong> o <strong>Añadir a la pantalla de inicio</strong>.</p>
+                }
+                <button type="button" class="cn-install__primary" @onclick="CerrarAyuda">Entendido</button>
+            </div>
+        }
+        else
+        {
+            <button type="button" class="cn-install__fab" @onclick="OnInstalarClick">
+                <i class="bi bi-download" aria-hidden="true"></i>
+                <span>Instalar App</span>
+            </button>
+        }
+    </div>
+}
+
+@code {
+    private bool _visible;
+    private bool _showManualHelp;
+    private bool _isIos;
+    private DotNetObjectReference<InstallAppButton>? _dotNetRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        try
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("cuidanetPwa.bind", _dotNetRef);
+            await RefreshStateAsync();
+        }
+        catch
+        {
+            // Sin JS PWA no bloqueamos la app.
+        }
+    }
+
+    private async Task RefreshStateAsync()
+    {
+        try
+        {
+            var state = await JS.InvokeAsync<PwaInstallState>("cuidanetPwa.getState");
+            ApplyState(state);
+        }
+        catch
+        {
+            _visible = false;
+        }
+    }
+
+    private void ApplyState(PwaInstallState? state)
+    {
+        if (state is null)
+        {
+            _visible = false;
+            return;
+        }
+
+        _isIos = state.IsIos;
+        _visible = !state.Installed;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnPwaStateChanged(PwaInstallState state) => ApplyState(state);
+
+    private async Task OnInstalarClick()
+    {
+        try
+        {
+            var result = await JS.InvokeAsync<PwaInstallResult>("cuidanetPwa.install");
+            if (result is null) return;
+
+            if (string.Equals(result.Mode, "native", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(result.Outcome, "accepted", StringComparison.OrdinalIgnoreCase))
+            {
+                _visible = false;
+                StateHasChanged();
+                return;
+            }
+
+            if (string.Equals(result.Mode, "ios", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(result.Mode, "browser", StringComparison.OrdinalIgnoreCase))
+            {
+                _showManualHelp = true;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            _showManualHelp = true;
+            StateHasChanged();
+        }
+    }
+
+    private void CerrarAyuda() => _showManualHelp = false;
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("cuidanetPwa.unbind");
+        }
+        catch
+        {
+            // ignore
+        }
+
+        _dotNetRef?.Dispose();
+    }
+
+    public sealed class PwaInstallState
+    {
+        public bool Installed { get; set; }
+        public bool CanPrompt { get; set; }
+        public bool IsIos { get; set; }
+    }
+
+    public sealed class PwaInstallResult
+    {
+        public string? Outcome { get; set; }
+        public string? Mode { get; set; }
+    }
+}

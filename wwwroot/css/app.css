@@ -949,7 +949,7 @@ code {
     border-radius: 12px;
 }
 
-@@keyframes slideUp {
+@keyframes slideUp {
     from {
         transform: translate(-50%, 100%);
         opacity: 0;
