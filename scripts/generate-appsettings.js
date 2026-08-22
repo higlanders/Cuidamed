@@ -1,6 +1,6 @@
 ﻿/**
  * Generates wwwroot/appsettings.json from environment variables.
- * Used by Netlify (and can be used locally) so secrets stay out of git.
+ * Used by GitHub Pages (and can be used locally) so secrets stay out of git.
  *
  * Optional:
  *   CUIDANET_BASE_URL   (default: https://admin.cuidanet.net/APILIS/api/)

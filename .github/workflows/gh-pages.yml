@@ -30,11 +30,7 @@ jobs:
 
       - name: Generate appsettings.json
         env:
-          CUIDANET_USER: ${{ secrets.CUIDANET_USER }}
-          CUIDANET_PASS: ${{ secrets.CUIDANET_PASS }}
-          CUIDANET_LOGIN_URL: ${{ secrets.CUIDANET_LOGIN_URL }}
           CUIDANET_BASE_URL: ${{ secrets.CUIDANET_BASE_URL }}
-          CUIDANET_SESSION_MINUTES: ${{ secrets.CUIDANET_SESSION_MINUTES }}
           CUIDANET_MAX_UPLOAD_MB: ${{ secrets.CUIDANET_MAX_UPLOAD_MB }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         run: node scripts/generate-appsettings.js
