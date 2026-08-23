@@ -23,6 +23,7 @@ const settings = {
     BaseUrl: baseUrl,
     Endpoints: {
       ValidateUser: "Auth/validateuser",
+      AfiliadoLogout: "Auth/afiliado-logout",
       Beneficiario: "Beneficiario",
       MovimientoConsulta: "MovimientoServicio/consulta",
       UploadImagen: "Imagenes/upload",
@@ -48,6 +49,7 @@ const settings = {
     SymptomateUrl:
       process.env.CUIDANET_SYMPTOMATE_URL || "https://symptomate.com/es",
     TipoAfiliadoFarmacia: process.env.CUIDANET_TIPO_FARMACIA || "Farmacia",
+    RedStatusFiltro: process.env.CUIDANET_RED_STATUS || "Activo",
     MaxUploadMb: Number(process.env.CUIDANET_MAX_UPLOAD_MB || 10),
     WhatsAppRedyplan: process.env.CUIDANET_WA_REDYPLAN || "+584241271422",
     WhatsAppCuidamed: process.env.CUIDANET_WA_CUIDAMED || "+584142387774",

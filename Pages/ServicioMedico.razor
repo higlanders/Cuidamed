@@ -24,7 +24,7 @@
                     else if (esLis)
                     {
                         <p class="cn-svc__lead">Este servicio lo presta Venemergencia.</p>
-                        <p class="cn-svc__muted">Te llevamos a su sitio para continuar la atención.</p>
+                        <p class="cn-svc__muted">Te llevamos a su sitio (sitio de terceros, fuera de Cuidanet) para continuar la atención.</p>
                         @if (AppSettings.EsUrlVenemergenciaValida)
                         {
                             <a class="cn-svc__link"
@@ -42,6 +42,7 @@
                     else
                     {
                         <p class="cn-svc__lead">Indícanos la siguiente información para conectarte con nuestros médicos:</p>
+                        <p class="cn-svc__muted">Al continuar, motivo, dirección y celular se envían a WhatsApp (fuera de Cuidanet).</p>
 
                         <div class="cn-svc__field">
                             <label class="cn-svc__label" for="motivo">Motivo</label>

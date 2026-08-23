@@ -19,7 +19,28 @@ self.addEventListener('activate', event => {
     })());
 });
 
+function isSensitiveRequest(request) {
+    try {
+        const url = new URL(request.url);
+        const path = url.pathname.toLowerCase();
+        if (path.endsWith('/appsettings.json') || path.includes('/appsettings.'))
+            return true;
+        // Respuestas de APILIS / PII: nunca cachear (passthrough sin Cache API).
+        if (path.includes('/apilis/') || path.includes('/api/'))
+            return true;
+        return false;
+    } catch {
+        return false;
+    }
+}
+
 // Handler fetch obligatorio para que Chrome considere la app instalable.
 self.addEventListener('fetch', event => {
-    event.respondWith(fetch(event.request));
+    const req = event.request;
+    if (isSensitiveRequest(req)) {
+        event.respondWith(fetch(req, { cache: 'no-store' }));
+        return;
+    }
+
+    event.respondWith(fetch(req));
 });

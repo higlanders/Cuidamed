@@ -32,8 +32,17 @@ jobs:
         env:
           CUIDANET_BASE_URL: ${{ secrets.CUIDANET_BASE_URL }}
           CUIDANET_MAX_UPLOAD_MB: ${{ secrets.CUIDANET_MAX_UPLOAD_MB }}
+          CUIDANET_RED_STATUS: ${{ secrets.CUIDANET_RED_STATUS }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         run: node scripts/generate-appsettings.js
+
+      - name: Patch CSP connect-src (optional API origin)
+        env:
+          CUIDANET_CSP_CONNECT: ${{ secrets.CUIDANET_CSP_CONNECT }}
+        run: |
+          ORIGIN="${CUIDANET_CSP_CONNECT:-https://admin.cuidanet.net}"
+          # Reemplaza el host de connect-src si se definió el secreto (URL base sin path).
+          sed -i "s|https://admin.cuidanet.net|${ORIGIN}|g" wwwroot/index.html
 
       - name: Publish Blazor WASM
         run: |

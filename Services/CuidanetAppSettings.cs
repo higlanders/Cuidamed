@@ -18,6 +18,18 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
         FirstNonEmpty(configuration["CuidanetApp:TipoAfiliadoFarmacia"], "Farmacia");
 
     /// <summary>
+    /// Filtro opcional de Status en Afiliado/red (p. ej. Activo). Vacío = sin filtro (igual que antes).
+    /// </summary>
+    public string? RedStatusFiltro
+    {
+        get
+        {
+            var raw = configuration["CuidanetApp:RedStatusFiltro"];
+            return string.IsNullOrWhiteSpace(raw) ? null : raw.Trim();
+        }
+    }
+
+    /// <summary>
     /// Caducidad de la sesión local (minutos). No es autorización de servidor:
     /// solo acota localStorage en dispositivos compartidos.
     /// </summary>

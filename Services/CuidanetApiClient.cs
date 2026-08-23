@@ -13,6 +13,7 @@ namespace Cuidanet.Services
 
         // 2. Definir campos para almacenar las rutas dinámicas
         private readonly string _validateUserUrl;
+        private readonly string _afiliadoLogoutUrl;
         private readonly string _beneficiarioUrl;
         private readonly string _movimientoConsultaUrl;
         private readonly string _uploadImagenUrl;
@@ -41,6 +42,7 @@ namespace Cuidanet.Services
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             _validateUserUrl = configuration["CuidanetServices:Endpoints:ValidateUser"] ?? "Auth/validateuser";
+            _afiliadoLogoutUrl = configuration["CuidanetServices:Endpoints:AfiliadoLogout"] ?? "Auth/afiliado-logout";
             _beneficiarioUrl = configuration["CuidanetServices:Endpoints:Beneficiario"] ?? "Beneficiario";
             _movimientoConsultaUrl = configuration["CuidanetServices:Endpoints:MovimientoConsulta"] ?? "MovimientoServicio/consulta";
             _uploadImagenUrl = configuration["CuidanetServices:Endpoints:UploadImagen"] ?? "Imagenes/upload";
@@ -161,6 +163,19 @@ namespace Cuidanet.Services
                 return null;
 
             return await response.Content.ReadFromJsonAsync<AfiliadoTokenDto>();
+        }
+
+        /// <summary>Invalida el JWT de afiliado en el servidor (Salir).</summary>
+        public async Task LogoutAfiliadoAsync()
+        {
+            try
+            {
+                await _httpClient.PostAsync(_afiliadoLogoutUrl, null);
+            }
+            catch
+            {
+                // El cliente igual limpia la sesión local.
+            }
         }
 
         public async Task<SmsApiResponse> GetCelularAfiliadoAsync()
@@ -320,13 +335,15 @@ namespace Cuidanet.Services
             string cedula,
             string? estado = null,
             string? ciudad = null,
-            string? tipo = null)
+            string? tipo = null,
+            string? status = null)
         {
             var query = HttpUtility.ParseQueryString(string.Empty);
             query["cedula"] = cedula;
             if (!string.IsNullOrWhiteSpace(estado)) query["estado"] = estado;
             if (!string.IsNullOrWhiteSpace(ciudad)) query["ciudad"] = ciudad;
             if (!string.IsNullOrWhiteSpace(tipo)) query["tipo"] = tipo;
+            if (!string.IsNullOrWhiteSpace(status)) query["status"] = status;
 
             var response = await _httpClient.GetAsync($"{_afiliadoRedUrl}?{query}");
             response.EnsureSuccessStatusCode();

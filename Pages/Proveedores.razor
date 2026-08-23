@@ -283,7 +283,8 @@
             todosProveedores = SoloFarmacias
                 ? await CuidanetService.GetRedProveedoresAsync(
                     cedulaUsuario,
-                    tipo: AppSettings.TipoAfiliadoFarmacia)
+                    tipo: AppSettings.TipoAfiliadoFarmacia,
+                    status: AppSettings.RedStatusFiltro)
                 : await CuidanetService.GetRedProveedoresAsync(cedulaUsuario);
         }
         catch (Exception ex)

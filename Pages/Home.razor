@@ -271,6 +271,15 @@
 
     public async Task BeginLogOut()
     {
+        try
+        {
+            await CuidanetService.LogoutAfiliadoAsync();
+        }
+        catch
+        {
+            // Limpieza local igual
+        }
+
         var customAuth = (CustomAuthStateProvider)AuthStateProvider;
         await customAuth.MarkUserAsLoggedOut();
         await LoginFlow.ClearAsync();
