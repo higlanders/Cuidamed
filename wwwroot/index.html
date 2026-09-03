@@ -62,7 +62,7 @@
 
         // Una sola limpieza por versión (caches offline viejos). No desregistrar SW en cada carga.
         (async function clearStalePwaOnce() {
-            var flag = 'cn_pwa_bust_20260821a';
+            var flag = 'cn_pwa_bust_20260903a';
             try {
                 if (localStorage.getItem(flag)) return;
                 if (window.caches && caches.keys) {
@@ -90,6 +90,12 @@
         function cnResolveBootUri(name, defaultUri) {
             if (defaultUri && defaultUri.endsWith('.br')) {
                 defaultUri = defaultUri.replace(/\.br$/, '');
+            }
+            var host = location.hostname;
+            if (host === 'localhost' || host === '127.0.0.1') {
+                // El dev server sirve el nombre lógico (dotnet.js). El importmap
+                // fingerprint queda desfasado si se hace build con el host aún vivo.
+                return defaultUri;
             }
             try {
                 var mapEl = document.querySelector('script[type="importmap"]');
