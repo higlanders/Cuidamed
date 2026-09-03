@@ -30,6 +30,11 @@ namespace Cuidanet
                 _tokenHolder.Set(session.Token, session.Cedula, session.ExpiresAt);
                 return new AuthenticationState(CreateClaimsPrincipal(session.Cedula));
             }
+            catch (InvalidOperationException)
+            {
+                // JS aún no está listo en el primer render de WASM: no borrar la sesión.
+                return new AuthenticationState(_anonymous);
+            }
             catch
             {
                 return new AuthenticationState(_anonymous);
@@ -67,7 +72,7 @@ namespace Cuidanet
 
         public async Task ReplaceTokenAsync(string token, DateTimeOffset expiresAt)
         {
-            var session = await ReadSessionAsync(ignoreExpiry: true);
+            var session = await ReadSessionAsync();
             if (session is null || string.IsNullOrWhiteSpace(session.Cedula))
                 return;
 
@@ -81,7 +86,7 @@ namespace Cuidanet
         /// <summary>La caducidad real está en el JWT (7 días deslizantes vía API).</summary>
         public Task TouchSessionAsync() => Task.CompletedTask;
 
-        private async Task<SessionDto?> ReadSessionAsync(bool ignoreExpiry = false)
+        private async Task<SessionDto?> ReadSessionAsync()
         {
             var raw = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", StorageKey);
             if (string.IsNullOrWhiteSpace(raw))
@@ -98,13 +103,6 @@ namespace Cuidanet
             }
 
             if (session is null || string.IsNullOrWhiteSpace(session.Cedula) || string.IsNullOrWhiteSpace(session.Token))
-            {
-                await ClearSessionAsync();
-                _tokenHolder.Clear();
-                return null;
-            }
-
-            if (!ignoreExpiry && session.ExpiresAt != default && session.ExpiresAt <= DateTimeOffset.UtcNow)
             {
                 await ClearSessionAsync();
                 _tokenHolder.Clear();

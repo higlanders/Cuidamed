@@ -24,16 +24,22 @@
                     <div class="cn-home__hero-bar">
                         <div class="cn-home__topbar">
                             <img class="cn-home__logo" src="LogoCuidaNet.png" alt="CuidaNet" />
-                            <button type="button" class="cn-home__avatar-btn" @onclick="ToggleSidebar" aria-label="Mi perfil">
-                                @if (afiliadoDetalle != null && !string.IsNullOrEmpty(afiliadoDetalle.FotoBase64))
-                                {
-                                    <img src="data:image/jpeg;base64,@afiliadoDetalle.FotoBase64" alt="" />
-                                }
-                                else
-                                {
-                                    <span aria-hidden="true">@GetInitials()</span>
-                                }
-                            </button>
+                            <div class="cn-home__top-actions">
+                                <button type="button" class="cn-home__avatar-btn" @onclick="ToggleSidebar" aria-label="Mi perfil">
+                                    @if (afiliadoDetalle != null && !string.IsNullOrEmpty(afiliadoDetalle.FotoBase64))
+                                    {
+                                        <img src="data:image/jpeg;base64,@afiliadoDetalle.FotoBase64" alt="" />
+                                    }
+                                    else
+                                    {
+                                        <span aria-hidden="true">@GetInitials()</span>
+                                    }
+                                </button>
+                                <button type="button" class="cn-home__salir" @onclick="BeginLogOut">
+                                    <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                                    Salir
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="cn-home__visual" aria-hidden="true">

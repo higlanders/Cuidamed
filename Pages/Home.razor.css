@@ -69,6 +69,13 @@
     max-width: min(148px, 52vw);
 }
 
+.cn-home__top-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
 .cn-home__avatar-btn {
     width: 2.35rem;
     height: 2.35rem;
@@ -90,6 +97,26 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.cn-home__salir {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2.35rem;
+    padding: 0.35rem 0.75rem;
+    border: 1.5px solid var(--cn-danger);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--cn-danger);
+    font-family: var(--cn-font);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cn-home__salir:hover {
+    background: #fdecea;
 }
 
 .cn-home__hello {

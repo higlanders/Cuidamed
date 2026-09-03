@@ -159,6 +159,9 @@ namespace Cuidanet.Services
         public async Task<AfiliadoTokenDto?> RefreshAfiliadoAsync()
         {
             var response = await _httpClient.PostAsync(_afiliadoRefreshUrl, null);
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                throw new HttpRequestException("Sesión de afiliado no autorizada.", inner: null, statusCode: response.StatusCode);
+
             if (!response.IsSuccessStatusCode)
                 return null;
 

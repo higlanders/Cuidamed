@@ -337,6 +337,21 @@
         {
             try
             {
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                if (authState.User.Identity?.IsAuthenticated == true)
+                {
+                    await LoginFlow.ClearAsync();
+                    Navigation.NavigateTo("Home");
+                    return;
+                }
+            }
+            catch
+            {
+                // Seguir el flujo de login
+            }
+
+            try
+            {
                 EsIos = await JS.InvokeAsync<bool>("BlazorSmsOtp.isIos");
                 WebOtpDisponible = await JS.InvokeAsync<bool>("BlazorSmsOtp.webOtpSupported");
                 await InvokeAsync(StateHasChanged);
