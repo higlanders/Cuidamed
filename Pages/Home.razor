@@ -16,33 +16,47 @@
         <div class="cn-home">
             <div class="cn-home__shell">
                 <header class="cn-home__hero">
-                    <div class="cn-home__topbar">
-                        <img class="cn-home__logo" src="LogoCuidaNet.png" alt="CuidaNet" />
-                        <button type="button" class="cn-home__avatar-btn" @onclick="ToggleSidebar" aria-label="Mi perfil">
-                            @if (afiliadoDetalle != null && !string.IsNullOrEmpty(afiliadoDetalle.FotoBase64))
-                            {
-                                <img src="data:image/jpeg;base64,@afiliadoDetalle.FotoBase64" alt="" />
-                            }
-                            else
-                            {
-                                <span aria-hidden="true">@GetInitials()</span>
-                            }
-                        </button>
+                    <div class="cn-home__hero-bar">
+                        <div class="cn-home__topbar">
+                            <img class="cn-home__logo" src="LogoCuidaNet.png" alt="CuidaNet" />
+                            <button type="button" class="cn-home__avatar-btn" @onclick="ToggleSidebar" aria-label="Mi perfil">
+                                @if (afiliadoDetalle != null && !string.IsNullOrEmpty(afiliadoDetalle.FotoBase64))
+                                {
+                                    <img src="data:image/jpeg;base64,@afiliadoDetalle.FotoBase64" alt="" />
+                                }
+                                else
+                                {
+                                    <span aria-hidden="true">@GetInitials()</span>
+                                }
+                            </button>
+                        </div>
                     </div>
-                    <p class="cn-home__hello">@Saludo</p>
-                    <p class="cn-home__meta">
-                        @if (!string.IsNullOrWhiteSpace(cedulaUsuario))
-                        {
-                            <span>Cédula @cedulaUsuario</span>
-                        }
-                        @if (!string.IsNullOrWhiteSpace(nombrePlan))
-                        {
-                            <span class="cn-home__dot" aria-hidden="true">·</span>
-                            <span>@nombrePlan</span>
-                        }
-                    </p>
-                    <p class="cn-home__slogan">Cuidamos tu bienestar</p>
-                    <SocialLinks />
+                    <div class="cn-home__visual" aria-hidden="true">
+                        <picture>
+                            <source media="(min-width: 992px)" srcset="img/home-desktop.jpg" />
+                            <img class="cn-home__visual-img"
+                                 src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                                 alt=""
+                                 width="1600"
+                                 height="900" />
+                        </picture>
+                    </div>
+                    <div class="cn-home__hero-copy">
+                        <p class="cn-home__hello">@Saludo</p>
+                        <p class="cn-home__meta">
+                            @if (!string.IsNullOrWhiteSpace(cedulaUsuario))
+                            {
+                                <span>Cédula @cedulaUsuario</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(nombrePlan))
+                            {
+                                <span class="cn-home__dot" aria-hidden="true">·</span>
+                                <span>@nombrePlan</span>
+                            }
+                        </p>
+                        <p class="cn-home__slogan">Cuidamos tu bienestar</p>
+                        <SocialLinks />
+                    </div>
                 </header>
 
                 <section class="cn-home__sheet">
