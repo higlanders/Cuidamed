@@ -3,6 +3,10 @@
 @code {
     protected override void OnInitialized()
     {
-        Navigation.NavigateTo("", forceLoad: true);
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Trim().Trim('/');
+        if (string.IsNullOrEmpty(path))
+            return;
+
+        Navigation.NavigateTo("./");
     }
 }

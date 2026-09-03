@@ -8,6 +8,7 @@
 @inject NavigationManager Navigation
 @inject CuidanetApiClient CuidanetService
 @inject LoginFlowState LoginFlow
+@inject AfiliadoTokenHolder TokenHolder
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -106,11 +107,16 @@
                         </div>
                     </div>
 
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="cn-login-error" role="alert">@errorMessage</div>
+                    }
+
                     <div class="cn-login-footer-space">
                         <button type="button"
                                 class="cn-login-cta"
                                 disabled="@(!CanEnter || isLoading)"
-                                @onclick='() => NavigateTo("Home")'>
+                                @onclick="EnterAsync">
                             @if (isLoading)
                             {
                                 <span class="cn-login-cta__spinner" aria-hidden="true"></span>
@@ -322,6 +328,7 @@
 
         await LoginFlow.HydrateAsync();
         RestoreLoginFlow();
+        EnsurePendingToken();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -497,6 +504,7 @@
             StopTimer();
             await LoadGrupoFamiliarAsync();
             CurrentStep = LoginStep.Afiliado;
+            await PersistLoginFlowAsync();
         }
         catch (Exception)
         {
@@ -669,16 +677,21 @@
         StopTimer();
     }
 
-    private Task SelectAfiliadoAsync(int beneficiarioId)
+    private async Task SelectAfiliadoAsync(int beneficiarioId)
     {
         AfiliadoSeleccionadoValue = beneficiarioId.ToString();
         afiliadoDetalle = listaAfiliados.FirstOrDefault(a => a.BeneficiarioId == beneficiarioId);
-        return Task.CompletedTask;
+        await PersistLoginFlowAsync();
     }
 
     private async Task OpenTerminos()
     {
-        await LoginFlow.CaptureAsync(
+        await PersistLoginFlowAsync();
+        Navigation.NavigateTo("terminos");
+    }
+
+    private Task PersistLoginFlowAsync() =>
+        LoginFlow.CaptureAsync(
             (int)CurrentStep,
             loginModel.Cedula,
             loginModel.Telefono,
@@ -686,9 +699,9 @@
             AceptoTerminos,
             AfiliadoSeleccionadoValue,
             listaAfiliados,
-            afiliadoDetalle);
-        Navigation.NavigateTo("terminos");
-    }
+            afiliadoDetalle,
+            _pendingToken,
+            _pendingExpires);
 
     private void RestoreLoginFlow()
     {
@@ -704,6 +717,36 @@
         AfiliadoSeleccionadoValue = LoginFlow.AfiliadoSeleccionado;
         listaAfiliados = LoginFlow.Afiliados;
         afiliadoDetalle = LoginFlow.AfiliadoDetalle;
+        if (!string.IsNullOrWhiteSpace(LoginFlow.PendingToken))
+        {
+            _pendingToken = LoginFlow.PendingToken;
+            _pendingExpires = LoginFlow.PendingExpires ?? DateTimeOffset.UtcNow.AddDays(7);
+        }
+    }
+
+    private void EnsurePendingToken()
+    {
+        if (!string.IsNullOrWhiteSpace(_pendingToken))
+            return;
+
+        if (!string.IsNullOrWhiteSpace(LoginFlow.PendingToken))
+        {
+            _pendingToken = LoginFlow.PendingToken;
+            _pendingExpires = LoginFlow.PendingExpires ?? DateTimeOffset.UtcNow.AddDays(7);
+        }
+        else if (!string.IsNullOrWhiteSpace(TokenHolder.Token))
+        {
+            _pendingToken = TokenHolder.Token;
+            _pendingExpires = TokenHolder.ExpiresAt ?? DateTimeOffset.UtcNow.AddDays(7);
+        }
+
+        if (!string.IsNullOrWhiteSpace(_pendingToken) && loginModel.Cedula.HasValue)
+        {
+            ((CustomAuthStateProvider)AuthStateProvider).SetPendingToken(
+                _pendingToken,
+                loginModel.Cedula.Value.ToString(),
+                _pendingExpires);
+        }
     }
 
     public class LoginViewModel
@@ -713,22 +756,32 @@
         public string CodigoSms { get; set; } = string.Empty;
     }
 
-    private async Task NavigateTo(string page)
+    private async Task EnterAsync()
     {
         if (string.IsNullOrEmpty(AfiliadoSeleccionadoValue) || !AceptoTerminos)
             return;
 
+        EnsurePendingToken();
+        if (string.IsNullOrWhiteSpace(_pendingToken))
+        {
+            errorMessage = "La sesión de acceso expiró. Verifica el código SMS de nuevo.";
+            CurrentStep = LoginStep.SmsCodigo;
+            return;
+        }
+
+        errorMessage = string.Empty;
         isLoading = true;
         try
         {
             var customAuth = (CustomAuthStateProvider)AuthStateProvider;
-            if (string.IsNullOrWhiteSpace(_pendingToken))
-                return;
-
             long temp = loginModel.Cedula is null ? 0 : Convert.ToInt64(loginModel.Cedula);
             await customAuth.MarkUserAsAuthenticated(temp, _pendingToken, _pendingExpires);
             await LoginFlow.ClearAsync();
-            Navigation.NavigateTo($"{page}");
+            Navigation.NavigateTo("Home");
+        }
+        catch (Exception)
+        {
+            errorMessage = "No se pudo entrar. Intenta de nuevo.";
         }
         finally
         {

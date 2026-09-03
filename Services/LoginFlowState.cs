@@ -21,6 +21,8 @@ public sealed class LoginFlowState
     public string AfiliadoSeleccionado { get; private set; } = string.Empty;
     public List<BeneficiarioDto> Afiliados { get; private set; } = [];
     public BeneficiarioDto? AfiliadoDetalle { get; private set; }
+    public string? PendingToken { get; private set; }
+    public DateTimeOffset? PendingExpires { get; private set; }
 
     public async Task CaptureAsync(
         int step,
@@ -30,7 +32,9 @@ public sealed class LoginFlowState
         bool aceptoTerminos,
         string afiliadoSeleccionado,
         List<BeneficiarioDto> afiliados,
-        BeneficiarioDto? afiliadoDetalle)
+        BeneficiarioDto? afiliadoDetalle,
+        string? pendingToken = null,
+        DateTimeOffset? pendingExpires = null)
     {
         Step = step;
         Cedula = cedula;
@@ -40,6 +44,8 @@ public sealed class LoginFlowState
         AfiliadoSeleccionado = afiliadoSeleccionado ?? string.Empty;
         Afiliados = StripFotos(afiliados ?? []);
         AfiliadoDetalle = StripFoto(afiliadoDetalle);
+        PendingToken = string.IsNullOrWhiteSpace(pendingToken) ? null : pendingToken.Trim();
+        PendingExpires = pendingExpires;
         HasSnapshot = true;
         await PersistAsync();
         _ = codigoSms;
@@ -98,6 +104,8 @@ public sealed class LoginFlowState
         AfiliadoSeleccionado = string.Empty;
         Afiliados = [];
         AfiliadoDetalle = null;
+        PendingToken = null;
+        PendingExpires = null;
     }
 
     private async Task PersistAsync()
@@ -130,7 +138,9 @@ public sealed class LoginFlowState
         AceptoTerminos = AceptoTerminos,
         AfiliadoSeleccionado = AfiliadoSeleccionado,
         Afiliados = Afiliados,
-        AfiliadoDetalle = AfiliadoDetalle
+        AfiliadoDetalle = AfiliadoDetalle,
+        PendingToken = PendingToken,
+        PendingExpires = PendingExpires
     };
 
     private void Apply(SnapshotDto dto)
@@ -143,6 +153,8 @@ public sealed class LoginFlowState
         AfiliadoSeleccionado = dto.AfiliadoSeleccionado ?? string.Empty;
         Afiliados = dto.Afiliados ?? [];
         AfiliadoDetalle = dto.AfiliadoDetalle;
+        PendingToken = string.IsNullOrWhiteSpace(dto.PendingToken) ? null : dto.PendingToken.Trim();
+        PendingExpires = dto.PendingExpires;
     }
 
     private static BeneficiarioDto? StripFoto(BeneficiarioDto? dto)
@@ -175,5 +187,7 @@ public sealed class LoginFlowState
         public string AfiliadoSeleccionado { get; set; } = string.Empty;
         public List<BeneficiarioDto> Afiliados { get; set; } = [];
         public BeneficiarioDto? AfiliadoDetalle { get; set; }
+        public string? PendingToken { get; set; }
+        public DateTimeOffset? PendingExpires { get; set; }
     }
 }
