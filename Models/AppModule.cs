@@ -7,12 +7,12 @@ public sealed class AppModule
     public required string Label { get; init; }
     public required string IconPath { get; init; }
     public required string Route { get; init; }
-
-    /// <summary>Si es false, el icono no se muestra a afiliados de la empresa LIS.</summary>
-    public bool VisibleParaLis { get; init; } = true;
 }
 
-/// <summary>Catálogo de funcionalidades. LIS (empresa 10) oculta cartas, reembolso y odontología.</summary>
+/// <summary>
+/// Catálogo de funcionalidades.
+/// LIS (empresa 10 / Internacional de Seguros): solo coberturas, proveedores, farmacias y reembolso.
+/// </summary>
 public static class AppModules
 {
     public static IReadOnlyList<AppModule> All { get; } =
@@ -22,17 +22,56 @@ public static class AppModules
         new() { Id = "citas-aps", Label = "Agendar cita APS", IconPath = "icons/citas-aps.svg", Route = "Citas-aps" },
         new() { Id = "telemedicina", Label = "Telemedicina", IconPath = "icons/telemedicina.svg", Route = "telemedicina" },
         new() { Id = "amd", Label = "AMD / Ambulancia", IconPath = "icons/amd.svg", Route = "amd" },
-        new() { Id = "reembolso", Label = "Solicitud reembolso", IconPath = "icons/reembolso.svg", Route = "reembolso", VisibleParaLis = false },
+        new() { Id = "reembolso", Label = "Solicitud reembolso", IconPath = "icons/reembolso.svg", Route = "reembolso" },
         new() { Id = "mis-sintomas", Label = "Mis síntomas", IconPath = "icons/mis-sintomas.svg", Route = "mis-sintomas" },
-        new() { Id = "cartas-avales", Label = "Cartas avales", IconPath = "icons/cartas-avales.svg", Route = "cartas-avales", VisibleParaLis = false },
-        new() { Id = "farmacias", Label = "Farmacias afiliadas", IconPath = "icons/farmacias.svg", Route = "farmacias" },
+        new() { Id = "cartas-avales", Label = "Cartas avales", IconPath = "icons/cartas-avales.svg", Route = "cartas-avales" },
+        new() { Id = "farmacias", Label = "Red de farmacias", IconPath = "icons/farmacias.svg", Route = "farmacias" },
         new() { Id = "contacto", Label = "Contacto de emergencia", IconPath = "icons/contacto.svg", Route = "contacto-emergencia" },
-        new() { Id = "odontologia", Label = "Odontología", IconPath = "icons/odontologia.svg", Route = "odontologia", VisibleParaLis = false },
+        new() { Id = "odontologia", Label = "Odontología", IconPath = "icons/odontologia.svg", Route = "odontologia" },
         new() { Id = "notificaciones", Label = "Notificaciones", IconPath = "icons/notificaciones.svg", Route = "notificaciones" },
     ];
 
+    /// <summary>Módulos del Home para afiliados LIS (Internacional de Seguros).</summary>
+    public static IReadOnlyList<AppModule> ForLis { get; } =
+    [
+        new() { Id = "coberturas", Label = "Coberturas", IconPath = "icons/coberturas.svg", Route = "beneficios" },
+        new() { Id = "proveedores", Label = "Red de proveedores", IconPath = "icons/proveedores.svg", Route = "proveedores" },
+        new() { Id = "farmacias", Label = "Red de farmacias", IconPath = "icons/farmacias.svg", Route = "farmacias" },
+        new() { Id = "reembolso", Label = "Reembolso", IconPath = "icons/reembolso.svg", Route = "reembolso" },
+    ];
+
+    private static readonly HashSet<string> LisAllowedSlugs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "home",
+        "beneficios",
+        "proveedores",
+        "farmacias",
+        "reembolso",
+        "mi-celular",
+        // Acceso / sesión
+        "",
+        "login",
+        "enrolar-celular",
+        "configurar-acceso",
+        "desbloquear",
+        "terminos",
+    };
+
     public static IReadOnlyList<AppModule> VisibleFor(bool esLis) =>
-        esLis ? All.Where(m => m.VisibleParaLis).ToList() : All;
+        esLis ? ForLis : All;
+
+    /// <summary>Rutas de servicio permitidas para LIS (además de Home/perfil).</summary>
+    public static bool IsRouteAllowedForLis(string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return true;
+
+        var slug = relativePath.Trim().Trim('/').Split('?', '#')[0];
+        if (string.IsNullOrEmpty(slug))
+            return true;
+
+        return LisAllowedSlugs.Contains(slug);
+    }
 
     public static AppModule? FindByRoute(string? relativePath)
     {
@@ -42,6 +81,9 @@ public static class AppModules
         var slug = relativePath.Trim().Trim('/');
         return All.FirstOrDefault(m =>
             string.Equals(m.Route, slug, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(m.Id, slug, StringComparison.OrdinalIgnoreCase));
+            || string.Equals(m.Id, slug, StringComparison.OrdinalIgnoreCase))
+            ?? ForLis.FirstOrDefault(m =>
+                string.Equals(m.Route, slug, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(m.Id, slug, StringComparison.OrdinalIgnoreCase));
     }
 }

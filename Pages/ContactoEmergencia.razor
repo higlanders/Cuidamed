@@ -3,6 +3,7 @@
 @using Cuidanet.Services
 @inject NavigationManager Navigation
 @inject CuidanetAppSettings AppSettings
+@inject LisRouteGuard LisGuard
 @inject IJSRuntime JS
 
 <PageTitle>Cuidanet — Contacto de emergencia</PageTitle>
@@ -52,6 +53,11 @@
     private string direccion = string.Empty;
     private string telefono = string.Empty;
     private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LisGuard.EnsureAllowedAsync();
+    }
 
     private void GoHome() => Navigation.NavigateTo("Home");
 

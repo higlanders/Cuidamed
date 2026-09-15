@@ -1,7 +1,9 @@
 ﻿@layout EmptyLayout
 @using Microsoft.AspNetCore.Components.Authorization
 @using Cuidanet.Models
+@using Cuidanet.Services
 @inject NavigationManager Navigation
+@inject LisRouteGuard LisGuard
 
 <PageTitle>Cuidanet — @Titulo</PageTitle>
 
@@ -34,6 +36,11 @@
     private AppModule? modulo;
 
     private string Titulo => modulo?.Label ?? "Servicio";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LisGuard.EnsureAllowedAsync();
+    }
 
     protected override void OnParametersSet()
     {

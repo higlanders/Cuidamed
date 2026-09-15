@@ -3,6 +3,7 @@
 @using Cuidanet.Services
 @inject NavigationManager Navigation
 @inject AfiliadoPerfilService PerfilService
+@inject LisRouteGuard LisGuard
 
 <PageTitle>Cuidanet — Notificaciones</PageTitle>
 
@@ -50,6 +51,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (!await LisGuard.EnsureAllowedAsync())
+            return;
+
         var perfil = await PerfilService.GetAsync();
         esLis = perfil.EsLis;
         cargando = false;

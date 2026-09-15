@@ -6,6 +6,7 @@
 @inject NavigationManager Navigation
 @inject AfiliadoPerfilService PerfilService
 @inject CuidanetAppSettings AppSettings
+@inject LisRouteGuard LisGuard
 @inject IJSRuntime JS
 
 <PageTitle>Cuidanet — @Titulo</PageTitle>
@@ -89,6 +90,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (!await LisGuard.EnsureAllowedAsync())
+            return;
+
         var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
         modulo = AppModules.FindByRoute(path);
 

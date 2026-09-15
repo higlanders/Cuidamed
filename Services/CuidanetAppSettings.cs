@@ -60,6 +60,23 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
     public string WhatsAppCuidamed =>
         FirstNonEmpty(configuration["CuidanetApp:WhatsAppCuidamed"], "+584142387774");
 
+    /// <summary>Base URL de CuidamedIA (OCR / extracción de tratamiento). Vacío = extracción deshabilitada.</summary>
+    public string CuidamedIaBaseUrl =>
+        FirstNonEmpty(
+            configuration["CuidanetApp:CuidamedIaBaseUrl"],
+            configuration["CuidamedIA:BaseUrl"],
+            string.Empty);
+
+    public bool EsCuidamedIaConfigurada =>
+        Uri.TryCreate(CuidamedIaBaseUrl, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
+
+    /// <summary>Ruta relativa del endpoint de extracción de tratamiento en CuidamedIA.</summary>
+    public string CuidamedIaExtraerTratamientoPath =>
+        FirstNonEmpty(
+            configuration["CuidanetApp:CuidamedIaExtraerTratamientoPath"],
+            "api/reembolso/extraer-tratamiento");
+
     public int ServicioImagenDocumentos =>
         ReadInt("CuidanetApp:ServicioImagenDocumentos", 1024);
 
@@ -114,6 +131,17 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
 
     private static string FirstNonEmpty(string? value, string fallback) =>
         string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+
+    private static string FirstNonEmpty(params string?[] values)
+    {
+        foreach (var value in values)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+                return value.Trim();
+        }
+
+        return string.Empty;
+    }
 
     public bool EsUrlVenemergenciaValida => EsHttpUrl(VenemergenciaUrl);
 

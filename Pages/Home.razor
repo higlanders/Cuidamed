@@ -94,10 +94,13 @@
                     <i class="bi bi-house" aria-hidden="true"></i>
                     <span>Inicio</span>
                 </button>
-                <button type="button" class="cn-home__tab" @onclick='() => NavigateTo("notificaciones")'>
-                    <i class="bi bi-bell" aria-hidden="true"></i>
-                    <span>Notificaciones</span>
-                </button>
+                @if (!esLis)
+                {
+                    <button type="button" class="cn-home__tab" @onclick='() => NavigateTo("notificaciones")'>
+                        <i class="bi bi-bell" aria-hidden="true"></i>
+                        <span>Notificaciones</span>
+                    </button>
+                }
                 <button type="button" class="cn-home__tab" @onclick="ToggleSidebar">
                     <i class="bi bi-person" aria-hidden="true"></i>
                     <span>Perfil</span>
@@ -174,6 +177,7 @@
     private BeneficiarioDto? afiliadoDetalle;
     private CoberturaPlanDto? planActivo;
     private IReadOnlyList<AppModule> modulosVisibles = AppModules.All;
+    private bool esLis;
 
     private string NombreAfiliado
     {
@@ -219,6 +223,7 @@
             {
                 var perfil = await PerfilService.GetAsync();
                 nombrePlan = perfil.NombrePlan?.Trim() ?? string.Empty;
+                esLis = perfil.EsLis;
                 modulosVisibles = AppModules.VisibleFor(perfil.EsLis);
                 planActivo = new CoberturaPlanDto
                 {

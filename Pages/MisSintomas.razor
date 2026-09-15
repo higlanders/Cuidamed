@@ -3,6 +3,7 @@
 @using Cuidanet.Services
 @inject NavigationManager Navigation
 @inject CuidanetAppSettings AppSettings
+@inject LisRouteGuard LisGuard
 
 <PageTitle>Cuidanet — Mis síntomas</PageTitle>
 
@@ -39,10 +40,16 @@
 
 @code {
     private bool redirigio;
+    private bool lisBloqueado;
+
+    protected override async Task OnInitializedAsync()
+    {
+        lisBloqueado = !await LisGuard.EnsureAllowedAsync();
+    }
 
     protected override void OnAfterRender(bool firstRender)
     {
-        if (!firstRender || redirigio || !AppSettings.EsUrlSymptomateValida)
+        if (!firstRender || redirigio || lisBloqueado || !AppSettings.EsUrlSymptomateValida)
             return;
 
         redirigio = true;

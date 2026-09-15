@@ -54,8 +54,14 @@ builder.Services.AddTransient<CuidanetAuthHandler>();
 
 builder.Services.AddScoped<AfiliadoPerfilService>();
 builder.Services.AddScoped<LoginFlowState>();
+builder.Services.AddScoped<LisRouteGuard>();
 
 builder.Services.AddHttpClient<CuidanetApiClient>()
     .AddHttpMessageHandler<CuidanetAuthHandler>();
+
+builder.Services.AddHttpClient<CuidamedIaClient>(client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(3);
+});
 
 await builder.Build().RunAsync();

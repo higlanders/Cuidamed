@@ -4,6 +4,8 @@
 @inject NavigationManager Navigation
 @inject AfiliadoPerfilService PerfilService
 @inject CuidanetAppSettings AppSettings
+@inject LisRouteGuard LisGuard
+@inject IJSRuntime JS
 
 <PageTitle>Cuidanet — Odontología</PageTitle>
 
@@ -47,6 +49,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (!await LisGuard.EnsureAllowedAsync())
+            return;
+
         var perfil = await PerfilService.GetAsync();
         esLis = perfil.EsLis;
         whatsAppUrl = WhatsAppLink.Chat(AppSettings.WhatsAppRedyplan, "Hola, consulto el servicio de odontología Cuidanet.");

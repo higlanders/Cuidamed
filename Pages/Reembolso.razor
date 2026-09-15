@@ -1,0 +1,447 @@
+﻿@page "/reembolso"
+@layout EmptyLayout
+@using System.Globalization
+@using System.IO
+@using Cuidanet.Models
+@using Cuidanet.Services
+@inject NavigationManager Navigation
+@inject AfiliadoPerfilService PerfilService
+@inject CuidanetAppSettings AppSettings
+@inject CuidanetApiClient CuidanetService
+@inject CuidamedIaClient CuidamedIa
+@inject IJSRuntime JS
+
+<PageTitle>Cuidanet — Reembolso</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        @if (!cargando)
+        {
+            <div class="cn-lab">
+                <div class="cn-lab__shell">
+                    <PageHeader Title="Solicitud de reembolso"
+                                Lead="Adjunta récipe, indicaciones e informe. La IA completará médico, fecha y medicamentos para que los revises."
+                                Back="GoHome" />
+
+                    <section class="cn-lab__sheet">
+                        <div class="cn-lab__anexo-list" aria-label="Documentos anexos">
+                            @foreach (var anexo in anexos)
+                            {
+                                <div class="cn-lab__anexo">
+                                    <div class="cn-lab__anexo-head">
+                                        <p class="cn-lab__anexo-title">@anexo.Etiqueta</p>
+                                        @if (anexo.Upload is not null)
+                                        {
+                                            <span class="cn-lab__anexo-badge">Enviado</span>
+                                        }
+                                        else if (!string.IsNullOrEmpty(anexo.FileName))
+                                        {
+                                            <span class="cn-lab__anexo-badge">Listo</span>
+                                        }
+                                    </div>
+                                    <label class="cn-lab__drop-area" style="min-height:auto;padding:0.85rem;">
+                                        <InputFile OnChange="e => OnAnexoSelected(e, anexo)"
+                                                   class="cn-lab__file-input"
+                                                   accept="image/png,image/jpeg,application/pdf"
+                                                   disabled="@ocupado" />
+                                        <span class="cn-lab__drop-title" style="font-size:0.85rem;">
+                                            @(string.IsNullOrEmpty(anexo.FileName) ? "Toca para elegir archivo" : anexo.FileName)
+                                        </span>
+                                        <span class="cn-lab__drop-hint">JPG, PNG o PDF · máx. @AppSettings.MaxUploadMb MB</span>
+                                    </label>
+                                    @if (!string.IsNullOrWhiteSpace(anexo.PreviewDataUrl)
+                                         && !anexo.PreviewDataUrl.StartsWith("data:application/pdf", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <img class="cn-lab__preview" src="@anexo.PreviewDataUrl" alt="Vista previa @anexo.Etiqueta" style="margin-top:0.5rem;" />
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <div class="cn-lab__btn-row">
+                            <button type="button"
+                                    class="cn-lab__btn cn-lab__btn--ghost"
+                                    disabled="@(ocupado || !HayDocumentosLocales)"
+                                    @onclick="ExtraerConIaAsync">
+                                @if (extrayendo)
+                                {
+                                    <span class="cn-lab__spinner" aria-hidden="true"></span>
+                                    <span>Analizando con IA…</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-magic" aria-hidden="true"></i>
+                                    <span>Completar con CuidamedIA</span>
+                                }
+                            </button>
+                        </div>
+
+                        <div class="cn-lab__form-section">
+                            <h2 class="cn-lab__form-title">Datos del tratamiento</h2>
+                            <p class="cn-lab__form-hint">Revisa y corrige lo que extrajo la IA antes de enviar.</p>
+
+                            <div class="cn-lab__field">
+                                <label class="cn-lab__label" for="medico">Nombre del médico</label>
+                                <input id="medico" class="cn-lab__input" maxlength="120" @bind="medico" @bind:event="oninput" disabled="@ocupado" />
+                            </div>
+                            <div class="cn-lab__field">
+                                <label class="cn-lab__label" for="fecha-recipe">Fecha del récipe</label>
+                                <input id="fecha-recipe" class="cn-lab__input" type="date" @bind="fechaRecipe" disabled="@ocupado" />
+                            </div>
+
+                            <p class="cn-lab__label">Medicamentos</p>
+                            @for (var i = 0; i < medicamentos.Count; i++)
+                            {
+                                var idx = i;
+                                <div class="cn-lab__med-row">
+                                    <input class="cn-lab__input" placeholder="Nombre" maxlength="120"
+                                           @bind="medicamentos[idx].Nombre" @bind:event="oninput" disabled="@ocupado" />
+                                    <input class="cn-lab__input" placeholder="Dosis" maxlength="60"
+                                           @bind="medicamentos[idx].Dosis" @bind:event="oninput" disabled="@ocupado" />
+                                    <input class="cn-lab__input" placeholder="Cantidad" maxlength="40"
+                                           @bind="medicamentos[idx].Cantidad" @bind:event="oninput" disabled="@ocupado" />
+                                    <button type="button" class="cn-lab__icon-btn" title="Quitar"
+                                            disabled="@(ocupado || medicamentos.Count <= 1)"
+                                            @onclick="() => QuitarMedicamento(idx)">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            }
+                            <button type="button" class="cn-lab__btn cn-lab__btn--ghost" disabled="@ocupado" @onclick="AgregarMedicamento">
+                                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                                Agregar medicamento
+                            </button>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(statusMessage))
+                        {
+                            <div class="cn-lab__status @StatusClass" role="status">
+                                <i class="bi @StatusIcon" aria-hidden="true"></i>
+                                <p>@statusMessage</p>
+                            </div>
+                        }
+
+                        @if (advertenciasIa.Count > 0)
+                        {
+                            <ul class="cn-lab__form-hint" style="padding-left:1.1rem;">
+                                @foreach (var a in advertenciasIa)
+                                {
+                                    <li>@a</li>
+                                }
+                            </ul>
+                        }
+
+                        <div class="cn-lab__btn-row">
+                            <button type="button"
+                                    class="cn-lab__btn cn-lab__btn--primary"
+                                    disabled="@ocupado"
+                                    @onclick="EnviarSolicitudAsync">
+                                @if (subiendo)
+                                {
+                                    <span class="cn-lab__spinner" aria-hidden="true"></span>
+                                    <span>Enviando…</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-cloud-arrow-up-fill" aria-hidden="true"></i>
+                                    <span>Subir documentos</span>
+                                }
+                            </button>
+                        </div>
+
+                        <p class="cn-lab__footnote">
+                            La persistencia del tratamiento en legacy se completará cuando exista el endpoint de registro (fase 4).
+                        </p>
+                    </section>
+                </div>
+            </div>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool cargando = true;
+    private bool extrayendo;
+    private bool subiendo;
+    private bool ocupado => extrayendo || subiendo;
+
+    private string medico = string.Empty;
+    private DateTime? fechaRecipe;
+    private List<MedicamentoLineaVm> medicamentos = [new()];
+    private List<string> advertenciasIa = [];
+
+    private string statusMessage = string.Empty;
+    private string statusTone = "info";
+
+    private readonly List<ReembolsoAnexoVm> anexos =
+    [
+        new() { Tipo = "recipe", Etiqueta = "Récipe médico" },
+        new() { Tipo = "indicaciones", Etiqueta = "Indicaciones" },
+        new() { Tipo = "informe", Etiqueta = "Informe médico" },
+    ];
+
+    private long MaxFileSizeBytes => AppSettings.MaxUploadBytes;
+    private string Carpeta => "Servicio";
+
+    private bool HayDocumentosLocales => anexos.Any(a => a.Bytes is { Length: > 0 });
+
+    private string StatusClass => statusTone switch
+    {
+        "success" => "cn-lab__status--success",
+        "warning" => "cn-lab__status--warning",
+        "danger" => "cn-lab__status--danger",
+        _ => "cn-lab__status--info"
+    };
+
+    private string StatusIcon => statusTone switch
+    {
+        "success" => "bi-check-circle-fill",
+        "warning" => "bi-exclamation-triangle-fill",
+        "danger" => "bi-x-circle-fill",
+        _ => "bi-info-circle-fill"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Reembolso queda abierto para LIS y no-LIS (menú LIS lo incluye; otros lo tenían).
+        _ = await PerfilService.GetAsync();
+        cargando = false;
+    }
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+
+    private void AgregarMedicamento() => medicamentos.Add(new MedicamentoLineaVm());
+
+    private void QuitarMedicamento(int index)
+    {
+        if (medicamentos.Count <= 1) return;
+        medicamentos.RemoveAt(index);
+    }
+
+    private async Task OnAnexoSelected(InputFileChangeEventArgs e, ReembolsoAnexoVm anexo)
+    {
+        try
+        {
+            var file = e.File;
+            if (file is null) return;
+
+            if (file.Size > MaxFileSizeBytes)
+            {
+                SetStatus($"El archivo excede el límite de {AppSettings.MaxUploadMb} MB.", "danger");
+                return;
+            }
+
+            await using var stream = file.OpenReadStream(MaxFileSizeBytes);
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory);
+            var bytes = memory.ToArray();
+
+            if (!UploadFileGuard.TryValidate(
+                    file.Name,
+                    bytes,
+                    MaxFileSizeBytes,
+                    AppSettings.MaxUploadMb,
+                    out var safeName,
+                    out var validationError))
+            {
+                SetStatus(validationError ?? "Archivo no permitido.", "danger");
+                return;
+            }
+
+            anexo.FileName = safeName;
+            anexo.Bytes = bytes;
+            anexo.ContentType = GuessMime(safeName);
+            anexo.PreviewDataUrl = BuildDataUrl(safeName, bytes);
+            anexo.Upload = null;
+            SetStatus($"Archivo «{safeName}» listo.", "success");
+        }
+        catch (Exception)
+        {
+            SetStatus("No se pudo leer el archivo. Intenta de nuevo.", "danger");
+        }
+    }
+
+    private async Task ExtraerConIaAsync()
+    {
+        advertenciasIa.Clear();
+
+        if (!AppSettings.EsCuidamedIaConfigurada)
+        {
+            SetStatus("CuidamedIA no está configurada. Indica CuidanetApp:CuidamedIaBaseUrl en appsettings.", "warning");
+            return;
+        }
+
+        var docs = anexos
+            .Where(a => a.Bytes is { Length: > 0 } && !string.IsNullOrWhiteSpace(a.FileName))
+            .Select(a => (a.FileName!, a.ContentType, a.Bytes!))
+            .ToList();
+
+        if (docs.Count == 0)
+        {
+            SetStatus("Adjunta al menos un documento (récipe, indicaciones o informe).", "warning");
+            return;
+        }
+
+        try
+        {
+            extrayendo = true;
+            SetStatus("Enviando documentos a CuidamedIA…", "info");
+            StateHasChanged();
+
+            var result = await CuidamedIa.ExtraerTratamientoAsync(docs);
+
+            if (!string.IsNullOrWhiteSpace(result.Medico))
+                medico = result.Medico.Trim();
+
+            if (TryParseFecha(result.FechaRecipe, out var fecha))
+                fechaRecipe = fecha;
+
+            var meds = result.Medicamentos
+                .Where(m => !string.IsNullOrWhiteSpace(m.Nombre))
+                .Select(m => new MedicamentoLineaVm
+                {
+                    Nombre = m.Nombre!.Trim(),
+                    Dosis = m.Dosis?.Trim(),
+                    Cantidad = m.Cantidad?.Trim()
+                })
+                .ToList();
+
+            if (meds.Count > 0)
+                medicamentos = meds;
+            else if (medicamentos.Count == 0)
+                medicamentos = [new()];
+
+            advertenciasIa = result.Advertencias?
+                .Where(a => !string.IsNullOrWhiteSpace(a))
+                .Select(a => a.Trim())
+                .ToList() ?? [];
+
+            var conf = string.IsNullOrWhiteSpace(result.Confianza) ? "" : $" (confianza: {result.Confianza})";
+            SetStatus($"Datos sugeridos por la IA{conf}. Revísalos antes de continuar.", "success");
+        }
+        catch (Exception)
+        {
+            SetStatus("No se pudo completar la extracción con CuidamedIA.", "danger");
+        }
+        finally
+        {
+            extrayendo = false;
+        }
+    }
+
+    private async Task EnviarSolicitudAsync()
+    {
+        if (!ValidarFormulario(out var error))
+        {
+            SetStatus(error, "warning");
+            return;
+        }
+
+        var pendientes = anexos.Where(a => a.Bytes is { Length: > 0 } && a.Upload is null).ToList();
+        if (pendientes.Count == 0)
+        {
+            SetStatus("Adjunta al menos un documento para subir.", "warning");
+            return;
+        }
+
+        try
+        {
+            subiendo = true;
+            SetStatus("Subiendo documentos a CuidaNet…", "info");
+            StateHasChanged();
+
+            foreach (var anexo in pendientes)
+            {
+                using var memory = new MemoryStream(anexo.Bytes!);
+                anexo.Upload = await CuidanetService.UploadImagenAsync(
+                    fileStream: memory,
+                    fileName: anexo.FileName!,
+                    carpeta: Carpeta,
+                    servicioId: AppSettings.ServicioImagenDocumentos,
+                    fuente: AppSettings.ImagenFuente);
+            }
+
+            SetStatus(
+                "Documentos enviados. Los datos del tratamiento quedaron en pantalla; el registro en legacy será la fase 4.",
+                "success");
+        }
+        catch (Exception)
+        {
+            SetStatus("No se pudo subir uno o más documentos. Intenta de nuevo.", "danger");
+        }
+        finally
+        {
+            subiendo = false;
+        }
+    }
+
+    private bool ValidarFormulario(out string error)
+    {
+        if (string.IsNullOrWhiteSpace(medico) || medico.Trim().Length < 3)
+        {
+            error = "Indica el nombre del médico (mín. 3 caracteres).";
+            return false;
+        }
+
+        if (fechaRecipe is null)
+        {
+            error = "Indica la fecha del récipe.";
+            return false;
+        }
+
+        if (fechaRecipe.Value.Date > DateTime.Today)
+        {
+            error = "La fecha del récipe no puede ser futura.";
+            return false;
+        }
+
+        if (!medicamentos.Any(m => !string.IsNullOrWhiteSpace(m.Nombre)))
+        {
+            error = "Agrega al menos un medicamento con nombre.";
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
+    }
+
+    private void SetStatus(string message, string tone)
+    {
+        statusMessage = message;
+        statusTone = tone;
+    }
+
+    private static bool TryParseFecha(string? raw, out DateTime fecha)
+    {
+        fecha = default;
+        if (string.IsNullOrWhiteSpace(raw)) return false;
+
+        var formats = new[] { "yyyy-MM-dd", "dd/MM/yyyy", "dd-MM-yyyy", "yyyy/MM/dd" };
+        if (DateTime.TryParseExact(raw.Trim(), formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out fecha))
+            return true;
+
+        return DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out fecha);
+    }
+
+    private static string GuessMime(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return ext switch
+        {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".pdf" => "application/pdf",
+            _ => "application/octet-stream"
+        };
+    }
+
+    private static string? BuildDataUrl(string fileName, byte[] bytes)
+    {
+        var mime = GuessMime(fileName);
+        if (mime == "application/octet-stream") return null;
+        return $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+    }
+}

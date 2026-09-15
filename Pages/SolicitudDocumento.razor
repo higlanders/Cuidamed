@@ -1,5 +1,4 @@
 ﻿@page "/cartas-avales"
-@page "/reembolso"
 @layout EmptyLayout
 @using System.IO
 @using Cuidanet.Models
@@ -8,6 +7,7 @@
 @inject AfiliadoPerfilService PerfilService
 @inject CuidanetAppSettings AppSettings
 @inject CuidanetApiClient CuidanetService
+@inject LisRouteGuard LisGuard
 @inject IJSRuntime JS
 
 <PageTitle>Cuidanet — @Titulo</PageTitle>
@@ -238,6 +238,9 @@
     {
         var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
         modulo = AppModules.FindByRoute(path);
+
+        if (!await LisGuard.EnsureAllowedAsync())
+            return;
 
         var perfil = await PerfilService.GetAsync();
         esLis = perfil.EsLis;
