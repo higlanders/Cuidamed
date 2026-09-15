@@ -80,8 +80,14 @@ namespace Cuidanet.Models
         [JsonPropertyName("expiresAt")]
         public DateTimeOffset? ExpiresAt { get; set; }
 
+        [JsonPropertyName("identityExpiresAt")]
+        public DateTimeOffset? IdentityExpiresAt { get; set; }
+
         [JsonPropertyName("telefonoEnmascarado")]
         public string? TelefonoEnmascarado { get; set; }
+
+        [JsonPropertyName("puedeEnrolar")]
+        public bool? PuedeEnrolar { get; set; }
 
         public bool IsSuccessful =>
             (Ok ?? true) && (Success ?? true) && (Valid ?? true);
@@ -99,6 +105,9 @@ namespace Cuidanet.Models
 
         [JsonPropertyName("expiresAt")]
         public DateTimeOffset ExpiresAt { get; set; }
+
+        [JsonPropertyName("identityExpiresAt")]
+        public DateTimeOffset? IdentityExpiresAt { get; set; }
     }
 
     // Puedes expandir estas propiedades según el JSON real de tu API

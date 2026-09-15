@@ -35,7 +35,10 @@
             if (string.IsNullOrWhiteSpace(refreshed?.Token))
                 return;
 
-            await custom.ReplaceTokenAsync(refreshed.Token, refreshed.ExpiresAt);
+            await custom.ReplaceTokenAsync(
+                refreshed.Token,
+                refreshed.ExpiresAt,
+                refreshed.IdentityExpiresAt);
             _lastRefreshUtc = DateTimeOffset.UtcNow;
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)

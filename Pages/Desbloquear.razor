@@ -1,0 +1,173 @@
+﻿@page "/desbloquear"
+@layout EmptyLayout
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject DeviceAccessService DeviceAccess
+@inject NavigationManager Navigation
+@inject CuidanetApiClient Api
+
+<PageTitle>Cuidanet — Desbloquear</PageTitle>
+
+<div class="cn-login-page">
+    <div class="cn-login-shell">
+        <header class="cn-login-hero cn-login-hero--compact">
+            <img src="LogoCuidaNet.png" alt="CuidaNet" class="cn-login-hero__logo" />
+        </header>
+        <section class="cn-login-sheet">
+            <h1 class="cn-login-step__title">Desbloquear</h1>
+            <p class="cn-login-step__subtitle">Ingresá tu PIN@( _hasBiometric ? " o usá la huella" : "" ).</p>
+
+            @if (_hasBiometric)
+            {
+                <button type="button" class="cn-login-cta" style="margin-bottom:1rem;" disabled="@_busy" @onclick="BiometricAsync">
+                    Usar huella / Face ID
+                </button>
+            }
+
+            <div class="cn-login-field">
+                <label class="cn-login-label" for="pin">PIN</label>
+                <input id="pin" class="cn-login-input" type="password" inputmode="numeric" maxlength="8"
+                       autocomplete="current-password" @bind="_pin" @bind:event="oninput"
+                       @onkeydown="OnKey" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <div class="cn-login-error" role="alert">@_error</div>
+            }
+
+            <button type="button" class="cn-login-cta" disabled="@_busy" @onclick="UnlockPinAsync">
+                @(_busy ? "…" : "Entrar")
+            </button>
+
+            <button type="button" class="cn-login-linkish" style="margin-top:1rem;background:none;border:0;color:#007a8a;text-decoration:underline;cursor:pointer;"
+                    @onclick="LogoutAsync">
+                Cerrar sesión y validar de nuevo con SMS
+            </button>
+        </section>
+    </div>
+</div>
+
+@code {
+    private string _pin = string.Empty;
+    private bool _busy;
+    private bool _hasBiometric;
+    private string _error = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await DeviceAccess.EnsureUnlockFlagAsync();
+        if (DeviceAccess.IsUnlocked)
+        {
+            Navigation.NavigateTo("./Home");
+            return;
+        }
+
+        if (AuthStateProvider is not CustomAuthStateProvider custom)
+        {
+            Navigation.NavigateTo("./");
+            return;
+        }
+
+        var snap = await custom.GetSessionSnapshotAsync();
+        if (snap is null)
+        {
+            Navigation.NavigateTo("./");
+            return;
+        }
+
+        var cred = await DeviceAccess.ReadCredentialAsync();
+        if (cred is null || DeviceAccessService.IsIdentityExpired(cred))
+        {
+            await custom.MarkUserAsLoggedOut();
+            await DeviceAccess.ClearCredentialAsync();
+            Navigation.NavigateTo("./");
+            return;
+        }
+
+        if (!await DeviceAccess.HasPinForCedulaAsync(snap.Cedula))
+        {
+            Navigation.NavigateTo("./configurar-acceso");
+            return;
+        }
+
+        _hasBiometric = !string.IsNullOrWhiteSpace(cred.WebAuthnCredentialId);
+        if (_hasBiometric)
+            _ = BiometricAsync();
+    }
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await UnlockPinAsync();
+    }
+
+    private async Task UnlockPinAsync()
+    {
+        _error = string.Empty;
+        _busy = true;
+        try
+        {
+            if (!await DeviceAccess.VerifyPinAsync(_pin))
+            {
+                _error = "PIN incorrecto o acceso vencido.";
+                return;
+            }
+
+            await RefreshIfPossibleAsync();
+            Navigation.NavigateTo("./Home");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task BiometricAsync()
+    {
+        _error = string.Empty;
+        _busy = true;
+        try
+        {
+            if (!await DeviceAccess.TryBiometricUnlockAsync())
+            {
+                _error = "No se pudo usar la biometría. Probá con el PIN.";
+                return;
+            }
+
+            await RefreshIfPossibleAsync();
+            Navigation.NavigateTo("./Home");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RefreshIfPossibleAsync()
+    {
+        if (AuthStateProvider is not CustomAuthStateProvider custom)
+            return;
+        try
+        {
+            var refreshed = await Api.RefreshAfiliadoAsync();
+            if (!string.IsNullOrWhiteSpace(refreshed?.Token))
+                await custom.ReplaceTokenAsync(refreshed.Token, refreshed.ExpiresAt, refreshed.IdentityExpiresAt);
+        }
+        catch
+        {
+            // Si el refresh falla por identidad vencida, SessionKeepAlive cerrará al navegar.
+        }
+    }
+
+    private async Task LogoutAsync()
+    {
+        if (AuthStateProvider is CustomAuthStateProvider custom)
+        {
+            try { await Api.LogoutAfiliadoAsync(); } catch { }
+            await DeviceAccess.ClearCredentialAsync();
+            await custom.MarkUserAsLoggedOut();
+        }
+        Navigation.NavigateTo("./", forceLoad: true);
+    }
+}

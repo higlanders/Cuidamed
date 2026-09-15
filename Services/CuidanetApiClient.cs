@@ -25,6 +25,8 @@ namespace Cuidanet.Services
         private readonly string _afiliadoCelularUrl;
         private readonly string _afiliadoCelularEnviarUrl;
         private readonly string _afiliadoCelularConfirmarUrl;
+        private readonly string _smsEnrolarEnviarUrl;
+        private readonly string _smsEnrolarConfirmarUrl;
         private readonly string _afiliadoRedUrl;
         private readonly string _afiliadoRedFiltrosUrl;
         private readonly string _coberturaPlanUrl;
@@ -54,6 +56,8 @@ namespace Cuidanet.Services
             _afiliadoCelularUrl = configuration["CuidanetServices:Endpoints:AfiliadoCelular"] ?? "Afiliado/celular";
             _afiliadoCelularEnviarUrl = configuration["CuidanetServices:Endpoints:AfiliadoCelularEnviar"] ?? "Afiliado/celular/enviar-codigo";
             _afiliadoCelularConfirmarUrl = configuration["CuidanetServices:Endpoints:AfiliadoCelularConfirmar"] ?? "Afiliado/celular/confirmar";
+            _smsEnrolarEnviarUrl = configuration["CuidanetServices:Endpoints:SmsEnrolarEnviar"] ?? "sms/enrolar-celular/enviar";
+            _smsEnrolarConfirmarUrl = configuration["CuidanetServices:Endpoints:SmsEnrolarConfirmar"] ?? "sms/enrolar-celular/confirmar";
             _afiliadoRedUrl = configuration["CuidanetServices:Endpoints:AfiliadoRed"] ?? "Afiliado/red";
             _afiliadoRedFiltrosUrl = configuration["CuidanetServices:Endpoints:AfiliadoRedFiltros"] ?? "Afiliado/red/filtros";
             _coberturaPlanUrl = configuration["CuidanetServices:Endpoints:CoberturaPlan"] ?? "Cobertura/plan";
@@ -219,6 +223,72 @@ namespace Cuidanet.Services
                 Telefono = telefono,
                 Codigo = codigo
             });
+            var body = await response.Content.ReadAsStringAsync();
+            var parsed = ParseSmsResponse(body);
+            if (!response.IsSuccessStatusCode)
+            {
+                if (parsed != null)
+                {
+                    parsed.Ok = false;
+                    parsed.Valid = false;
+                    return parsed;
+                }
+
+                throw new HttpRequestException("No se pudo verificar el SMS. Intenta de nuevo.");
+            }
+
+            return parsed ?? new SmsApiResponse { Ok = true, Valid = true };
+        }
+
+        public async Task<SmsApiResponse> EnrolarCelularEnviarAsync(
+            string cedula,
+            DateOnly fechaNacimiento,
+            string apellido,
+            string telefono,
+            string? origen = null)
+        {
+            var payload = new
+            {
+                cedula,
+                fechaNacimiento = fechaNacimiento.ToString("yyyy-MM-dd"),
+                apellido,
+                telefono,
+                origen
+            };
+            var response = await _httpClient.PostAsJsonAsync(_smsEnrolarEnviarUrl, payload);
+            var body = await response.Content.ReadAsStringAsync();
+            var parsed = ParseSmsResponse(body);
+            if (!response.IsSuccessStatusCode)
+            {
+                if (parsed != null)
+                {
+                    parsed.Ok = false;
+                    parsed.Valid = false;
+                    return parsed;
+                }
+
+                throw new HttpRequestException("No se pudo enviar el SMS. Intenta de nuevo.");
+            }
+
+            return parsed ?? new SmsApiResponse { Ok = true };
+        }
+
+        public async Task<SmsApiResponse> EnrolarCelularConfirmarAsync(
+            string cedula,
+            DateOnly fechaNacimiento,
+            string apellido,
+            string telefono,
+            string codigo)
+        {
+            var payload = new
+            {
+                cedula,
+                fechaNacimiento = fechaNacimiento.ToString("yyyy-MM-dd"),
+                apellido,
+                telefono,
+                codigo
+            };
+            var response = await _httpClient.PostAsJsonAsync(_smsEnrolarConfirmarUrl, payload);
             var body = await response.Content.ReadAsStringAsync();
             var parsed = ParseSmsResponse(body);
             if (!response.IsSuccessStatusCode)

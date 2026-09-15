@@ -9,6 +9,8 @@
 @inject CuidanetApiClient CuidanetService
 @inject LoginFlowState LoginFlow
 @inject AfiliadoTokenHolder TokenHolder
+@inject DeviceAccessService DeviceAccess
+@inject CuidanetAppSettings AppSettings
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -164,7 +166,11 @@
                             <div class="cn-login-field">
                                 <label class="cn-login-label">Celular registrado</label>
                                 <p class="cn-login-input" style="display:flex;align-items:center;margin:0;">@loginModel.Telefono</p>
-                                <p class="cn-login-hint">Te enviaremos un código SMS a este número del padrón. No puedes cambiarlo en el acceso.</p>
+                                <p class="cn-login-hint">Te enviaremos un código SMS a este número del padrón.</p>
+                                <p class="cn-login-hint">
+                                    <a href="@CelularMalWhatsAppUrl" target="_blank" rel="noopener noreferrer">¿No es tu número?</a>
+                                    Pedí asistencia para actualizarlo.
+                                </p>
                             </div>
                         }
 
@@ -267,6 +273,7 @@
 
     private string? _pendingToken;
     private DateTimeOffset _pendingExpires;
+    private DateTimeOffset _pendingIdentityExpires;
 
     private string AfiliadoSeleccionadoValue
     {
@@ -413,6 +420,12 @@
         try
         {
             var contacto = await CuidanetService.GetContactoLoginAsync(loginModel.Cedula.ToString()!);
+            if (contacto.PuedeEnrolar == true)
+            {
+                Navigation.NavigateTo($"./enrolar-celular?cedula={loginModel.Cedula}");
+                return;
+            }
+
             if (contacto.Ok != true || string.IsNullOrWhiteSpace(contacto.TelefonoEnmascarado))
             {
                 errorMessage = contacto.UserMessage
@@ -511,6 +524,8 @@
 
             _pendingToken = response.Token;
             _pendingExpires = response.ExpiresAt ?? DateTimeOffset.UtcNow.AddDays(7);
+            _pendingIdentityExpires = response.IdentityExpiresAt
+                ?? DateTimeOffset.UtcNow.AddDays(60);
             ((CustomAuthStateProvider)AuthStateProvider).SetPendingToken(
                 _pendingToken,
                 loginModel.Cedula.Value.ToString(),
@@ -790,9 +805,15 @@
         {
             var customAuth = (CustomAuthStateProvider)AuthStateProvider;
             long temp = loginModel.Cedula is null ? 0 : Convert.ToInt64(loginModel.Cedula);
-            await customAuth.MarkUserAsAuthenticated(temp, _pendingToken, _pendingExpires);
+            await customAuth.MarkUserAsAuthenticated(
+                temp, _pendingToken, _pendingExpires, _pendingIdentityExpires);
+            await DeviceAccess.MarkUnlockedAsync();
             await LoginFlow.ClearAsync();
-            Navigation.NavigateTo("Home");
+
+            if (await DeviceAccess.HasPinForCedulaAsync(temp.ToString()))
+                Navigation.NavigateTo("Home");
+            else
+                Navigation.NavigateTo("configurar-acceso");
         }
         catch (Exception)
         {
@@ -801,6 +822,18 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private string CelularMalWhatsAppUrl
+    {
+        get
+        {
+            var phone = new string(AppSettings.WhatsAppCuidamed.Where(char.IsDigit).ToArray());
+            var ced = loginModel.Cedula?.ToString() ?? "";
+            var text = Uri.EscapeDataString(
+                $"Hola, el celular del padrón no es el mío. Cédula: {ced}. Necesito actualizarlo.");
+            return $"https://wa.me/{phone}?text={text}";
         }
     }
 }

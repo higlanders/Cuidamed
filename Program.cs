@@ -42,6 +42,7 @@ if (string.IsNullOrWhiteSpace(builder.Configuration["CuidanetServices:BaseUrl"])
 
 builder.Services.AddSingleton<CuidanetAppSettings>();
 builder.Services.AddSingleton<AfiliadoTokenHolder>();
+builder.Services.AddScoped<DeviceAccessService>();
 builder.Services.AddScoped<CustomAuthStateProvider>();
 
 builder.Services.AddScoped<AuthenticationStateProvider>(provider =>

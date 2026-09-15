@@ -1,0 +1,135 @@
+﻿@page "/configurar-acceso"
+@layout EmptyLayout
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject DeviceAccessService DeviceAccess
+@inject NavigationManager Navigation
+
+<PageTitle>Cuidanet — Acceso rápido</PageTitle>
+
+<div class="cn-login-page">
+    <div class="cn-login-shell">
+        <header class="cn-login-hero cn-login-hero--compact">
+            <img src="LogoCuidaNet.png" alt="CuidaNet" class="cn-login-hero__logo" />
+        </header>
+        <section class="cn-login-sheet">
+            <h1 class="cn-login-step__title">Creá tu PIN</h1>
+            <p class="cn-login-step__subtitle">
+                El PIN es obligatorio para abrir Cuidamed en este celular. La huella es opcional.
+            </p>
+
+            <div class="cn-login-field">
+                <label class="cn-login-label" for="pin1">PIN (4 a 8 dígitos)</label>
+                <input id="pin1" class="cn-login-input" type="password" inputmode="numeric" maxlength="8"
+                       autocomplete="new-password" @bind="_pin" @bind:event="oninput" />
+            </div>
+            <div class="cn-login-field">
+                <label class="cn-login-label" for="pin2">Confirmá el PIN</label>
+                <input id="pin2" class="cn-login-input" type="password" inputmode="numeric" maxlength="8"
+                       autocomplete="new-password" @bind="_pinConfirm" @bind:event="oninput" />
+            </div>
+
+            @if (_webAuthnOk)
+            {
+                <div class="cn-login-check" style="margin-top:0.75rem;">
+                    <label class="cn-login-check__control">
+                        <input type="checkbox" @bind="_wantBiometric" />
+                        <span class="cn-login-check__box" aria-hidden="true"></span>
+                    </label>
+                    <span class="cn-login-check__link" style="cursor:default;">También activar huella / Face ID</span>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <div class="cn-login-error" role="alert">@_error</div>
+            }
+
+            <button type="button" class="cn-login-cta" disabled="@_busy" @onclick="SaveAsync">
+                @(_busy ? "Guardando…" : "Guardar y continuar")
+            </button>
+        </section>
+    </div>
+</div>
+
+@code {
+    private string _pin = string.Empty;
+    private string _pinConfirm = string.Empty;
+    private bool _wantBiometric;
+    private bool _webAuthnOk;
+    private bool _busy;
+    private string _error = string.Empty;
+    private string _cedula = string.Empty;
+    private DateTimeOffset _identityExpires = DateTimeOffset.UtcNow.AddDays(60);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateProvider is not CustomAuthStateProvider custom)
+        {
+            Navigation.NavigateTo("./", forceLoad: true);
+            return;
+        }
+
+        var snap = await custom.GetSessionSnapshotAsync();
+        if (snap is null)
+        {
+            Navigation.NavigateTo("./", forceLoad: true);
+            return;
+        }
+
+        _cedula = snap.Cedula;
+        _identityExpires = snap.IdentityExpiresAt == default
+            ? DateTimeOffset.UtcNow.AddDays(60)
+            : snap.IdentityExpiresAt;
+
+        if (await DeviceAccess.HasPinForCedulaAsync(_cedula))
+        {
+            await DeviceAccess.MarkUnlockedAsync();
+            Navigation.NavigateTo("./Home");
+            return;
+        }
+
+        _webAuthnOk = await DeviceAccess.IsWebAuthnAvailableAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = string.Empty;
+        if (_pin != _pinConfirm)
+        {
+            _error = "Los PIN no coinciden.";
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            await DeviceAccess.SetupPinAsync(_cedula, _pin, _identityExpires);
+            if (_wantBiometric && _webAuthnOk)
+            {
+                try
+                {
+                    await DeviceAccess.EnableBiometricAsync(_cedula, "CuidaNet");
+                }
+                catch
+                {
+                    // PIN ya quedó; la biometría es opcional
+                }
+            }
+
+            Navigation.NavigateTo("./Home");
+        }
+        catch (ArgumentException ex)
+        {
+            _error = ex.Message;
+        }
+        catch
+        {
+            _error = "No se pudo guardar el PIN. Intenta de nuevo.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

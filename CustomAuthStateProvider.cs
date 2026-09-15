@@ -10,13 +10,18 @@ namespace Cuidanet
     {
         private readonly IJSRuntime _jsRuntime;
         private readonly AfiliadoTokenHolder _tokenHolder;
+        private readonly DeviceAccessService _deviceAccess;
         private readonly ClaimsPrincipal _anonymous = new(new ClaimsIdentity());
         private const string StorageKey = "user_session";
 
-        public CustomAuthStateProvider(IJSRuntime jsRuntime, AfiliadoTokenHolder tokenHolder)
+        public CustomAuthStateProvider(
+            IJSRuntime jsRuntime,
+            AfiliadoTokenHolder tokenHolder,
+            DeviceAccessService deviceAccess)
         {
             _jsRuntime = jsRuntime;
             _tokenHolder = tokenHolder;
+            _deviceAccess = deviceAccess;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -26,6 +31,13 @@ namespace Cuidanet
                 var session = await ReadSessionAsync();
                 if (session is null)
                     return new AuthenticationState(_anonymous);
+
+                if (session.IdentityExpiresAt != default
+                    && DateTimeOffset.UtcNow > session.IdentityExpiresAt)
+                {
+                    await MarkUserAsLoggedOut();
+                    return new AuthenticationState(_anonymous);
+                }
 
                 _tokenHolder.Set(session.Token, session.Cedula, session.ExpiresAt);
                 return new AuthenticationState(CreateClaimsPrincipal(session.Cedula));
@@ -47,17 +59,34 @@ namespace Cuidanet
             _tokenHolder.Set(token, cedula, expiresAt);
         }
 
-        public async Task MarkUserAsAuthenticated(long cedula, string token, DateTimeOffset expiresAt)
+        public async Task MarkUserAsAuthenticated(
+            long cedula,
+            string token,
+            DateTimeOffset expiresAt,
+            DateTimeOffset? identityExpiresAt = null)
         {
+            var identityUntil = identityExpiresAt
+                ?? DateTimeOffset.UtcNow.AddDays(60);
+
             var session = new SessionDto
             {
                 Cedula = cedula.ToString(),
                 Token = token,
                 ExpiresAt = expiresAt,
-                IssuedAt = DateTimeOffset.UtcNow
+                IssuedAt = DateTimeOffset.UtcNow,
+                IdentityExpiresAt = identityUntil
             };
             _tokenHolder.Set(session.Token, session.Cedula, session.ExpiresAt);
             await WriteSessionAsync(session);
+
+            var cred = await _deviceAccess.ReadCredentialAsync();
+            if (cred is not null
+                && string.Equals(cred.Cedula, session.Cedula, StringComparison.Ordinal))
+            {
+                cred.IdentityExpiresAt = identityUntil;
+                var json = JsonSerializer.Serialize(cred);
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "cn_device_cred", json);
+            }
 
             var user = CreateClaimsPrincipal(session.Cedula);
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
@@ -66,11 +95,15 @@ namespace Cuidanet
         public async Task MarkUserAsLoggedOut()
         {
             _tokenHolder.Clear();
+            await _deviceAccess.MarkLockedAsync();
             await ClearSessionAsync();
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_anonymous)));
         }
 
-        public async Task ReplaceTokenAsync(string token, DateTimeOffset expiresAt)
+        public async Task ReplaceTokenAsync(
+            string token,
+            DateTimeOffset expiresAt,
+            DateTimeOffset? identityExpiresAt = null)
         {
             var session = await ReadSessionAsync();
             if (session is null || string.IsNullOrWhiteSpace(session.Cedula))
@@ -79,11 +112,24 @@ namespace Cuidanet
             session.Token = token;
             session.ExpiresAt = expiresAt;
             session.IssuedAt = DateTimeOffset.UtcNow;
+            if (identityExpiresAt is not null)
+                session.IdentityExpiresAt = identityExpiresAt.Value;
             _tokenHolder.Set(session.Token, session.Cedula, session.ExpiresAt);
             await WriteSessionAsync(session);
         }
 
-        /// <summary>La caducidad real está en el JWT (7 días deslizantes vía API).</summary>
+        public async Task<SessionSnapshot?> GetSessionSnapshotAsync()
+        {
+            var session = await ReadSessionAsync();
+            if (session is null)
+                return null;
+            return new SessionSnapshot(
+                session.Cedula,
+                session.ExpiresAt,
+                session.IdentityExpiresAt);
+        }
+
+        /// <summary>La caducidad real está en el JWT + tope de identidad (60 días).</summary>
         public Task TouchSessionAsync() => Task.CompletedTask;
 
         private async Task<SessionDto?> ReadSessionAsync()
@@ -140,6 +186,12 @@ namespace Cuidanet
             public string Token { get; set; } = string.Empty;
             public DateTimeOffset ExpiresAt { get; set; }
             public DateTimeOffset IssuedAt { get; set; }
+            public DateTimeOffset IdentityExpiresAt { get; set; }
         }
+
+        public sealed record SessionSnapshot(
+            string Cedula,
+            DateTimeOffset ExpiresAt,
+            DateTimeOffset IdentityExpiresAt);
     }
 }

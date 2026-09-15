@@ -35,6 +35,7 @@ namespace Cuidanet.Handlers
             return path.Contains("sms/contacto", StringComparison.OrdinalIgnoreCase)
                 || path.Contains("sms/enviar-codigo", StringComparison.OrdinalIgnoreCase)
                 || path.Contains("sms/verificar-codigo", StringComparison.OrdinalIgnoreCase)
+                || path.Contains("sms/enrolar-celular", StringComparison.OrdinalIgnoreCase)
                 || path.Contains("Pwa/instalacion", StringComparison.OrdinalIgnoreCase);
         }
     }

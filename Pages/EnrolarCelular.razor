@@ -1,0 +1,230 @@
+﻿@page "/enrolar-celular"
+@layout EmptyLayout
+@inject CuidanetApiClient Api
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject DeviceAccessService DeviceAccess
+@inject LoginFlowState LoginFlow
+@inject IJSRuntime JS
+@inject CuidanetAppSettings AppSettings
+
+<PageTitle>Cuidanet — Registrar celular</PageTitle>
+
+<div class="cn-login-page">
+    <div class="cn-login-shell">
+        <header class="cn-login-hero cn-login-hero--compact">
+            <img src="LogoCuidaNet.png" alt="CuidaNet" class="cn-login-hero__logo" />
+        </header>
+        <section class="cn-login-sheet">
+            <h1 class="cn-login-step__title">Registrar celular</h1>
+            <p class="cn-login-step__subtitle">
+                Sin celular en el padrón: confirmá tu identidad con los datos de CuidaNet y un número donde recibir el SMS.
+            </p>
+
+            @if (_step == 0)
+            {
+                <div class="cn-login-field">
+                    <label class="cn-login-label" for="ced">Cédula</label>
+                    <input id="ced" class="cn-login-input" inputmode="numeric" @bind="_cedula" @bind:event="oninput" />
+                </div>
+                <div class="cn-login-field">
+                    <label class="cn-login-label" for="dob">Fecha de nacimiento</label>
+                    <input id="dob" class="cn-login-input" type="date" @bind="_fechaNac" />
+                </div>
+                <div class="cn-login-field">
+                    <label class="cn-login-label" for="ape">Apellido</label>
+                    <input id="ape" class="cn-login-input" autocomplete="family-name" @bind="_apellido" @bind:event="oninput" />
+                </div>
+                <div class="cn-login-field">
+                    <label class="cn-login-label" for="tel">Celular nuevo</label>
+                    <input id="tel" class="cn-login-input" inputmode="tel" maxlength="20" @bind="_telefono" @bind:event="oninput" />
+                </div>
+            }
+            else
+            {
+                <p class="cn-login-step__subtitle">Código enviado a <strong>@_telefonoMask</strong></p>
+                <div class="cn-login-field">
+                    <label class="cn-login-label" for="cod">Código SMS</label>
+                    <input id="cod" class="cn-login-input" inputmode="numeric" maxlength="8" @bind="_codigo" @bind:event="oninput" />
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <div class="cn-login-error" role="alert">@_error</div>
+            }
+
+            <button type="button" class="cn-login-cta" disabled="@_busy" @onclick="OnCtaAsync">
+                @if (_busy) { <span>Procesando…</span> }
+                else if (_step == 0) { <span>Enviar código</span> }
+                else { <span>Confirmar</span> }
+            </button>
+
+            <p class="cn-login-step__subtitle" style="margin-top:1.25rem;">
+                ¿No podés validar tus datos?
+                <a href="@AyudaWhatsAppUrl" target="_blank" rel="noopener noreferrer">Pedí asistencia por WhatsApp</a>
+                (CuidamedIA / call center puede cargar el celular).
+            </p>
+
+            <button type="button" class="cn-login-linkish" style="margin-top:0.75rem;background:none;border:0;color:#007a8a;text-decoration:underline;cursor:pointer;"
+                    @onclick='() => Navigation.NavigateTo("./")'>
+                Volver al login
+            </button>
+        </section>
+    </div>
+</div>
+
+@code {
+    private int _step;
+    private string _cedula = string.Empty;
+    private DateTime? _fechaNac;
+    private string _apellido = string.Empty;
+    private string _telefono = string.Empty;
+    private string _telefonoMask = string.Empty;
+    private string _codigo = string.Empty;
+    private bool _busy;
+    private string _error = string.Empty;
+
+    [SupplyParameterFromQuery(Name = "cedula")]
+    public string? CedulaQuery { get; set; }
+
+    private string AyudaWhatsAppUrl
+    {
+        get
+        {
+            var phone = new string(AppSettings.WhatsAppCuidamed.Where(char.IsDigit).ToArray());
+            var text = Uri.EscapeDataString(
+                $"Hola, no tengo celular en el padrón. Cédula: {_cedula}. Necesito asistencia para registrar mi número.");
+            return $"https://wa.me/{phone}?text={text}";
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrWhiteSpace(CedulaQuery) && string.IsNullOrWhiteSpace(_cedula))
+            _cedula = new string(CedulaQuery.Where(char.IsDigit).ToArray());
+    }
+
+    private async Task OnCtaAsync()
+    {
+        if (_step == 0)
+            await EnviarAsync();
+        else
+            await ConfirmarAsync();
+    }
+
+    private async Task EnviarAsync()
+    {
+        _error = string.Empty;
+        var ced = new string(_cedula.Where(char.IsDigit).ToArray());
+        if (ced.Length < 5)
+        {
+            _error = "Ingresá una cédula válida.";
+            return;
+        }
+        if (_fechaNac is null)
+        {
+            _error = "Indicá tu fecha de nacimiento.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_apellido))
+        {
+            _error = "Indicá tu apellido.";
+            return;
+        }
+        var tel = new string(_telefono.Where(char.IsDigit).ToArray());
+        if (tel.Length < 10)
+        {
+            _error = "Ingresá un celular válido (mínimo 10 dígitos).";
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            string? origen = null;
+            try { origen = await JS.InvokeAsync<string>("BlazorSmsOtp.hostname"); } catch { }
+
+            var resp = await Api.EnrolarCelularEnviarAsync(
+                ced,
+                DateOnly.FromDateTime(_fechaNac.Value),
+                _apellido.Trim(),
+                tel,
+                origen);
+
+            if (resp.IsExplicitFailure)
+            {
+                _error = resp.UserMessage ?? "No se pudo enviar el SMS.";
+                return;
+            }
+
+            _cedula = ced;
+            _telefono = tel;
+            _telefonoMask = resp.TelefonoEnmascarado ?? ("••••" + tel[^4..]);
+            _step = 1;
+        }
+        catch
+        {
+            _error = "No se pudo enviar el SMS. Intenta de nuevo.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ConfirmarAsync()
+    {
+        _error = string.Empty;
+        if (string.IsNullOrWhiteSpace(_codigo))
+        {
+            _error = "Ingresá el código SMS.";
+            return;
+        }
+        if (_fechaNac is null)
+        {
+            _error = "Falta la fecha de nacimiento.";
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var resp = await Api.EnrolarCelularConfirmarAsync(
+                _cedula,
+                DateOnly.FromDateTime(_fechaNac.Value),
+                _apellido.Trim(),
+                _telefono,
+                _codigo.Trim());
+
+            if (resp.IsExplicitFailure || string.IsNullOrWhiteSpace(resp.Token) || resp.ExpiresAt is null)
+            {
+                _error = resp.UserMessage ?? "No se pudo confirmar el código.";
+                return;
+            }
+
+            if (AuthStateProvider is CustomAuthStateProvider custom)
+            {
+                var identityExp = resp.IdentityExpiresAt
+                    ?? DateTimeOffset.UtcNow.AddDays(60);
+                await custom.MarkUserAsAuthenticated(
+                    long.Parse(_cedula),
+                    resp.Token,
+                    resp.ExpiresAt.Value,
+                    identityExp);
+                await DeviceAccess.MarkUnlockedAsync();
+            }
+
+            await LoginFlow.ClearAsync();
+            Navigation.NavigateTo("./configurar-acceso");
+        }
+        catch
+        {
+            _error = "No se pudo confirmar. Intenta de nuevo.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

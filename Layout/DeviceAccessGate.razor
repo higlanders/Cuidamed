@@ -1,0 +1,77 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+@inject AuthenticationStateProvider AuthStateProvider
+@inject DeviceAccessService DeviceAccess
+@inject NavigationManager Navigation
+@implements IDisposable
+
+@ChildContent
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _wired;
+
+    protected override void OnInitialized()
+    {
+        if (_wired) return;
+        _wired = true;
+        Navigation.LocationChanged += OnLocationChanged;
+        _ = EnforceAsync();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
+        _ = EnforceAsync();
+
+    private async Task EnforceAsync()
+    {
+        var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').ToLowerInvariant();
+        if (path.EndsWith("/desbloquear")
+            || path.EndsWith("/configurar-acceso")
+            || path.EndsWith("/enrolar-celular")
+            || path == "" || path.EndsWith("/cuidamed") || path.EndsWith("/index.html"))
+            return;
+
+        // Raíz del login: "/" o base path sin más segmentos
+        var relative = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
+        if (string.IsNullOrEmpty(relative)
+            || relative.Equals("login", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (AuthStateProvider is not CustomAuthStateProvider custom)
+            return;
+
+        await DeviceAccess.EnsureUnlockFlagAsync();
+        var snap = await custom.GetSessionSnapshotAsync();
+        if (snap is null)
+            return;
+
+        if (snap.IdentityExpiresAt != default && DateTimeOffset.UtcNow > snap.IdentityExpiresAt)
+        {
+            await DeviceAccess.ClearCredentialAsync();
+            await custom.MarkUserAsLoggedOut();
+            Navigation.NavigateTo("./", forceLoad: true);
+            return;
+        }
+
+        var hasPin = await DeviceAccess.HasPinForCedulaAsync(snap.Cedula);
+        if (!hasPin)
+        {
+            if (!relative.StartsWith("configurar-acceso", StringComparison.OrdinalIgnoreCase))
+                Navigation.NavigateTo("./configurar-acceso");
+            return;
+        }
+
+        if (!DeviceAccess.IsUnlocked
+            && !relative.StartsWith("desbloquear", StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("./desbloquear");
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_wired)
+            Navigation.LocationChanged -= OnLocationChanged;
+    }
+}
