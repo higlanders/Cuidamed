@@ -1,0 +1,130 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Ejemplo — Récipe médico</title>
+  <style>
+    @page { size: Letter; margin: 1.2cm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Times New Roman", Times, serif;
+      color: #111;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      line-height: 1.35;
+    }
+    .toolbar {
+      font-family: system-ui, sans-serif;
+      background: #e8f4f8;
+      border: 1px solid #0170a0;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.9rem;
+    }
+    @media print {
+      .toolbar { display: none !important; }
+      body { padding: 0; max-width: none; }
+    }
+    header {
+      text-align: center;
+      border-bottom: 2px solid #0a4180;
+      padding-bottom: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    header h1 { margin: 0; font-size: 1.35rem; color: #0a4180; letter-spacing: 0.04em; }
+    header p { margin: 0.2rem 0; font-size: 0.95rem; }
+    .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 1rem; margin: 1rem 0; font-size: 0.98rem; }
+    .rx {
+      border: 2px solid #111;
+      border-radius: 4px;
+      padding: 1rem 1.1rem;
+      min-height: 280px;
+      margin: 1rem 0;
+    }
+    .rx .mark { font-size: 2.2rem; font-weight: bold; line-height: 1; margin-bottom: 0.5rem; }
+    .med { margin: 0.85rem 0; }
+    .med strong { display: block; font-size: 1.05rem; }
+    .med span { display: block; margin-left: 0.5rem; }
+    footer {
+      margin-top: 2rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    .line { border-top: 1px solid #333; margin-top: 3rem; padding-top: 0.35rem; }
+    .badge {
+      display: inline-block;
+      margin-top: 1rem;
+      font-family: system-ui, sans-serif;
+      font-size: 0.75rem;
+      color: #666;
+      border: 1px dashed #999;
+      padding: 0.25rem 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <strong>Documento de prueba</strong> — Imprime (Ctrl+P) o guarda como PDF y úsalo en Reembolso → Récipe médico.
+  </div>
+
+  <header>
+    <h1>RÉCIPE MÉDICO</h1>
+    <p>Consultorio Dr. Carlos Enrique Mendoza Rivas</p>
+    <p>Medicina Interna — MPPS 145872 · CMS 28.451</p>
+    <p>Av. Francisco de Miranda, Torre Lincoln, Piso 5, Ofic. 5-B — Caracas</p>
+    <p>Tel: (0212) 555-0148</p>
+  </header>
+
+  <div class="meta">
+    <div><strong>Paciente:</strong> María Alejandra Pérez González</div>
+    <div><strong>Cédula:</strong> V-18.452.331</div>
+    <div><strong>Edad:</strong> 42 años</div>
+    <div><strong>Fecha del récipe:</strong> 12/09/2026</div>
+    <div><strong>Diagnóstico:</strong> Hipertensión arterial esencial (I10)</div>
+    <div><strong>N.º récipe:</strong> RM-2026-0912-014</div>
+  </div>
+
+  <div class="rx">
+    <div class="mark">℞</div>
+
+    <div class="med">
+      <strong>1. Losartán potásico 50 mg</strong>
+      <span>Tomar 1 tableta por vía oral cada 24 horas</span>
+      <span>Cantidad: 30 tabletas</span>
+    </div>
+
+    <div class="med">
+      <strong>2. Amlodipino 5 mg</strong>
+      <span>Tomar 1 tableta por vía oral cada 24 horas en la mañana</span>
+      <span>Cantidad: 30 tabletas</span>
+    </div>
+
+    <div class="med">
+      <strong>3. Atorvastatina 20 mg</strong>
+      <span>Tomar 1 tableta por vía oral cada noche</span>
+      <span>Cantidad: 30 tabletas</span>
+    </div>
+  </div>
+
+  <p><strong>Indicaciones generales:</strong> Continuar dieta hiposódica. Control de presión arterial en domicilio. Regresar a control en 30 días con laboratorios.</p>
+
+  <footer>
+    <div>
+      <div class="line">Firma y sello del médico</div>
+      <div>Dr. Carlos Enrique Mendoza Rivas</div>
+      <div>MPPS 145872</div>
+    </div>
+    <div>
+      <div class="line">Fecha</div>
+      <div>12 de septiembre de 2026</div>
+    </div>
+  </footer>
+
+  <p class="badge">EJEMPLO PARA PRUEBAS — NO ES UN DOCUMENTO CLÍNICO REAL</p>
+</body>
+</html>

@@ -1,0 +1,159 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Ejemplo — Indicaciones médicas</title>
+  <style>
+    @page { size: Letter; margin: 1.2cm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Times New Roman", Times, serif;
+      color: #111;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      line-height: 1.4;
+    }
+    .toolbar {
+      font-family: system-ui, sans-serif;
+      background: #e8f4f8;
+      border: 1px solid #0170a0;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.9rem;
+    }
+    @media print {
+      .toolbar { display: none !important; }
+      body { padding: 0; max-width: none; }
+    }
+    header {
+      border-bottom: 2px solid #0170a0;
+      padding-bottom: 0.6rem;
+      margin-bottom: 1rem;
+    }
+    header h1 { margin: 0; font-size: 1.25rem; color: #0170a0; }
+    header p { margin: 0.15rem 0; font-size: 0.92rem; }
+    h2 { font-size: 1.05rem; margin: 1.1rem 0 0.4rem; border-bottom: 1px solid #ccc; padding-bottom: 0.2rem; }
+    ol, ul { margin: 0.3rem 0 0.6rem 1.2rem; padding: 0; }
+    li { margin: 0.35rem 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.6rem 0 1rem;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 0.4rem 0.5rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f0f4f6; }
+    .firma {
+      margin-top: 2.5rem;
+      text-align: right;
+      font-size: 0.92rem;
+    }
+    .firma .line {
+      display: inline-block;
+      min-width: 260px;
+      border-top: 1px solid #333;
+      padding-top: 0.35rem;
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      margin-top: 1.2rem;
+      font-family: system-ui, sans-serif;
+      font-size: 0.75rem;
+      color: #666;
+      border: 1px dashed #999;
+      padding: 0.25rem 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <strong>Documento de prueba</strong> — Imprime (Ctrl+P) o guarda como PDF y úsalo en Reembolso → Indicaciones.
+  </div>
+
+  <header>
+    <h1>INDICACIONES MÉDICAS</h1>
+    <p>Dr. Carlos Enrique Mendoza Rivas — Medicina Interna</p>
+    <p>MPPS 145872 · CMS 28.451</p>
+    <p>Fecha: 12/09/2026 &nbsp;|&nbsp; Paciente: María Alejandra Pérez González (V-18.452.331)</p>
+  </header>
+
+  <h2>1. Tratamiento farmacológico prescrito</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Medicamento</th>
+        <th>Dosis</th>
+        <th>Frecuencia</th>
+        <th>Cantidad</th>
+        <th>Duración</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Losartán potásico</td>
+        <td>50 mg</td>
+        <td>1 tableta VO c/24 h</td>
+        <td>30 tabletas</td>
+        <td>30 días</td>
+      </tr>
+      <tr>
+        <td>Amlodipino</td>
+        <td>5 mg</td>
+        <td>1 tableta VO c/24 h (mañana)</td>
+        <td>30 tabletas</td>
+        <td>30 días</td>
+      </tr>
+      <tr>
+        <td>Atorvastatina</td>
+        <td>20 mg</td>
+        <td>1 tableta VO cada noche</td>
+        <td>30 tabletas</td>
+        <td>30 días</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. Indicaciones de administración</h2>
+  <ol>
+    <li>Tomar el losartán a la misma hora todos los días, preferiblemente en la mañana.</li>
+    <li>El amlodipino puede tomarse con o sin alimentos; si aparece edema en tobillos, avisar.</li>
+    <li>La atorvastatina debe tomarse en la noche; evitar jugo de toronja.</li>
+    <li>No suspender el tratamiento sin evaluación médica, aunque la presión se normalice.</li>
+  </ol>
+
+  <h2>3. Medidas no farmacológicas</h2>
+  <ul>
+    <li>Dieta hiposódica (menos de 5 g de sal al día).</li>
+    <li>Actividad física moderada 30 minutos, 5 días a la semana, según tolerancia.</li>
+    <li>Registrar presión arterial en domicilio 2 veces al día durante 14 días.</li>
+    <li>Evitar bebidas alcohólicas en exceso y suspender tabaco si aplica.</li>
+  </ul>
+
+  <h2>4. Alarmas / cuando consultar</h2>
+  <ul>
+    <li>Cefalea intensa, visión borrosa, dolor torácico o dificultad respiratoria.</li>
+    <li>Presión arterial sostenida ≥ 180/110 mmHg.</li>
+    <li>Mareos con síncope o debilidad muscular marcada.</li>
+  </ul>
+
+  <h2>5. Control</h2>
+  <p>Regresar en <strong>30 días</strong> con resultados de creatinina, electrolitos y perfil lipídico. Fecha del récipe asociada: <strong>12 de septiembre de 2026</strong>.</p>
+
+  <div class="firma">
+    <div class="line">
+      Dr. Carlos Enrique Mendoza Rivas<br />
+      Medicina Interna — MPPS 145872
+    </div>
+  </div>
+
+  <p class="badge">EJEMPLO PARA PRUEBAS — NO ES UN DOCUMENTO CLÍNICO REAL</p>
+</body>
+</html>

@@ -1,0 +1,182 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Ejemplo — Informe médico</title>
+  <style>
+    @page { size: Letter; margin: 1.2cm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Times New Roman", Times, serif;
+      color: #111;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      line-height: 1.45;
+      font-size: 11.5pt;
+    }
+    .toolbar {
+      font-family: system-ui, sans-serif;
+      background: #e8f4f8;
+      border: 1px solid #0170a0;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.9rem;
+    }
+    @media print {
+      .toolbar { display: none !important; }
+      body { padding: 0; max-width: none; }
+    }
+    header {
+      text-align: center;
+      border-bottom: 2.5px double #0a4180;
+      padding-bottom: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    header h1 {
+      margin: 0.3rem 0 0;
+      font-size: 1.2rem;
+      letter-spacing: 0.06em;
+      color: #0a4180;
+    }
+    header .clinic { font-size: 1rem; font-weight: bold; margin: 0; }
+    header p { margin: 0.12rem 0; font-size: 0.9rem; }
+    .datos {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.25rem 1rem;
+      margin: 0.8rem 0 1rem;
+      font-size: 0.95rem;
+    }
+    h2 {
+      font-size: 1rem;
+      margin: 1rem 0 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #0a4180;
+    }
+    p { margin: 0.35rem 0; text-align: justify; }
+    ul { margin: 0.25rem 0 0.5rem 1.25rem; }
+    .rx-box {
+      border: 1px solid #333;
+      padding: 0.65rem 0.85rem;
+      margin: 0.5rem 0 0.8rem;
+      background: #fafafa;
+    }
+    .firma {
+      margin-top: 2.2rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 2rem;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    .firma .block { flex: 1; }
+    .firma .line {
+      border-top: 1px solid #333;
+      margin-top: 3rem;
+      padding-top: 0.35rem;
+    }
+    .badge {
+      display: inline-block;
+      margin-top: 1.2rem;
+      font-family: system-ui, sans-serif;
+      font-size: 0.75rem;
+      color: #666;
+      border: 1px dashed #999;
+      padding: 0.25rem 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <strong>Documento de prueba</strong> — Imprime (Ctrl+P) o guarda como PDF y úsalo en Reembolso → Informe médico.
+  </div>
+
+  <header>
+    <p class="clinic">CENTRO MÉDICO LINCOLN</p>
+    <p>Av. Francisco de Miranda, Torre Lincoln, Piso 5 — Caracas, Venezuela</p>
+    <p>Teléfono: (0212) 555-0148 · Correo: consultorio@ejemplo.local</p>
+    <h1>INFORME MÉDICO</h1>
+  </header>
+
+  <div class="datos">
+    <div><strong>Paciente:</strong> María Alejandra Pérez González</div>
+    <div><strong>Cédula:</strong> V-18.452.331</div>
+    <div><strong>Fecha de nacimiento:</strong> 03/04/1984</div>
+    <div><strong>Sexo:</strong> Femenino</div>
+    <div><strong>Fecha del informe:</strong> 12/09/2026</div>
+    <div><strong>Fecha del récipe:</strong> 12/09/2026</div>
+    <div><strong>Médico tratante:</strong> Dr. Carlos Enrique Mendoza Rivas</div>
+    <div><strong>MPPS:</strong> 145872</div>
+  </div>
+
+  <h2>Motivo de consulta</h2>
+  <p>
+    Paciente de 42 años quien acude a control por hipertensión arterial conocida desde hace 3 años,
+    con cefalea ocasional y cifras tensionales elevadas en domicilio (promedio 148/92 mmHg).
+  </p>
+
+  <h2>Antecedentes</h2>
+  <ul>
+    <li>Personales: Hipertensión arterial. Dislipidemia mixta.</li>
+    <li>Familiares: Padre con IAM a los 58 años.</li>
+    <li>Alergias: Niega alergias medicamentosas conocidas.</li>
+  </ul>
+
+  <h2>Examen físico</h2>
+  <p>
+    Consciente, orientada, afebril. PA: 146/90 mmHg. FC: 78 lpm. FR: 16 rpm. Peso: 68 kg. Talla: 162 cm.
+    Cardiopulmonar sin soplos ni ruidos agregados. Extremidades sin edema.
+  </p>
+
+  <h2>Impresión diagnóstica</h2>
+  <ul>
+    <li>Hipertensión arterial esencial (CIE-10: I10), no controlada óptimamente.</li>
+    <li>Dislipidemia mixta (CIE-10: E78.2).</li>
+  </ul>
+
+  <h2>Plan / tratamiento indicado</h2>
+  <p>
+    Se indica ajuste de tratamiento antihipertensivo y estatinas según récipe de esta misma fecha.
+    Se entregan indicaciones escritas al paciente. Se solicita creatinina, electrolitos y perfil lipídico
+    en 30 días.
+  </p>
+
+  <div class="rx-box">
+    <strong>Medicamentos prescritos:</strong>
+    <ul>
+      <li><strong>Losartán potásico 50 mg</strong> — 1 tableta VO cada 24 horas — cantidad: 30 tabletas.</li>
+      <li><strong>Amlodipino 5 mg</strong> — 1 tableta VO cada 24 horas en la mañana — cantidad: 30 tabletas.</li>
+      <li><strong>Atorvastatina 20 mg</strong> — 1 tableta VO cada noche — cantidad: 30 tabletas.</li>
+    </ul>
+    <p style="margin:0;"><strong>Médico:</strong> Dr. Carlos Enrique Mendoza Rivas &nbsp;|&nbsp; <strong>Fecha del récipe:</strong> 12/09/2026</p>
+  </div>
+
+  <h2>Observaciones</h2>
+  <p>
+    Paciente apta para continuar labores habituales. Se recomienda adherencia estricta al tratamiento
+    y registro domiciliario de presión arterial. Este informe se emite a solicitud del interesado
+    para trámites de reembolso ante su póliza de salud.
+  </p>
+
+  <div class="firma">
+    <div class="block">
+      <div class="line">
+        Dr. Carlos Enrique Mendoza Rivas<br />
+        Medicina Interna<br />
+        MPPS 145872 · CMS 28.451
+      </div>
+    </div>
+    <div class="block">
+      <div class="line">
+        Sello del consultorio<br />
+        Caracas, 12 de septiembre de 2026
+      </div>
+    </div>
+  </div>
+
+  <p class="badge">EJEMPLO PARA PRUEBAS — NO ES UN DOCUMENTO CLÍNICO REAL</p>
+</body>
+</html>

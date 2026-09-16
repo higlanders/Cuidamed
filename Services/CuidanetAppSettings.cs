@@ -60,22 +60,66 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
     public string WhatsAppCuidamed =>
         FirstNonEmpty(configuration["CuidanetApp:WhatsAppCuidamed"], "+584142387774");
 
-    /// <summary>Base URL de CuidamedIA (OCR / extracción de tratamiento). Vacío = extracción deshabilitada.</summary>
-    public string CuidamedIaBaseUrl =>
+    /// <summary>
+    /// Base URL de CoraNet.Api (cola IA). Misma ruta que CuidaNet.Web:
+    /// Cuidamed → CoraNet.Api → IaWorker → CuidamedIA.
+    /// </summary>
+    public string CoraNetApiBaseUrl
+    {
+        get
+        {
+            var url = FirstNonEmpty(
+                configuration["CoraNetApi:BaseUrl"],
+                configuration["CuidanetApp:CoraNetApiBaseUrl"],
+                string.Empty);
+            if (string.IsNullOrWhiteSpace(url))
+                return string.Empty;
+            return url.EndsWith('/') ? url : url + "/";
+        }
+    }
+
+    public string CoraNetApiEmail =>
         FirstNonEmpty(
-            configuration["CuidanetApp:CuidamedIaBaseUrl"],
-            configuration["CuidamedIA:BaseUrl"],
+            configuration["CoraNetApi:Email"],
+            configuration["CuidanetApp:CoraNetApiEmail"],
             string.Empty);
 
-    public bool EsCuidamedIaConfigurada =>
-        Uri.TryCreate(CuidamedIaBaseUrl, UriKind.Absolute, out var uri)
-        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
-
-    /// <summary>Ruta relativa del endpoint de extracción de tratamiento en CuidamedIA.</summary>
-    public string CuidamedIaExtraerTratamientoPath =>
+    public string CoraNetApiPassword =>
         FirstNonEmpty(
-            configuration["CuidanetApp:CuidamedIaExtraerTratamientoPath"],
-            "api/reembolso/extraer-tratamiento");
+            configuration["CoraNetApi:Password"],
+            configuration["CuidanetApp:CoraNetApiPassword"],
+            string.Empty);
+
+    public int CoraNetApiPollMilliseconds
+    {
+        get
+        {
+            var ms = ReadInt("CoraNetApi:PollMilliseconds", 1500);
+            if (ms == 1500)
+                ms = ReadInt("CuidanetApp:CoraNetApiPollMilliseconds", 1500);
+            return ms < 500 ? 1500 : ms;
+        }
+    }
+
+    public int CoraNetApiTimeoutSeconds
+    {
+        get
+        {
+            var sec = ReadInt("CoraNetApi:TimeoutSeconds", 180);
+            if (sec == 180)
+                sec = ReadInt("CuidanetApp:CoraNetApiTimeoutSeconds", 180);
+            return sec < 60 ? 180 : sec;
+        }
+    }
+
+    /// <summary>Extracción habilitada si CoraNet.Api (cola / worker) está configurada.</summary>
+    public bool EsCuidamedIaConfigurada =>
+        Uri.TryCreate(CoraNetApiBaseUrl, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
+        && !string.IsNullOrWhiteSpace(CoraNetApiEmail)
+        && !string.IsNullOrWhiteSpace(CoraNetApiPassword)
+        && CoraNetApiEmail != "..."
+        && CoraNetApiPassword != "...";
 
     public int ServicioImagenDocumentos =>
         ReadInt("CuidanetApp:ServicioImagenDocumentos", 1024);

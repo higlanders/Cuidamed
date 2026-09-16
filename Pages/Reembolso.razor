@@ -270,7 +270,7 @@
 
         if (!AppSettings.EsCuidamedIaConfigurada)
         {
-            SetStatus("CuidamedIA no está configurada. Indica CuidanetApp:CuidamedIaBaseUrl en appsettings.", "warning");
+            SetStatus("CuidamedIA no está configurada. Indica CoraNetApi:BaseUrl / Email / Password en appsettings.", "warning");
             return;
         }
 
@@ -288,7 +288,7 @@
         try
         {
             extrayendo = true;
-            SetStatus("Enviando documentos a CuidamedIA…", "info");
+            SetStatus("Encolando documentos (CoraNet → worker → CuidamedIA)…", "info");
             StateHasChanged();
 
             var result = await CuidamedIa.ExtraerTratamientoAsync(docs);

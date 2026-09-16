@@ -61,7 +61,8 @@ builder.Services.AddHttpClient<CuidanetApiClient>()
 
 builder.Services.AddHttpClient<CuidamedIaClient>(client =>
 {
-    client.Timeout = TimeSpan.FromMinutes(3);
+    // Login + encolar + poll hasta OCR/LLM (hasta ~5 min).
+    client.Timeout = TimeSpan.FromMinutes(5);
 });
 
 await builder.Build().RunAsync();
