@@ -18,6 +18,7 @@ namespace Cuidanet.Services
         private readonly string _movimientoConsultaUrl;
         private readonly string _uploadImagenUrl;
         private readonly string _ImagenesServicioUrl;
+        private readonly string _reembolsoSolicitudUrl;
         private readonly string _enviarSmsUrl;
         private readonly string _verificarSmsUrl;
         private readonly string _smsContactoUrl;
@@ -49,6 +50,7 @@ namespace Cuidanet.Services
             _movimientoConsultaUrl = configuration["CuidanetServices:Endpoints:MovimientoConsulta"] ?? "MovimientoServicio/consulta";
             _uploadImagenUrl = configuration["CuidanetServices:Endpoints:UploadImagen"] ?? "Imagenes/upload";
             _ImagenesServicioUrl = configuration["CuidanetServices:Endpoints:ImagenesServicio"] ?? "Imagenes/servicio";
+            _reembolsoSolicitudUrl = configuration["CuidanetServices:Endpoints:ReembolsoSolicitud"] ?? "Reembolso/solicitud";
             _enviarSmsUrl = configuration["CuidanetServices:Endpoints:EnviarSms"] ?? "sms/enviar-codigo";
             _verificarSmsUrl = configuration["CuidanetServices:Endpoints:VerificarSms"] ?? "sms/verificar-codigo";
             _smsContactoUrl = configuration["CuidanetServices:Endpoints:SmsContacto"] ?? "sms/contacto";
@@ -518,7 +520,10 @@ namespace Cuidanet.Services
             int? servicioId = null,
             int? ordenIdOrMedicamentoId = null,
             int? presupuestoCAId = null,
-            string? fuente = null)
+            string? fuente = null,
+            string? campo = null,
+            int? beneficiarioId = null,
+            string? observaciones = null)
         {
             // El endpoint requiere multipart/form-data
             using var content = new MultipartFormDataContent();
@@ -534,6 +539,9 @@ namespace Cuidanet.Services
             // Reembolsos / PresupuestoCA exigen Fuente en ValidacionMetadatos
             if (!string.IsNullOrWhiteSpace(fuente))
                 content.Add(new StringContent(fuente.Trim()), "fuente");
+
+            if (!string.IsNullOrWhiteSpace(campo))
+                content.Add(new StringContent(campo.Trim()), "campo");
 
             // 3. Agregar parámetros condicionales según las reglas de la carpeta
             if (servicioId.HasValue)
@@ -551,6 +559,12 @@ namespace Cuidanet.Services
             if (presupuestoCAId.HasValue)
                 content.Add(new StringContent(presupuestoCAId.Value.ToString()), "presupuestoCAId");
 
+            if (beneficiarioId.HasValue && beneficiarioId.Value > 0)
+                content.Add(new StringContent(beneficiarioId.Value.ToString()), "beneficiarioId");
+
+            if (!string.IsNullOrWhiteSpace(observaciones))
+                content.Add(new StringContent(observaciones.Trim()), "observaciones");
+
             var response = await _httpClient.PostAsync($"{_uploadImagenUrl}", content);
 
             if (!response.IsSuccessStatusCode)
@@ -561,6 +575,20 @@ namespace Cuidanet.Services
             }
 
             return await response.Content.ReadFromJsonAsync<UploadImagenResponse>();
+        }
+
+        /// <summary>POST /api/Reembolso/solicitud — registra solicitud y encola procesamiento IA.</summary>
+        public async Task<ReembolsoSolicitudResponse?> RegistrarReembolsoSolicitudAsync(ReembolsoSolicitudRequest request)
+        {
+            var response = await _httpClient.PostAsJsonAsync(_reembolsoSolicitudUrl, request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"[CuidanetApi] Reembolso/solicitud {response.StatusCode} {TrimError(errorMsg)}");
+                throw new HttpRequestException("No se pudo registrar la solicitud de reembolso.");
+            }
+
+            return await response.Content.ReadFromJsonAsync<ReembolsoSolicitudResponse>();
         }
 
         /// <summary>

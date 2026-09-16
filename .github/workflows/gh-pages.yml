@@ -34,9 +34,6 @@ jobs:
           CUIDANET_MAX_UPLOAD_MB: ${{ secrets.CUIDANET_MAX_UPLOAD_MB }}
           CUIDANET_RED_STATUS: ${{ secrets.CUIDANET_RED_STATUS }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          CORANET_API_BASE_URL: ${{ secrets.CORANET_API_BASE_URL }}
-          CORANET_API_EMAIL: ${{ secrets.CORANET_API_EMAIL }}
-          CORANET_API_PASSWORD: ${{ secrets.CORANET_API_PASSWORD }}
         run: node scripts/generate-appsettings.js
 
       - name: Patch CSP connect-src (optional API origin)

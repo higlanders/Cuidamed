@@ -6,8 +6,6 @@
  *   CUIDANET_BASE_URL   (default: https://admin.cuidanet.net/APILIS/api/)
  *   CUIDANET_MAX_UPLOAD_MB (default: 10)
  *   AZURE_CLIENT_ID
- *   CORANET_API_BASE_URL / CORANET_API_EMAIL / CORANET_API_PASSWORD
- *     (cola IA vía CoraNet.Api → IaWorker; visibles en el cliente WASM)
  */
 const fs = require("fs");
 const path = require("path");
@@ -30,6 +28,7 @@ const settings = {
       MovimientoConsulta: "MovimientoServicio/consulta",
       UploadImagen: "Imagenes/upload",
       ImagenesServicio: "Imagenes/servicio",
+      ReembolsoSolicitud: process.env.CUIDANET_REEMBOLSO_SOLICITUD || "Reembolso/solicitud",
       EnviarSms: process.env.CUIDANET_SMS_ENVIAR || "sms/enviar-codigo",
       VerificarSms: process.env.CUIDANET_SMS_VERIFICAR || "sms/verificar-codigo",
       SmsContacto: "sms/contacto",
@@ -72,15 +71,6 @@ const settings = {
     LinkedInUrl:
       process.env.CUIDANET_LINKEDIN_URL ||
       "https://www.linkedin.com/company/servicios-cuidamed-c-a/",
-  },
-  CoraNetApi: {
-    BaseUrl:
-      process.env.CORANET_API_BASE_URL ||
-      "https://admin.cuidanet.net/CoraNetApi/",
-    Email: process.env.CORANET_API_EMAIL || "",
-    Password: process.env.CORANET_API_PASSWORD || "",
-    PollMilliseconds: Number(process.env.CORANET_API_POLL_MS || 1500),
-    TimeoutSeconds: Number(process.env.CORANET_API_TIMEOUT_SEC || 180),
   },
 };
 

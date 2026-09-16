@@ -60,67 +60,6 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
     public string WhatsAppCuidamed =>
         FirstNonEmpty(configuration["CuidanetApp:WhatsAppCuidamed"], "+584142387774");
 
-    /// <summary>
-    /// Base URL de CoraNet.Api (cola IA). Misma ruta que CuidaNet.Web:
-    /// Cuidamed → CoraNet.Api → IaWorker → CuidamedIA.
-    /// </summary>
-    public string CoraNetApiBaseUrl
-    {
-        get
-        {
-            var url = FirstNonEmpty(
-                configuration["CoraNetApi:BaseUrl"],
-                configuration["CuidanetApp:CoraNetApiBaseUrl"],
-                string.Empty);
-            if (string.IsNullOrWhiteSpace(url))
-                return string.Empty;
-            return url.EndsWith('/') ? url : url + "/";
-        }
-    }
-
-    public string CoraNetApiEmail =>
-        FirstNonEmpty(
-            configuration["CoraNetApi:Email"],
-            configuration["CuidanetApp:CoraNetApiEmail"],
-            string.Empty);
-
-    public string CoraNetApiPassword =>
-        FirstNonEmpty(
-            configuration["CoraNetApi:Password"],
-            configuration["CuidanetApp:CoraNetApiPassword"],
-            string.Empty);
-
-    public int CoraNetApiPollMilliseconds
-    {
-        get
-        {
-            var ms = ReadInt("CoraNetApi:PollMilliseconds", 1500);
-            if (ms == 1500)
-                ms = ReadInt("CuidanetApp:CoraNetApiPollMilliseconds", 1500);
-            return ms < 500 ? 1500 : ms;
-        }
-    }
-
-    public int CoraNetApiTimeoutSeconds
-    {
-        get
-        {
-            var sec = ReadInt("CoraNetApi:TimeoutSeconds", 180);
-            if (sec == 180)
-                sec = ReadInt("CuidanetApp:CoraNetApiTimeoutSeconds", 180);
-            return sec < 60 ? 180 : sec;
-        }
-    }
-
-    /// <summary>Extracción habilitada si CoraNet.Api (cola / worker) está configurada.</summary>
-    public bool EsCuidamedIaConfigurada =>
-        Uri.TryCreate(CoraNetApiBaseUrl, UriKind.Absolute, out var uri)
-        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
-        && !string.IsNullOrWhiteSpace(CoraNetApiEmail)
-        && !string.IsNullOrWhiteSpace(CoraNetApiPassword)
-        && CoraNetApiEmail != "..."
-        && CoraNetApiPassword != "...";
-
     public int ServicioImagenDocumentos =>
         ReadInt("CuidanetApp:ServicioImagenDocumentos", 1024);
 
@@ -175,17 +114,6 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
 
     private static string FirstNonEmpty(string? value, string fallback) =>
         string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
-
-    private static string FirstNonEmpty(params string?[] values)
-    {
-        foreach (var value in values)
-        {
-            if (!string.IsNullOrWhiteSpace(value))
-                return value.Trim();
-        }
-
-        return string.Empty;
-    }
 
     public bool EsUrlVenemergenciaValida => EsHttpUrl(VenemergenciaUrl);
 

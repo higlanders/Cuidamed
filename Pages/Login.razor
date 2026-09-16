@@ -31,7 +31,7 @@
         <header class="cn-login-hero @(CurrentStep == LoginStep.Afiliado ? "cn-login-hero--compact" : "")">
             <div class="cn-login-hero__glow" aria-hidden="true"></div>
             <img src="LogoCuidaNet.png" alt="CuidaNet" class="cn-login-hero__logo" />
-            <p class="cn-login-hero__slogan">"Tu aliado confiable en gestión de salud."</p>
+            <p class="cn-login-hero__slogan">Lo que necesitas en un solo lugar</p>
             <SocialLinks />
         </header>
 
@@ -198,11 +198,7 @@
                                            spellcheck="false"
                                            enterkeyhint="done"
                                            autofocus="true" />
-                                @if (EsIos)
-                                {
-                                    <p class="cn-login-hint">En iPhone no aparece el aviso de “Permitir”. Toca el campo y elige el código que sale sobre el teclado cuando llegue el SMS.</p>
-                                }
-                                else if (WebOtpDisponible)
+                                @if (WebOtpDisponible && !EsIos)
                                 {
                                     <p class="cn-login-hint">Cuando llegue el SMS, acepta el aviso del navegador para completar el código automáticamente.</p>
                                 }
@@ -295,7 +291,7 @@
     {
         LoginStep.Cedula => "Ingresa tu cédula para acceder a tu portal de salud.",
         LoginStep.Telefono => "Confirma el celular registrado en CuidaNet para recibir el código.",
-        LoginStep.SmsCodigo => $"Ingresa el código que enviamos a {loginModel.Telefono}.",
+        LoginStep.SmsCodigo => "Enviamos un SMS para validar la información. Ingresa los números del código",
         _ => string.Empty
     };
 
@@ -428,8 +424,7 @@
 
             if (contacto.Ok != true || string.IsNullOrWhiteSpace(contacto.TelefonoEnmascarado))
             {
-                errorMessage = contacto.UserMessage
-                    ?? "La cédula no se encuentra registrada o no tiene un celular en el padrón.";
+                errorMessage = "Esta cédula no esta registrada en nuestro sistema";
                 return;
             }
 

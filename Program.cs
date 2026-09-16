@@ -59,10 +59,4 @@ builder.Services.AddScoped<LisRouteGuard>();
 builder.Services.AddHttpClient<CuidanetApiClient>()
     .AddHttpMessageHandler<CuidanetAuthHandler>();
 
-builder.Services.AddHttpClient<CuidamedIaClient>(client =>
-{
-    // Login + encolar + poll hasta OCR/LLM (hasta ~5 min).
-    client.Timeout = TimeSpan.FromMinutes(5);
-});
-
 await builder.Build().RunAsync();

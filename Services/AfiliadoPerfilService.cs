@@ -7,6 +7,7 @@ namespace Cuidanet.Services;
 public sealed class AfiliadoPerfil
 {
     public int? ClienteId { get; init; }
+    public int? BeneficiarioId { get; init; }
     public string? NombreCliente { get; init; }
     public string? NombrePlan { get; init; }
     public string? Nombre { get; init; }
@@ -57,6 +58,7 @@ public sealed class AfiliadoPerfilService(
         _cache = new AfiliadoPerfil
         {
             ClienteId = plan?.ClienteId,
+            BeneficiarioId = plan?.BeneficiarioId,
             NombreCliente = plan?.NombreCliente,
             NombrePlan = plan?.NombrePlan,
             Nombre = plan?.Nombre,
