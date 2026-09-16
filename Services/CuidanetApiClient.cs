@@ -19,6 +19,7 @@ namespace Cuidanet.Services
         private readonly string _uploadImagenUrl;
         private readonly string _ImagenesServicioUrl;
         private readonly string _reembolsoSolicitudUrl;
+        private readonly string _reembolsoBorradorUrl;
         private readonly string _enviarSmsUrl;
         private readonly string _verificarSmsUrl;
         private readonly string _smsContactoUrl;
@@ -51,6 +52,7 @@ namespace Cuidanet.Services
             _uploadImagenUrl = configuration["CuidanetServices:Endpoints:UploadImagen"] ?? "Imagenes/upload";
             _ImagenesServicioUrl = configuration["CuidanetServices:Endpoints:ImagenesServicio"] ?? "Imagenes/servicio";
             _reembolsoSolicitudUrl = configuration["CuidanetServices:Endpoints:ReembolsoSolicitud"] ?? "Reembolso/solicitud";
+            _reembolsoBorradorUrl = configuration["CuidanetServices:Endpoints:ReembolsoBorrador"] ?? "Reembolso/solicitud/{0}/borrador";
             _enviarSmsUrl = configuration["CuidanetServices:Endpoints:EnviarSms"] ?? "sms/enviar-codigo";
             _verificarSmsUrl = configuration["CuidanetServices:Endpoints:VerificarSms"] ?? "sms/verificar-codigo";
             _smsContactoUrl = configuration["CuidanetServices:Endpoints:SmsContacto"] ?? "sms/contacto";
@@ -589,6 +591,23 @@ namespace Cuidanet.Services
             }
 
             return await response.Content.ReadFromJsonAsync<ReembolsoSolicitudResponse>();
+        }
+
+        /// <summary>GET /api/Reembolso/solicitud/{id}/borrador — estado + extracción v1 + detalle.</summary>
+        public async Task<ReembolsoBorradorResponse?> GetReembolsoBorradorAsync(int solicitudId)
+        {
+            var url = string.Format(_reembolsoBorradorUrl, solicitudId);
+            var response = await _httpClient.GetAsync(url);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return null;
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"[CuidanetApi] Reembolso borrador {response.StatusCode} {TrimError(errorMsg)}");
+                throw new HttpRequestException("No se pudo obtener el borrador del tratamiento.");
+            }
+
+            return await response.Content.ReadFromJsonAsync<ReembolsoBorradorResponse>();
         }
 
         /// <summary>

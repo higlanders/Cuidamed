@@ -1,0 +1,207 @@
+﻿@page "/tratamiento/{SolicitudId:int}"
+@layout EmptyLayout
+@using Cuidanet.Models
+@using Cuidanet.Services
+@inject NavigationManager Navigation
+@inject CuidanetApiClient CuidanetService
+
+<PageTitle>Cuidanet — Tratamiento</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-lab">
+            <div class="cn-lab__shell">
+                <PageHeader Title="Borrador de tratamiento"
+                            Lead="Estado de la extracción IA y medicamentos vinculados al catálogo."
+                            Back="GoBack" />
+
+                <section class="cn-lab__sheet">
+                    @if (cargando)
+                    {
+                        <div class="cn-lab__status cn-lab__status--info" role="status">
+                            <span class="cn-lab__spinner" aria-hidden="true"></span>
+                            <p>Cargando borrador…</p>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(errorMsg))
+                    {
+                        <div class="cn-lab__status cn-lab__status--danger" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                            <p>@errorMsg</p>
+                        </div>
+                        <div class="cn-lab__btn-row">
+                            <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="CargarAsync" disabled="@cargando">
+                                Reintentar
+                            </button>
+                        </div>
+                    }
+                    else if (borrador is not null)
+                    {
+                        <div class="cn-lab__status @StatusToneClass" role="status">
+                            <i class="bi @StatusIcon" aria-hidden="true"></i>
+                            <p>
+                                Solicitud #@borrador.SolicitudId · Tratamiento #@borrador.TratamientoId ·
+                                Estado: <strong>@EtiquetaStatus(borrador.Status)</strong>
+                            </p>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(borrador.UltimoError))
+                        {
+                            <p class="cn-lab__footnote" style="color:var(--cn-orange);">@borrador.UltimoError</p>
+                        }
+
+                        <div class="cn-lab__field">
+                            <p class="cn-lab__label">Médico</p>
+                            <p>@(string.IsNullOrWhiteSpace(borrador.NombreMedico) ? "—" : borrador.NombreMedico)</p>
+                        </div>
+                        <div class="cn-lab__field">
+                            <p class="cn-lab__label">Fecha récipe</p>
+                            <p>@(borrador.FechaRecipe?.ToString("dd/MM/yyyy") ?? "—")</p>
+                        </div>
+
+                        @if (borrador.Extraccion is not null)
+                        {
+                            <div class="cn-lab__field">
+                                <p class="cn-lab__label">Confianza IA</p>
+                                <p>@(borrador.Extraccion.Confianza ?? "—")
+                                    @if (!borrador.Extraccion.EncabezadoAplicado && !string.IsNullOrWhiteSpace(borrador.Extraccion.MotivoSinEncabezado))
+                                    {
+                                        <span class="cn-lab__footnote"> · @borrador.Extraccion.MotivoSinEncabezado</span>
+                                    }
+                                </p>
+                            </div>
+                        }
+
+                        <h3 class="cn-lab__anexo-title" style="margin-top:1rem;">Medicamentos en catálogo</h3>
+                        @if (borrador.Detalle.Count == 0)
+                        {
+                            <p class="cn-lab__footnote">Aún no hay líneas vinculadas (pendiente de IA o sin match exacto).</p>
+                        }
+                        else
+                        {
+                            <ul class="cn-lab__anexo-list" style="list-style:none;padding:0;margin:0.5rem 0 0;">
+                                @foreach (var d in borrador.Detalle)
+                                {
+                                    <li class="cn-lab__anexo" style="margin-bottom:0.5rem;">
+                                        <p class="cn-lab__anexo-title">@(d.NombreMedicamento ?? $"#{d.MedicamentoId}")</p>
+                                        <p class="cn-lab__footnote">
+                                            Cant. @(d.Cantidad?.ToString("0.##") ?? "—")
+                                            @if (!string.IsNullOrWhiteSpace(d.Presentacion))
+                                            {
+                                                <span> · @d.Presentacion</span>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(d.Posologia))
+                                            {
+                                                <span> · @d.Posologia</span>
+                                            }
+                                        </p>
+                                    </li>
+                                }
+                            </ul>
+                        }
+
+                        @if (borrador.Extraccion?.Unmatched is { Count: > 0 })
+                        {
+                            <h3 class="cn-lab__anexo-title" style="margin-top:1rem;">No catalogados (omitidos)</h3>
+                            <ul class="cn-lab__footnote" style="margin:0.35rem 0 0;padding-left:1.1rem;">
+                                @foreach (var u in borrador.Extraccion.Unmatched)
+                                {
+                                    <li>@u.NombreExtraido — @u.Motivo</li>
+                                }
+                            </ul>
+                        }
+
+                        @if (borrador.Extraccion?.Advertencias is { Count: > 0 })
+                        {
+                            <h3 class="cn-lab__anexo-title" style="margin-top:1rem;">Advertencias</h3>
+                            <ul class="cn-lab__footnote" style="margin:0.35rem 0 0;padding-left:1.1rem;">
+                                @foreach (var a in borrador.Extraccion.Advertencias)
+                                {
+                                    <li>@a</li>
+                                }
+                            </ul>
+                        }
+
+                        <div class="cn-lab__btn-row" style="margin-top:1.25rem;">
+                            @if (EsProcesando(borrador.Status))
+                            {
+                                <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="CargarAsync" disabled="@cargando">
+                                    Actualizar estado
+                                </button>
+                            }
+                            <button type="button" class="cn-lab__btn" @onclick="GoHome">Volver al inicio</button>
+                        </div>
+                    }
+                </section>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [Parameter] public int SolicitudId { get; set; }
+
+    private bool cargando = true;
+    private string? errorMsg;
+    private ReembolsoBorradorResponse? borrador;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        errorMsg = null;
+        try
+        {
+            borrador = await CuidanetService.GetReembolsoBorradorAsync(SolicitudId);
+            if (borrador is null)
+                errorMsg = "No encontramos esa solicitud.";
+        }
+        catch
+        {
+            errorMsg = "No se pudo cargar el borrador. Intenta de nuevo.";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void GoBack() => Navigation.NavigateTo("reembolso");
+    private void GoHome() => Navigation.NavigateTo("");
+
+    private static bool EsProcesando(string? status) =>
+        string.Equals(status, "Pendiente", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(status, "Procesando", StringComparison.OrdinalIgnoreCase);
+
+    private static string EtiquetaStatus(string? status) => status switch
+    {
+        "Pendiente" => "En cola",
+        "Procesando" => "Analizando documentos",
+        "Listo" => "Procesado",
+        "Error" => "Error",
+        _ => status ?? "—"
+    };
+
+    private string StatusToneClass => borrador?.Status switch
+    {
+        "Listo" => "cn-lab__status--success",
+        "Error" => "cn-lab__status--danger",
+        "Procesando" => "cn-lab__status--warning",
+        _ => "cn-lab__status--info"
+    };
+
+    private string StatusIcon => borrador?.Status switch
+    {
+        "Listo" => "bi-check-circle-fill",
+        "Error" => "bi-x-circle-fill",
+        "Procesando" => "bi-hourglass-split",
+        _ => "bi-info-circle-fill"
+    };
+}

@@ -47,6 +47,7 @@ public static class AppModules
         "proveedores",
         "farmacias",
         "reembolso",
+        "tratamiento",
         "mi-celular",
         // Acceso / sesión
         "",
@@ -70,7 +71,9 @@ public static class AppModules
         if (string.IsNullOrEmpty(slug))
             return true;
 
-        return LisAllowedSlugs.Contains(slug);
+        // Rutas con parámetro: tratamiento/123 → tratamiento
+        var firstSegment = slug.Split('/')[0];
+        return LisAllowedSlugs.Contains(slug) || LisAllowedSlugs.Contains(firstSegment);
     }
 
     public static AppModule? FindByRoute(string? relativePath)

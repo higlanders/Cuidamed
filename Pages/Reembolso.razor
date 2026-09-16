@@ -259,6 +259,9 @@
             SetStatus(
                 $"Tu solicitud ya fue procesada{tid}. Revisaremos los documentos y el tratamiento quedará pendiente de aprobación.",
                 "success");
+
+            if (registro?.SolicitudId is > 0)
+                Navigation.NavigateTo($"tratamiento/{registro.SolicitudId}");
         }
         catch (Exception)
         {

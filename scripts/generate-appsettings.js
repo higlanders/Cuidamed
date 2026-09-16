@@ -29,6 +29,7 @@ const settings = {
       UploadImagen: "Imagenes/upload",
       ImagenesServicio: "Imagenes/servicio",
       ReembolsoSolicitud: process.env.CUIDANET_REEMBOLSO_SOLICITUD || "Reembolso/solicitud",
+      ReembolsoBorrador: process.env.CUIDANET_REEMBOLSO_BORRADOR || "Reembolso/solicitud/{0}/borrador",
       EnviarSms: process.env.CUIDANET_SMS_ENVIAR || "sms/enviar-codigo",
       VerificarSms: process.env.CUIDANET_SMS_VERIFICAR || "sms/verificar-codigo",
       SmsContacto: "sms/contacto",
