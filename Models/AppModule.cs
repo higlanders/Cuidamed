@@ -23,6 +23,7 @@ public static class AppModules
         new() { Id = "telemedicina", Label = "Telemedicina", IconPath = "icons/telemedicina.svg", Route = "telemedicina" },
         new() { Id = "amd", Label = "AMD / Ambulancia", IconPath = "icons/amd.svg", Route = "amd" },
         new() { Id = "reembolso", Label = "Medicamentos", IconPath = "icons/reembolso.svg", Route = "reembolso" },
+        new() { Id = "mis-solicitudes", Label = "Mis solicitudes", IconPath = "icons/reembolso.svg", Route = "mis-solicitudes" },
         new() { Id = "mis-sintomas", Label = "Mis síntomas", IconPath = "icons/mis-sintomas.svg", Route = "mis-sintomas" },
         new() { Id = "cartas-avales", Label = "Cartas avales", IconPath = "icons/cartas-avales.svg", Route = "cartas-avales" },
         new() { Id = "farmacias", Label = "Red de farmacias", IconPath = "icons/farmacias.svg", Route = "farmacias" },
@@ -38,6 +39,7 @@ public static class AppModules
         new() { Id = "proveedores", Label = "Red de proveedores", IconPath = "icons/proveedores.svg", Route = "proveedores" },
         new() { Id = "farmacias", Label = "Red de farmacias", IconPath = "icons/farmacias.svg", Route = "farmacias" },
         new() { Id = "reembolso", Label = "Medicamentos", IconPath = "icons/reembolso.svg", Route = "reembolso" },
+        new() { Id = "mis-solicitudes", Label = "Mis solicitudes", IconPath = "icons/reembolso.svg", Route = "mis-solicitudes" },
     ];
 
     private static readonly HashSet<string> LisAllowedSlugs = new(StringComparer.OrdinalIgnoreCase)
@@ -47,6 +49,7 @@ public static class AppModules
         "proveedores",
         "farmacias",
         "reembolso",
+        "mis-solicitudes",
         "tratamiento",
         "mi-celular",
         // Acceso / sesión

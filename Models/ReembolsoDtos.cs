@@ -65,6 +65,75 @@ public sealed class ReembolsoSolicitudResponse
     public string? Mensaje { get; set; }
 }
 
+public sealed class ReembolsoSolicitudListaDto
+{
+    [JsonPropertyName("solicitudId")]
+    public int SolicitudId { get; set; }
+
+    [JsonPropertyName("tratamientoId")]
+    public int TratamientoId { get; set; }
+
+    [JsonPropertyName("beneficiarioId")]
+    public int BeneficiarioId { get; set; }
+
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = string.Empty;
+
+    [JsonPropertyName("comentario")]
+    public string? Comentario { get; set; }
+
+    [JsonPropertyName("ultimoError")]
+    public string? UltimoError { get; set; }
+
+    [JsonPropertyName("fechaCrea")]
+    public DateTime FechaCrea { get; set; }
+
+    [JsonPropertyName("fechaProceso")]
+    public DateTime? FechaProceso { get; set; }
+
+    [JsonPropertyName("cantidadAdjuntos")]
+    public int CantidadAdjuntos { get; set; }
+
+    [JsonPropertyName("puedeEditar")]
+    public bool PuedeEditar { get; set; }
+}
+
+public sealed class ReembolsoAdjuntoDto
+{
+    [JsonPropertyName("imagenesId")]
+    public int ImagenesId { get; set; }
+
+    [JsonPropertyName("tipoAnexo")]
+    public string? TipoAnexo { get; set; }
+
+    [JsonPropertyName("nombre")]
+    public string? Nombre { get; set; }
+
+    [JsonPropertyName("urlContenido")]
+    public string UrlContenido { get; set; } = string.Empty;
+}
+
+public sealed class ReembolsoReemplazarImagenesRequest
+{
+    [JsonPropertyName("comentario")]
+    public string? Comentario { get; set; }
+
+    [JsonPropertyName("imagenes")]
+    public List<ReembolsoSolicitudImagenDto> Imagenes { get; set; } = [];
+}
+
+public sealed class ReembolsoAnularResponse
+{
+    [JsonPropertyName("solicitudId")]
+    public int SolicitudId { get; set; }
+
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = string.Empty;
+
+    [JsonPropertyName("mensaje")]
+    public string? Mensaje { get; set; }
+}
+
 /// <summary>Contrato canónico v1 — borrador post-extracción IA.</summary>
 public sealed class ResultadoExtraccionTratamientoDto
 {
@@ -199,4 +268,10 @@ public sealed class ReembolsoBorradorResponse
 
     [JsonPropertyName("detalle")]
     public List<TratamientoDetalleBorradorDto> Detalle { get; set; } = [];
+
+    [JsonPropertyName("imagenes")]
+    public List<ReembolsoAdjuntoDto> Imagenes { get; set; } = [];
+
+    [JsonPropertyName("puedeEditar")]
+    public bool PuedeEditar { get; set; }
 }

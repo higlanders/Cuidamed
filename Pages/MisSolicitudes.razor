@@ -1,0 +1,137 @@
+﻿@page "/mis-solicitudes"
+@layout EmptyLayout
+@using Cuidanet.Models
+@using Cuidanet.Services
+@inject NavigationManager Navigation
+@inject AfiliadoPerfilService PerfilService
+@inject CuidanetApiClient CuidanetService
+
+<PageTitle>Cuidanet — Mis solicitudes</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-lab">
+            <div class="cn-lab__shell">
+                <PageHeader Title="Mis solicitudes"
+                            Lead="Revisa el estado, abre los adjuntos o corrige una solicitud."
+                            Back="GoHome" />
+
+                <section class="cn-lab__sheet">
+                    <div class="cn-lab__btn-row" style="margin-bottom:1rem;">
+                        <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="NuevaSolicitud">
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                            Nueva solicitud
+                        </button>
+                    </div>
+
+                    @if (cargando)
+                    {
+                        <div class="cn-lab__status cn-lab__status--info" role="status">
+                            <span class="cn-lab__spinner" aria-hidden="true"></span>
+                            <p>Cargando solicitudes…</p>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(errorMsg))
+                    {
+                        <div class="cn-lab__status cn-lab__status--danger" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                            <p>@errorMsg</p>
+                        </div>
+                        <div class="cn-lab__btn-row">
+                            <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="CargarAsync">Reintentar</button>
+                        </div>
+                    }
+                    else if (items.Count == 0)
+                    {
+                        <div class="cn-lab__status cn-lab__status--info" role="status">
+                            <i class="bi bi-inbox" aria-hidden="true"></i>
+                            <p>Aún no tienes solicitudes de medicamentos.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="cn-lab__anexo-list" aria-label="Solicitudes">
+                            @foreach (var s in items)
+                            {
+                                <button type="button"
+                                        class="cn-lab__anexo"
+                                        style="width:100%;text-align:left;cursor:pointer;"
+                                        @onclick="() => Abrir(s.SolicitudId)">
+                                    <div class="cn-lab__anexo-head">
+                                        <p class="cn-lab__anexo-title">Solicitud #@s.SolicitudId</p>
+                                        <span class="cn-lab__anexo-badge">@EtiquetaStatus(s.Status)</span>
+                                    </div>
+                                    <p class="cn-lab__drop-hint" style="margin:0;">
+                                        @s.FechaCrea.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                        · @s.CantidadAdjuntos adjunto(s)
+                                        @if (s.PuedeEditar)
+                                        {
+                                            <span> · Se puede corregir</span>
+                                        }
+                                    </p>
+                                    @if (!string.IsNullOrWhiteSpace(s.UltimoError)
+                                         && string.Equals(s.Status, "Error", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <p class="cn-lab__footnote" style="color:var(--cn-orange);margin-top:0.35rem;">@s.UltimoError</p>
+                                    }
+                                </button>
+                            }
+                        </div>
+                    }
+                </section>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool cargando = true;
+    private string? errorMsg;
+    private List<ReembolsoSolicitudListaDto> items = [];
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        errorMsg = null;
+        try
+        {
+            var perfil = await PerfilService.GetAsync();
+            if (perfil.BeneficiarioId is not > 0)
+            {
+                errorMsg = "No encontramos tu perfil de afiliado.";
+                items = [];
+                return;
+            }
+
+            items = await CuidanetService.GetReembolsoSolicitudesAsync(perfil.BeneficiarioId.Value);
+        }
+        catch
+        {
+            errorMsg = "No se pudo cargar el listado. Intenta de nuevo.";
+            items = [];
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void Abrir(int id) => Navigation.NavigateTo($"tratamiento/{id}");
+    private void NuevaSolicitud() => Navigation.NavigateTo("reembolso");
+    private void GoHome() => Navigation.NavigateTo("Home");
+
+    private static string EtiquetaStatus(string? status) => status switch
+    {
+        "Pendiente" => "En cola",
+        "Procesando" => "Analizando",
+        "Listo" => "Procesada",
+        "Error" => "Error",
+        "Anulado" => "Anulada",
+        _ => status ?? "—"
+    };
+}

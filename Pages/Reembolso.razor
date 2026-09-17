@@ -21,7 +21,7 @@
             <div class="cn-lab">
                 <div class="cn-lab__shell">
                     <PageHeader Title="Solicitud de medicamentos"
-                                Lead="Adjunta récipe, indicaciones e informe. Al subir, registramos tu solicitud para revisión."
+                                Lead="@(pasoConfirmacion ? "Confirma que cada documento está en el casillero correcto antes de enviar." : "Adjunta récipe, indicaciones e informe. Al confirmar, se crea una solicitud nueva.")"
                                 Back="GoHome">
                         @if (!string.IsNullOrWhiteSpace(textoCedulas))
                         {
@@ -30,63 +30,128 @@
                     </PageHeader>
 
                     <section class="cn-lab__sheet">
-                        <div class="cn-lab__anexo-list" aria-label="Documentos anexos">
-                            @foreach (var anexo in anexos)
-                            {
-                                <div class="cn-lab__anexo">
-                                    <div class="cn-lab__anexo-head">
-                                        <p class="cn-lab__anexo-title">@anexo.Etiqueta</p>
-                                        <div class="cn-lab__anexo-actions">
-                                            @if (anexo.Upload is not null)
-                                            {
-                                                <span class="cn-lab__anexo-badge">Enviado</span>
-                                            }
-                                            else if (!string.IsNullOrEmpty(anexo.FileName))
-                                            {
-                                                <span class="cn-lab__anexo-badge">Listo</span>
-                                            }
-                                            @if (anexo.TieneArchivo && !ocupado && !solicitudEnviada)
-                                            {
-                                                <button type="button"
-                                                        class="cn-lab__anexo-clear"
-                                                        @onclick="() => QuitarAnexo(anexo)"
-                                                        aria-label="Quitar @anexo.Etiqueta">
-                                                    Quitar
-                                                </button>
-                                            }
+                        @if (solicitudAbierta is not null)
+                        {
+                            <div class="cn-lab__status cn-lab__status--warning" role="status">
+                                <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                                <p>
+                                    Ya tienes la solicitud #@solicitudAbierta.SolicitudId
+                                    (@EtiquetaStatus(solicitudAbierta.Status)) del
+                                    @solicitudAbierta.FechaCrea.ToLocalTime().ToString("dd/MM/yyyy HH:mm").
+                                    Si envías ahora se creará otra solicitud nueva.
+                                </p>
+                            </div>
+                            <div class="cn-lab__btn-row" style="margin-bottom:1rem;">
+                                <button type="button" class="cn-lab__btn cn-lab__btn--ghost"
+                                        @onclick="AbrirSolicitudAbierta">
+                                    Abrir solicitud #@solicitudAbierta.SolicitudId
+                                </button>
+                                <button type="button" class="cn-lab__btn"
+                                        @onclick="IrMisSolicitudes">
+                                    Ver mis solicitudes
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="cn-lab__btn-row" style="margin-bottom:0.85rem;">
+                                <button type="button" class="cn-lab__btn"
+                                        @onclick="IrMisSolicitudes">
+                                    Mis solicitudes
+                                </button>
+                            </div>
+                        }
+
+                        @if (!pasoConfirmacion)
+                        {
+                            <div class="cn-lab__anexo-list" aria-label="Documentos anexos">
+                                @foreach (var anexo in anexos)
+                                {
+                                    <div class="cn-lab__anexo">
+                                        <div class="cn-lab__anexo-head">
+                                            <p class="cn-lab__anexo-title">@anexo.Etiqueta</p>
+                                            <div class="cn-lab__anexo-actions">
+                                                @if (anexo.Upload is not null)
+                                                {
+                                                    <span class="cn-lab__anexo-badge">Enviado</span>
+                                                }
+                                                else if (!string.IsNullOrEmpty(anexo.FileName))
+                                                {
+                                                    <span class="cn-lab__anexo-badge">Listo</span>
+                                                }
+                                                @if (anexo.TieneArchivo && !ocupado && !solicitudEnviada)
+                                                {
+                                                    <button type="button"
+                                                            class="cn-lab__anexo-clear"
+                                                            @onclick="() => QuitarAnexo(anexo)"
+                                                            aria-label="Quitar @anexo.Etiqueta">
+                                                        Quitar
+                                                    </button>
+                                                }
+                                            </div>
                                         </div>
+                                        <label class="cn-lab__drop-area" style="min-height:auto;padding:0.85rem;">
+                                            <InputFile @key="anexo.InputKey"
+                                                       OnChange="e => OnAnexoSelected(e, anexo)"
+                                                       class="cn-lab__file-input"
+                                                       accept="image/png,image/jpeg,application/pdf"
+                                                       disabled="@ocupado" />
+                                            <span class="cn-lab__drop-title" style="font-size:0.85rem;">
+                                                @(string.IsNullOrEmpty(anexo.FileName) ? "Toca para elegir archivo" : anexo.FileName)
+                                            </span>
+                                            <span class="cn-lab__drop-hint">JPG, PNG o PDF · máx. @AppSettings.MaxUploadMb MB</span>
+                                        </label>
+                                        @if (!string.IsNullOrWhiteSpace(anexo.PreviewDataUrl)
+                                             && !anexo.PreviewDataUrl.StartsWith("data:application/pdf", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <img class="cn-lab__preview" src="@anexo.PreviewDataUrl" alt="Vista previa @anexo.Etiqueta" style="margin-top:0.5rem;" />
+                                        }
                                     </div>
-                                    <label class="cn-lab__drop-area" style="min-height:auto;padding:0.85rem;">
-                                        <InputFile @key="anexo.InputKey"
-                                                   OnChange="e => OnAnexoSelected(e, anexo)"
-                                                   class="cn-lab__file-input"
-                                                   accept="image/png,image/jpeg,application/pdf"
-                                                   disabled="@ocupado" />
-                                        <span class="cn-lab__drop-title" style="font-size:0.85rem;">
-                                            @(string.IsNullOrEmpty(anexo.FileName) ? "Toca para elegir archivo" : anexo.FileName)
-                                        </span>
-                                        <span class="cn-lab__drop-hint">JPG, PNG o PDF · máx. @AppSettings.MaxUploadMb MB</span>
-                                    </label>
-                                    @if (!string.IsNullOrWhiteSpace(anexo.PreviewDataUrl)
-                                         && !anexo.PreviewDataUrl.StartsWith("data:application/pdf", StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        <img class="cn-lab__preview" src="@anexo.PreviewDataUrl" alt="Vista previa @anexo.Etiqueta" style="margin-top:0.5rem;" />
-                                    }
+                                }
+                            </div>
+
+                            <div class="cn-lab__field">
+                                <label class="cn-lab__label" for="comentario">Comentario (opcional)</label>
+                                <textarea id="comentario"
+                                          class="cn-lab__input"
+                                          rows="3"
+                                          maxlength="1000"
+                                          @bind="comentario"
+                                          @bind:event="oninput"
+                                          disabled="@ocupado"
+                                          placeholder="Ej. urgencia, farmacia preferida, observaciones…"></textarea>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="cn-lab__status cn-lab__status--info" role="status">
+                                <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+                                <p>Al confirmar se crea una <strong>solicitud nueva</strong>. Revisa que cada archivo esté en el casillero correcto.</p>
+                            </div>
+                            <div class="cn-lab__anexo-list" aria-label="Resumen de documentos">
+                                @foreach (var anexo in anexos.Where(a => a.TieneArchivo))
+                                {
+                                    <div class="cn-lab__anexo">
+                                        <div class="cn-lab__anexo-head">
+                                            <p class="cn-lab__anexo-title">@anexo.Etiqueta</p>
+                                            <span class="cn-lab__anexo-badge">@(anexo.FileName ?? "Adjunto")</span>
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(anexo.PreviewDataUrl)
+                                             && !anexo.PreviewDataUrl.StartsWith("data:application/pdf", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <img class="cn-lab__preview" src="@anexo.PreviewDataUrl" alt="Vista previa @anexo.Etiqueta" style="margin-top:0.5rem;" />
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(comentario))
+                            {
+                                <div class="cn-lab__field">
+                                    <p class="cn-lab__label">Comentario</p>
+                                    <p>@comentario</p>
                                 </div>
                             }
-                        </div>
-
-                        <div class="cn-lab__field">
-                            <label class="cn-lab__label" for="comentario">Comentario (opcional)</label>
-                            <textarea id="comentario"
-                                      class="cn-lab__input"
-                                      rows="3"
-                                      maxlength="1000"
-                                      @bind="comentario"
-                                      @bind:event="oninput"
-                                      disabled="@ocupado"
-                                      placeholder="Ej. urgencia, farmacia preferida, observaciones…"></textarea>
-                        </div>
+                        }
 
                         @if (!string.IsNullOrEmpty(statusMessage))
                         {
@@ -97,21 +162,37 @@
                         }
 
                         <div class="cn-lab__btn-row">
-                            <button type="button"
-                                    class="cn-lab__btn cn-lab__btn--primary"
-                                    disabled="@(ocupado || !PuedeEnviar || solicitudEnviada)"
-                                    @onclick="EnviarSolicitudAsync">
-                                @if (subiendo)
-                                {
-                                    <span class="cn-lab__spinner" aria-hidden="true"></span>
-                                    <span>Enviando…</span>
-                                }
-                                else
-                                {
-                                    <i class="bi bi-cloud-arrow-up-fill" aria-hidden="true"></i>
-                                    <span>@(HayPendientesRegistro ? "Reintentar envío" : "Subir documentos")</span>
-                                }
-                            </button>
+                            @if (!pasoConfirmacion)
+                            {
+                                <button type="button"
+                                        class="cn-lab__btn cn-lab__btn--primary"
+                                        disabled="@(ocupado || !PuedeEnviar || solicitudEnviada)"
+                                        @onclick="IrAConfirmacion">
+                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                    <span>Revisar y enviar</span>
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="button" class="cn-lab__btn" disabled="@ocupado" @onclick="() => pasoConfirmacion = false">
+                                    Corregir
+                                </button>
+                                <button type="button"
+                                        class="cn-lab__btn cn-lab__btn--primary"
+                                        disabled="@(ocupado || solicitudEnviada)"
+                                        @onclick="EnviarSolicitudAsync">
+                                    @if (subiendo)
+                                    {
+                                        <span class="cn-lab__spinner" aria-hidden="true"></span>
+                                        <span>Enviando…</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-cloud-arrow-up-fill" aria-hidden="true"></i>
+                                        <span>@(HayPendientesRegistro ? "Reintentar envío" : "Confirmar solicitud nueva")</span>
+                                    }
+                                </button>
+                            }
                         </div>
                     </section>
                 </div>
@@ -128,11 +209,13 @@
     private bool subiendo;
     private bool ocupado => subiendo;
     private bool solicitudEnviada;
+    private bool pasoConfirmacion;
 
     private string comentario = string.Empty;
     private string statusMessage = string.Empty;
     private string statusTone = "info";
     private string textoCedulas = string.Empty;
+    private ReembolsoSolicitudListaDto? solicitudAbierta;
 
     private readonly List<ReembolsoAnexoVm> anexos =
     [
@@ -173,10 +256,31 @@
         {
             var perfil = await PerfilService.GetAsync();
             await CargarCedulasAsync(perfil);
+            await CargarSolicitudAbiertaAsync(perfil);
         }
         finally
         {
             cargando = false;
+        }
+    }
+
+    private async Task CargarSolicitudAbiertaAsync(AfiliadoPerfil perfil)
+    {
+        solicitudAbierta = null;
+        if (perfil.BeneficiarioId is not > 0) return;
+        try
+        {
+            var lista = await CuidanetService.GetReembolsoSolicitudesAsync(perfil.BeneficiarioId.Value);
+            solicitudAbierta = lista.FirstOrDefault(s =>
+                !string.Equals(s.Status, "Anulado", StringComparison.OrdinalIgnoreCase)
+                && (string.Equals(s.Status, "Pendiente", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(s.Status, "Procesando", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(s.Status, "Error", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(s.Status, "Listo", StringComparison.OrdinalIgnoreCase)));
+        }
+        catch
+        {
+            // Sin listado no bloqueamos el alta.
         }
     }
 
@@ -252,11 +356,30 @@
     }
 
     private void GoHome() => Navigation.NavigateTo("Home");
+    private void IrMisSolicitudes() => Navigation.NavigateTo("mis-solicitudes");
+    private void AbrirSolicitudAbierta()
+    {
+        if (solicitudAbierta is not null)
+            Navigation.NavigateTo($"tratamiento/{solicitudAbierta.SolicitudId}");
+    }
+
+    private void IrAConfirmacion()
+    {
+        if (!PuedeEnviar)
+        {
+            SetStatus("Adjunta al menos un documento para continuar.", "warning");
+            return;
+        }
+
+        pasoConfirmacion = true;
+        SetStatus("Revisa el resumen. Si algo está mal, toca Corregir.", "info");
+    }
 
     private void QuitarAnexo(ReembolsoAnexoVm anexo)
     {
         anexo.Clear();
         solicitudEnviada = false;
+        pasoConfirmacion = false;
         SetStatus("Archivo quitado. Puedes elegir otro.", "info");
     }
 
@@ -318,7 +441,7 @@
         try
         {
             subiendo = true;
-            SetStatus(pendientes.Count > 0 ? "Subiendo documentos…" : "Registrando solicitud…", "info");
+            SetStatus(pendientes.Count > 0 ? "Subiendo documentos…" : "Registrando solicitud nueva…", "info");
             StateHasChanged();
 
             var perfil = await PerfilService.GetAsync();
@@ -375,9 +498,9 @@
                 });
 
             solicitudEnviada = true;
-            var tid = registro?.TratamientoId is > 0 ? $" (n.º {registro.TratamientoId})" : "";
+            var tid = registro?.TratamientoId is > 0 ? $" (tratamiento n.º {registro.TratamientoId})" : "";
             SetStatus(
-                $"Tu solicitud ya fue procesada{tid}. Revisaremos los documentos y el tratamiento quedará pendiente de aprobación.",
+                $"Solicitud nueva #{registro?.SolicitudId} registrada{tid}. Ya puedes revisar los adjuntos en el detalle.",
                 "success");
 
             if (registro?.SolicitudId is > 0)
@@ -407,6 +530,15 @@
         statusTone = tone;
     }
 
+    private static string EtiquetaStatus(string? status) => status switch
+    {
+        "Pendiente" => "en cola",
+        "Procesando" => "analizando",
+        "Listo" => "procesada",
+        "Error" => "con error",
+        _ => status ?? "activa"
+    };
+
     private static string GuessMime(string fileName)
     {
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
@@ -423,7 +555,6 @@
     {
         var mime = GuessMime(fileName);
         if (mime == "application/octet-stream") return null;
-        // Evita previews enormes en memoria (causa frecuente de error del circuito Blazor).
         if (bytes.Length > 2 * 1024 * 1024)
             return null;
         return $"data:{mime};base64,{Convert.ToBase64String(bytes)}";

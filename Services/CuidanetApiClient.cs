@@ -20,6 +20,10 @@ namespace Cuidanet.Services
         private readonly string _ImagenesServicioUrl;
         private readonly string _reembolsoSolicitudUrl;
         private readonly string _reembolsoBorradorUrl;
+        private readonly string _reembolsoListaUrl;
+        private readonly string _reembolsoReemplazarUrl;
+        private readonly string _reembolsoAnularUrl;
+        private readonly string _imagenesContenidoUrl;
         private readonly string _enviarSmsUrl;
         private readonly string _verificarSmsUrl;
         private readonly string _smsContactoUrl;
@@ -53,6 +57,10 @@ namespace Cuidanet.Services
             _ImagenesServicioUrl = configuration["CuidanetServices:Endpoints:ImagenesServicio"] ?? "Imagenes/servicio";
             _reembolsoSolicitudUrl = configuration["CuidanetServices:Endpoints:ReembolsoSolicitud"] ?? "Reembolso/solicitud";
             _reembolsoBorradorUrl = configuration["CuidanetServices:Endpoints:ReembolsoBorrador"] ?? "Reembolso/solicitud/{0}/borrador";
+            _reembolsoListaUrl = configuration["CuidanetServices:Endpoints:ReembolsoLista"] ?? "Reembolso/solicitudes";
+            _reembolsoReemplazarUrl = configuration["CuidanetServices:Endpoints:ReembolsoReemplazar"] ?? "Reembolso/solicitud/{0}/imagenes";
+            _reembolsoAnularUrl = configuration["CuidanetServices:Endpoints:ReembolsoAnular"] ?? "Reembolso/solicitud/{0}/anular";
+            _imagenesContenidoUrl = configuration["CuidanetServices:Endpoints:ImagenesContenido"] ?? "Imagenes/{0}/contenido";
             _enviarSmsUrl = configuration["CuidanetServices:Endpoints:EnviarSms"] ?? "sms/enviar-codigo";
             _verificarSmsUrl = configuration["CuidanetServices:Endpoints:VerificarSms"] ?? "sms/verificar-codigo";
             _smsContactoUrl = configuration["CuidanetServices:Endpoints:SmsContacto"] ?? "sms/contacto";
@@ -608,6 +616,92 @@ namespace Cuidanet.Services
             }
 
             return await response.Content.ReadFromJsonAsync<ReembolsoBorradorResponse>();
+        }
+
+        /// <summary>GET /api/Reembolso/solicitudes?beneficiarioId=</summary>
+        public async Task<List<ReembolsoSolicitudListaDto>> GetReembolsoSolicitudesAsync(int beneficiarioId)
+        {
+            var query = HttpUtility.ParseQueryString(string.Empty);
+            query["beneficiarioId"] = beneficiarioId.ToString();
+            var response = await _httpClient.GetAsync($"{_reembolsoListaUrl}?{query}");
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"[CuidanetApi] Reembolso lista {response.StatusCode} {TrimError(errorMsg)}");
+                throw new HttpRequestException("No se pudo cargar el listado de solicitudes.");
+            }
+
+            return await response.Content.ReadFromJsonAsync<List<ReembolsoSolicitudListaDto>>() ?? [];
+        }
+
+        /// <summary>PUT /api/Reembolso/solicitud/{id}/imagenes</summary>
+        public async Task<ReembolsoSolicitudResponse?> ReemplazarReembolsoImagenesAsync(
+            int solicitudId,
+            ReembolsoReemplazarImagenesRequest request)
+        {
+            var url = string.Format(_reembolsoReemplazarUrl, solicitudId);
+            var response = await _httpClient.PutAsJsonAsync(url, request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"[CuidanetApi] Reembolso reemplazar {response.StatusCode} {TrimError(errorMsg)}");
+                throw new HttpRequestException(TryApiMessage(errorMsg) ?? "No se pudieron actualizar los documentos.");
+            }
+
+            return await response.Content.ReadFromJsonAsync<ReembolsoSolicitudResponse>();
+        }
+
+        /// <summary>POST /api/Reembolso/solicitud/{id}/anular</summary>
+        public async Task<ReembolsoAnularResponse?> AnularReembolsoSolicitudAsync(int solicitudId)
+        {
+            var url = string.Format(_reembolsoAnularUrl, solicitudId);
+            var response = await _httpClient.PostAsync(url, null);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"[CuidanetApi] Reembolso anular {response.StatusCode} {TrimError(errorMsg)}");
+                throw new HttpRequestException(TryApiMessage(errorMsg) ?? "No se pudo anular la solicitud.");
+            }
+
+            return await response.Content.ReadFromJsonAsync<ReembolsoAnularResponse>();
+        }
+
+        /// <summary>GET /api/Imagenes/{id}/contenido — bytes autenticados (JWT).</summary>
+        public async Task<(byte[] Bytes, string ContentType, string? FileName)?> DownloadImagenContenidoAsync(int imagenesId)
+        {
+            var url = string.Format(_imagenesContenidoUrl, imagenesId);
+            var response = await _httpClient.GetAsync(url);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return null;
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"[CuidanetApi] Imagen contenido {response.StatusCode} {TrimError(errorMsg)}");
+                throw new HttpRequestException("No se pudo abrir el documento.");
+            }
+
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+            var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"');
+            return (bytes, contentType, fileName);
+        }
+
+        private static string? TryApiMessage(string? body)
+        {
+            if (string.IsNullOrWhiteSpace(body)) return null;
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("message", out var m)
+                    || doc.RootElement.TryGetProperty("Message", out m))
+                    return m.GetString();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            return null;
         }
 
         /// <summary>

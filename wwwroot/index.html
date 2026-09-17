@@ -295,6 +295,20 @@
                 );
                 w.document.close();
                 return true;
+            },
+            openBytes: function (bytes, contentType) {
+                try {
+                    var arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+                    var type = contentType || 'application/octet-stream';
+                    var blob = new Blob([arr], { type: type });
+                    var url = URL.createObjectURL(blob);
+                    var ok = this.openUrlHidden(url);
+                    setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) { } }, 120000);
+                    return !!ok;
+                } catch (e) {
+                    console.error('openBytes', e);
+                    return false;
+                }
             }
         };
 

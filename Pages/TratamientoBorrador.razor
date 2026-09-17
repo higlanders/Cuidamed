@@ -1,9 +1,14 @@
 ﻿@page "/tratamiento/{SolicitudId:int}"
 @layout EmptyLayout
+@using System.IO
+@using System.Net.Http
 @using Cuidanet.Models
 @using Cuidanet.Services
 @inject NavigationManager Navigation
 @inject CuidanetApiClient CuidanetService
+@inject CuidanetAppSettings AppSettings
+@inject AfiliadoPerfilService PerfilService
+@inject IJSRuntime JS
 
 <PageTitle>Cuidanet — Tratamiento</PageTitle>
 
@@ -11,8 +16,8 @@
     <Authorized>
         <div class="cn-lab">
             <div class="cn-lab__shell">
-                <PageHeader Title="Borrador de tratamiento"
-                            Lead="Estado de la extracción IA y medicamentos vinculados al catálogo."
+                <PageHeader Title="Detalle de solicitud"
+                            Lead="Revisa adjuntos, estado y medicamentos. Si te equivocaste, corrige o anula."
                             Back="GoBack" />
 
                 <section class="cn-lab__sheet">
@@ -20,7 +25,7 @@
                     {
                         <div class="cn-lab__status cn-lab__status--info" role="status">
                             <span class="cn-lab__spinner" aria-hidden="true"></span>
-                            <p>Cargando borrador…</p>
+                            <p>Cargando solicitud…</p>
                         </div>
                     }
                     else if (!string.IsNullOrEmpty(errorMsg))
@@ -50,7 +55,107 @@
                             <p class="cn-lab__footnote" style="color:var(--cn-orange);">@borrador.UltimoError</p>
                         }
 
-                        <div class="cn-lab__field">
+                        <h3 class="cn-lab__anexo-title" style="margin-top:1rem;">Documentos adjuntos</h3>
+                        @if (borrador.Imagenes.Count == 0)
+                        {
+                            <p class="cn-lab__footnote">No hay adjuntos vinculados a esta solicitud.</p>
+                        }
+                        else
+                        {
+                            <div class="cn-lab__anexo-list">
+                                @foreach (var img in borrador.Imagenes)
+                                {
+                                    <div class="cn-lab__anexo">
+                                        <div class="cn-lab__anexo-head">
+                                            <p class="cn-lab__anexo-title">@EtiquetaTipo(img.TipoAnexo)</p>
+                                            <button type="button"
+                                                    class="cn-lab__anexo-clear"
+                                                    style="color:#0170a0;text-decoration:none;"
+                                                    disabled="@ocupado"
+                                                    @onclick="() => VerAdjuntoAsync(img.ImagenesId)">
+                                                Ver
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (borrador.PuedeEditar && !modoCorregir)
+                        {
+                            <div class="cn-lab__btn-row" style="margin-top:0.85rem;">
+                                <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="IniciarCorreccion" disabled="@ocupado">
+                                    Corregir documentos
+                                </button>
+                                <button type="button" class="cn-lab__btn" @onclick="AnularAsync" disabled="@ocupado">
+                                    Anular solicitud
+                                </button>
+                            </div>
+                        }
+
+                        @if (modoCorregir)
+                        {
+                            <h3 class="cn-lab__anexo-title" style="margin-top:1.25rem;">Corregir y reenviar</h3>
+                            <p class="cn-lab__footnote">Se actualiza la misma solicitud #@borrador.SolicitudId (no crea una nueva) y se vuelve a procesar.</p>
+                            <div class="cn-lab__anexo-list">
+                                @foreach (var anexo in anexosCorreccion)
+                                {
+                                    <div class="cn-lab__anexo">
+                                        <div class="cn-lab__anexo-head">
+                                            <p class="cn-lab__anexo-title">@anexo.Etiqueta</p>
+                                            <div class="cn-lab__anexo-actions">
+                                                @if (!string.IsNullOrEmpty(anexo.FileName))
+                                                {
+                                                    <span class="cn-lab__anexo-badge">Listo</span>
+                                                    <button type="button" class="cn-lab__anexo-clear" @onclick="() => anexo.Clear()" disabled="@ocupado">Quitar</button>
+                                                }
+                                            </div>
+                                        </div>
+                                        <label class="cn-lab__drop-area" style="min-height:auto;padding:0.85rem;">
+                                            <InputFile @key="anexo.InputKey"
+                                                       OnChange="e => OnCorreccionSelected(e, anexo)"
+                                                       class="cn-lab__file-input"
+                                                       accept="image/png,image/jpeg,application/pdf"
+                                                       disabled="@ocupado" />
+                                            <span class="cn-lab__drop-title" style="font-size:0.85rem;">
+                                                @(string.IsNullOrEmpty(anexo.FileName) ? "Toca para elegir archivo" : anexo.FileName)
+                                            </span>
+                                        </label>
+                                        @if (!string.IsNullOrWhiteSpace(anexo.PreviewDataUrl)
+                                             && !anexo.PreviewDataUrl.StartsWith("data:application/pdf", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <img class="cn-lab__preview" src="@anexo.PreviewDataUrl" alt="Vista previa" style="margin-top:0.5rem;" />
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            <div class="cn-lab__btn-row">
+                                <button type="button" class="cn-lab__btn" @onclick="() => modoCorregir = false" disabled="@ocupado">Cancelar</button>
+                                <button type="button" class="cn-lab__btn cn-lab__btn--primary"
+                                        disabled="@(ocupado || !anexosCorreccion.Any(a => a.Bytes is { Length: > 0 }))"
+                                        @onclick="GuardarCorreccionAsync">
+                                    @if (ocupado)
+                                    {
+                                        <span class="cn-lab__spinner" aria-hidden="true"></span>
+                                        <span>Guardando…</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Guardar corrección</span>
+                                    }
+                                </button>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(statusMessage))
+                        {
+                            <div class="cn-lab__status @StatusMsgClass" role="status" style="margin-top:0.85rem;">
+                                <i class="bi @StatusMsgIcon" aria-hidden="true"></i>
+                                <p>@statusMessage</p>
+                            </div>
+                        }
+
+                        <div class="cn-lab__field" style="margin-top:1rem;">
                             <p class="cn-lab__label">Médico</p>
                             <p>@(string.IsNullOrWhiteSpace(borrador.NombreMedico) ? "—" : borrador.NombreMedico)</p>
                         </div>
@@ -129,6 +234,7 @@
                                     Actualizar estado
                                 </button>
                             }
+                            <button type="button" class="cn-lab__btn" @onclick="IrMisSolicitudes">Mis solicitudes</button>
                             <button type="button" class="cn-lab__btn" @onclick="GoHome">Volver al inicio</button>
                         </div>
                     }
@@ -145,11 +251,27 @@
     [Parameter] public int SolicitudId { get; set; }
 
     private bool cargando = true;
+    private bool ocupado;
+    private bool modoCorregir;
     private string? errorMsg;
+    private string statusMessage = string.Empty;
+    private string statusTone = "info";
     private ReembolsoBorradorResponse? borrador;
+
+    private readonly List<ReembolsoAnexoVm> anexosCorreccion =
+    [
+        new() { Tipo = "recipe", Etiqueta = "Récipe médico" },
+        new() { Tipo = "indicaciones", Etiqueta = "Indicaciones" },
+        new() { Tipo = "informe", Etiqueta = "Informe médico" },
+    ];
+
+    private long MaxFileSizeBytes => AppSettings.MaxUploadBytes;
+    private const string Carpeta = "Reembolsos";
+    private const string Campo = "ReembolsoApp";
 
     protected override async Task OnParametersSetAsync()
     {
+        modoCorregir = false;
         await CargarAsync();
     }
 
@@ -165,7 +287,7 @@
         }
         catch
         {
-            errorMsg = "No se pudo cargar el borrador. Intenta de nuevo.";
+            errorMsg = "No se pudo cargar la solicitud. Intenta de nuevo.";
         }
         finally
         {
@@ -173,8 +295,186 @@
         }
     }
 
-    private void GoBack() => Navigation.NavigateTo("reembolso");
+    private void IniciarCorreccion()
+    {
+        foreach (var a in anexosCorreccion)
+            a.Clear();
+        modoCorregir = true;
+        statusMessage = string.Empty;
+    }
+
+    private async Task OnCorreccionSelected(InputFileChangeEventArgs e, ReembolsoAnexoVm anexo)
+    {
+        try
+        {
+            var file = e.File;
+            if (file is null) return;
+            if (file.Size > MaxFileSizeBytes)
+            {
+                statusTone = "danger";
+                statusMessage = $"El archivo excede {AppSettings.MaxUploadMb} MB.";
+                return;
+            }
+
+            await using var stream = file.OpenReadStream(MaxFileSizeBytes);
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory);
+            var bytes = memory.ToArray();
+
+            if (!UploadFileGuard.TryValidate(
+                    file.Name, bytes, MaxFileSizeBytes, AppSettings.MaxUploadMb,
+                    out var safeName, out var validationError))
+            {
+                statusTone = "danger";
+                statusMessage = validationError ?? "Archivo no permitido.";
+                return;
+            }
+
+            anexo.FileName = safeName;
+            anexo.Bytes = bytes;
+            anexo.ContentType = GuessMime(safeName);
+            anexo.PreviewDataUrl = bytes.Length > 2 * 1024 * 1024
+                ? null
+                : $"data:{GuessMime(safeName)};base64,{Convert.ToBase64String(bytes)}";
+            statusTone = "success";
+            statusMessage = $"«{safeName}» listo para {anexo.Etiqueta}.";
+        }
+        catch
+        {
+            statusTone = "danger";
+            statusMessage = "No se pudo leer el archivo.";
+        }
+    }
+
+    private async Task GuardarCorreccionAsync()
+    {
+        if (borrador is null) return;
+        var conBytes = anexosCorreccion.Where(a => a.Bytes is { Length: > 0 }).ToList();
+        if (conBytes.Count == 0)
+        {
+            statusTone = "warning";
+            statusMessage = "Adjunta al menos un documento corregido.";
+            return;
+        }
+
+        try
+        {
+            ocupado = true;
+            statusTone = "info";
+            statusMessage = "Subiendo corrección…";
+            StateHasChanged();
+
+            var perfil = await PerfilService.GetAsync();
+            var imagenes = new List<ReembolsoSolicitudImagenDto>();
+            foreach (var anexo in conBytes)
+            {
+                using var memory = new MemoryStream(anexo.Bytes!);
+                var upload = await CuidanetService.UploadImagenAsync(
+                    fileStream: memory,
+                    fileName: anexo.FileName!,
+                    carpeta: Carpeta,
+                    fuente: AppSettings.ImagenFuente,
+                    campo: Campo,
+                    beneficiarioId: perfil.BeneficiarioId,
+                    observaciones: borrador.Comentario);
+                if (upload is null)
+                    throw new HttpRequestException($"No se pudo subir «{anexo.Etiqueta}».");
+                imagenes.Add(new ReembolsoSolicitudImagenDto
+                {
+                    ImagenesId = upload.ImagenesId,
+                    TipoAnexo = anexo.Tipo
+                });
+            }
+
+            await CuidanetService.ReemplazarReembolsoImagenesAsync(
+                borrador.SolicitudId,
+                new ReembolsoReemplazarImagenesRequest { Imagenes = imagenes });
+
+            modoCorregir = false;
+            statusTone = "success";
+            statusMessage = "Documentos actualizados en la misma solicitud. Se volverá a procesar.";
+            await CargarAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            statusTone = "danger";
+            statusMessage = string.IsNullOrWhiteSpace(ex.Message)
+                ? "No se pudo guardar la corrección."
+                : ex.Message;
+        }
+        catch
+        {
+            statusTone = "danger";
+            statusMessage = "No se pudo guardar la corrección.";
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private async Task AnularAsync()
+    {
+        if (borrador is null) return;
+        try
+        {
+            ocupado = true;
+            var result = await CuidanetService.AnularReembolsoSolicitudAsync(borrador.SolicitudId);
+            statusTone = "success";
+            statusMessage = result?.Mensaje ?? "Solicitud anulada.";
+            modoCorregir = false;
+            await CargarAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            statusTone = "danger";
+            statusMessage = string.IsNullOrWhiteSpace(ex.Message) ? "No se pudo anular." : ex.Message;
+        }
+        catch
+        {
+            statusTone = "danger";
+            statusMessage = "No se pudo anular la solicitud.";
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private async Task VerAdjuntoAsync(int imagenesId)
+    {
+        try
+        {
+            ocupado = true;
+            var file = await CuidanetService.DownloadImagenContenidoAsync(imagenesId);
+            if (file is null)
+            {
+                statusTone = "danger";
+                statusMessage = "No se encontró el documento.";
+                return;
+            }
+
+            var ok = await JS.InvokeAsync<bool>("CuidanetUi.openBytes", file.Value.Bytes, file.Value.ContentType);
+            if (!ok)
+            {
+                statusTone = "warning";
+                statusMessage = "Permite ventanas emergentes para ver el documento.";
+            }
+        }
+        catch
+        {
+            statusTone = "danger";
+            statusMessage = "No se pudo abrir el documento.";
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private void GoBack() => Navigation.NavigateTo("mis-solicitudes");
     private void GoHome() => Navigation.NavigateTo("");
+    private void IrMisSolicitudes() => Navigation.NavigateTo("mis-solicitudes");
 
     private static bool EsProcesando(string? status) =>
         string.Equals(status, "Pendiente", StringComparison.OrdinalIgnoreCase)
@@ -186,13 +486,35 @@
         "Procesando" => "Analizando documentos",
         "Listo" => "Procesado",
         "Error" => "Error",
+        "Anulado" => "Anulada",
         _ => status ?? "—"
     };
+
+    private static string EtiquetaTipo(string? tipo) => tipo?.Trim().ToLowerInvariant() switch
+    {
+        "recipe" or "récipe" or "recipe médico" => "Récipe médico",
+        "indicaciones" => "Indicaciones",
+        "informe" or "informe médico" => "Informe médico",
+        _ => string.IsNullOrWhiteSpace(tipo) ? "Documento" : tipo
+    };
+
+    private static string GuessMime(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return ext switch
+        {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".pdf" => "application/pdf",
+            _ => "application/octet-stream"
+        };
+    }
 
     private string StatusToneClass => borrador?.Status switch
     {
         "Listo" => "cn-lab__status--success",
         "Error" => "cn-lab__status--danger",
+        "Anulado" => "cn-lab__status--warning",
         "Procesando" => "cn-lab__status--warning",
         _ => "cn-lab__status--info"
     };
@@ -201,7 +523,24 @@
     {
         "Listo" => "bi-check-circle-fill",
         "Error" => "bi-x-circle-fill",
+        "Anulado" => "bi-slash-circle",
         "Procesando" => "bi-hourglass-split",
+        _ => "bi-info-circle-fill"
+    };
+
+    private string StatusMsgClass => statusTone switch
+    {
+        "success" => "cn-lab__status--success",
+        "warning" => "cn-lab__status--warning",
+        "danger" => "cn-lab__status--danger",
+        _ => "cn-lab__status--info"
+    };
+
+    private string StatusMsgIcon => statusTone switch
+    {
+        "success" => "bi-check-circle-fill",
+        "warning" => "bi-exclamation-triangle-fill",
+        "danger" => "bi-x-circle-fill",
         _ => "bi-info-circle-fill"
     };
 }
