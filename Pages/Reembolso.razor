@@ -1,12 +1,15 @@
 ﻿@page "/reembolso"
 @layout EmptyLayout
 @using System.IO
+@using System.Net.Http
+@using Microsoft.AspNetCore.Components.Authorization
 @using Cuidanet.Models
 @using Cuidanet.Services
 @inject NavigationManager Navigation
 @inject AfiliadoPerfilService PerfilService
 @inject CuidanetAppSettings AppSettings
 @inject CuidanetApiClient CuidanetService
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
 
 <PageTitle>Cuidanet — Medicamentos</PageTitle>
@@ -19,7 +22,12 @@
                 <div class="cn-lab__shell">
                     <PageHeader Title="Solicitud de medicamentos"
                                 Lead="Adjunta récipe, indicaciones e informe. Al subir, registramos tu solicitud para revisión."
-                                Back="GoHome" />
+                                Back="GoHome">
+                        @if (!string.IsNullOrWhiteSpace(textoCedulas))
+                        {
+                            <p class="cn-page__ids">@textoCedulas</p>
+                        }
+                    </PageHeader>
 
                     <section class="cn-lab__sheet">
                         <div class="cn-lab__anexo-list" aria-label="Documentos anexos">
@@ -28,17 +36,29 @@
                                 <div class="cn-lab__anexo">
                                     <div class="cn-lab__anexo-head">
                                         <p class="cn-lab__anexo-title">@anexo.Etiqueta</p>
-                                        @if (anexo.Upload is not null)
-                                        {
-                                            <span class="cn-lab__anexo-badge">Enviado</span>
-                                        }
-                                        else if (!string.IsNullOrEmpty(anexo.FileName))
-                                        {
-                                            <span class="cn-lab__anexo-badge">Listo</span>
-                                        }
+                                        <div class="cn-lab__anexo-actions">
+                                            @if (anexo.Upload is not null)
+                                            {
+                                                <span class="cn-lab__anexo-badge">Enviado</span>
+                                            }
+                                            else if (!string.IsNullOrEmpty(anexo.FileName))
+                                            {
+                                                <span class="cn-lab__anexo-badge">Listo</span>
+                                            }
+                                            @if (anexo.TieneArchivo && !ocupado && !solicitudEnviada)
+                                            {
+                                                <button type="button"
+                                                        class="cn-lab__anexo-clear"
+                                                        @onclick="() => QuitarAnexo(anexo)"
+                                                        aria-label="Quitar @anexo.Etiqueta">
+                                                    Quitar
+                                                </button>
+                                            }
+                                        </div>
                                     </div>
                                     <label class="cn-lab__drop-area" style="min-height:auto;padding:0.85rem;">
-                                        <InputFile OnChange="e => OnAnexoSelected(e, anexo)"
+                                        <InputFile @key="anexo.InputKey"
+                                                   OnChange="e => OnAnexoSelected(e, anexo)"
                                                    class="cn-lab__file-input"
                                                    accept="image/png,image/jpeg,application/pdf"
                                                    disabled="@ocupado" />
@@ -79,7 +99,7 @@
                         <div class="cn-lab__btn-row">
                             <button type="button"
                                     class="cn-lab__btn cn-lab__btn--primary"
-                                    disabled="@(ocupado || !HayDocumentosLocales || solicitudEnviada)"
+                                    disabled="@(ocupado || !PuedeEnviar || solicitudEnviada)"
                                     @onclick="EnviarSolicitudAsync">
                                 @if (subiendo)
                                 {
@@ -89,14 +109,10 @@
                                 else
                                 {
                                     <i class="bi bi-cloud-arrow-up-fill" aria-hidden="true"></i>
-                                    <span>Subir documentos</span>
+                                    <span>@(HayPendientesRegistro ? "Reintentar envío" : "Subir documentos")</span>
                                 }
                             </button>
                         </div>
-
-                        <p class="cn-lab__footnote">
-                            Tras el envío, el equipo procesará los documentos y creará el tratamiento con los medicamentos registrados para su aprobación.
-                        </p>
                     </section>
                 </div>
             </div>
@@ -116,6 +132,7 @@
     private string comentario = string.Empty;
     private string statusMessage = string.Empty;
     private string statusTone = "info";
+    private string textoCedulas = string.Empty;
 
     private readonly List<ReembolsoAnexoVm> anexos =
     [
@@ -129,6 +146,10 @@
     private const string Campo = "ReembolsoApp";
 
     private bool HayDocumentosLocales => anexos.Any(a => a.Bytes is { Length: > 0 });
+    private bool HayPendientesRegistro =>
+        !solicitudEnviada && anexos.Any(a => a.Upload is not null)
+        && anexos.All(a => a.Upload is not null || a.Bytes is not { Length: > 0 });
+    private bool PuedeEnviar => HayDocumentosLocales || HayPendientesRegistro;
 
     private string StatusClass => statusTone switch
     {
@@ -148,11 +169,96 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _ = await PerfilService.GetAsync();
-        cargando = false;
+        try
+        {
+            var perfil = await PerfilService.GetAsync();
+            await CargarCedulasAsync(perfil);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task CargarCedulasAsync(AfiliadoPerfil perfil)
+    {
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        var cedulaSesion = auth.User.Identity?.Name?.Trim() ?? string.Empty;
+
+        string? cedulaBeneficiario = null;
+        string? cedulaTitular = null;
+
+        try
+        {
+            List<BeneficiarioDto>? grupo = null;
+            if (perfil.BeneficiarioId is > 0)
+            {
+                var detalle = await CuidanetService.GetBeneficiarioDetalleAsync(perfil.BeneficiarioId.Value);
+                if (detalle is not null)
+                {
+                    cedulaBeneficiario = Digits(detalle.Cedula);
+                    grupo = await CuidanetService.GetBeneficiariosAsync(titularId: detalle.TitularId);
+                }
+            }
+
+            if (grupo is null && !string.IsNullOrWhiteSpace(cedulaSesion))
+            {
+                var porCedula = await CuidanetService.GetBeneficiariosAsync(cedula: cedulaSesion);
+                var primero = porCedula?.FirstOrDefault();
+                if (primero is not null)
+                    grupo = await CuidanetService.GetBeneficiariosAsync(titularId: primero.TitularId);
+            }
+
+            if (grupo is { Count: > 0 })
+            {
+                var titular = grupo.FirstOrDefault(b => b.BeneficiarioId == b.TitularId)
+                              ?? grupo.FirstOrDefault(b => b.TitularId > 0 && b.BeneficiarioId == grupo[0].TitularId);
+                cedulaTitular = Digits(titular?.Cedula);
+
+                if (string.IsNullOrWhiteSpace(cedulaBeneficiario) && perfil.BeneficiarioId is > 0)
+                {
+                    var ben = grupo.FirstOrDefault(b => b.BeneficiarioId == perfil.BeneficiarioId);
+                    cedulaBeneficiario = Digits(ben?.Cedula);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // El encabezado sigue sin cédulas si la consulta falla.
+        }
+
+        if (string.IsNullOrWhiteSpace(cedulaBeneficiario))
+            cedulaBeneficiario = Digits(cedulaSesion);
+        if (string.IsNullOrWhiteSpace(cedulaTitular))
+            cedulaTitular = Digits(cedulaSesion);
+
+        if (string.IsNullOrWhiteSpace(cedulaTitular) && string.IsNullOrWhiteSpace(cedulaBeneficiario))
+        {
+            textoCedulas = string.Empty;
+            return;
+        }
+
+        if (string.Equals(cedulaTitular, cedulaBeneficiario, StringComparison.Ordinal))
+            textoCedulas = $"Titular / Beneficiario C.I. {cedulaTitular}";
+        else
+            textoCedulas = $"Titular C.I. {cedulaTitular} · Beneficiario C.I. {cedulaBeneficiario}";
+    }
+
+    private static string? Digits(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var digits = new string(value.Where(char.IsDigit).ToArray());
+        return string.IsNullOrEmpty(digits) ? null : digits;
     }
 
     private void GoHome() => Navigation.NavigateTo("Home");
+
+    private void QuitarAnexo(ReembolsoAnexoVm anexo)
+    {
+        anexo.Clear();
+        solicitudEnviada = false;
+        SetStatus("Archivo quitado. Puedes elegir otro.", "info");
+    }
 
     private async Task OnAnexoSelected(InputFileChangeEventArgs e, ReembolsoAnexoVm anexo)
     {
@@ -201,22 +307,18 @@
     private async Task EnviarSolicitudAsync()
     {
         var pendientes = anexos.Where(a => a.Bytes is { Length: > 0 } && a.Upload is null).ToList();
-        if (pendientes.Count == 0 && !anexos.Any(a => a.Upload is not null))
+        var yaSubidos = anexos.Where(a => a.Upload is not null).ToList();
+
+        if (pendientes.Count == 0 && yaSubidos.Count == 0)
         {
             SetStatus("Adjunta al menos un documento para subir.", "warning");
-            return;
-        }
-
-        if (pendientes.Count == 0 && anexos.Any(a => a.Upload is not null))
-        {
-            SetStatus("Los documentos ya fueron enviados.", "info");
             return;
         }
 
         try
         {
             subiendo = true;
-            SetStatus("Subiendo documentos…", "info");
+            SetStatus(pendientes.Count > 0 ? "Subiendo documentos…" : "Registrando solicitud…", "info");
             StateHasChanged();
 
             var perfil = await PerfilService.GetAsync();
@@ -226,15 +328,27 @@
 
             foreach (var anexo in pendientes)
             {
-                using var memory = new MemoryStream(anexo.Bytes!);
-                anexo.Upload = await CuidanetService.UploadImagenAsync(
-                    fileStream: memory,
-                    fileName: anexo.FileName!,
-                    carpeta: Carpeta,
-                    fuente: AppSettings.ImagenFuente,
-                    campo: Campo,
-                    beneficiarioId: perfil.BeneficiarioId,
-                    observaciones: comentarioTrim);
+                try
+                {
+                    using var memory = new MemoryStream(anexo.Bytes!);
+                    anexo.Upload = await CuidanetService.UploadImagenAsync(
+                        fileStream: memory,
+                        fileName: anexo.FileName!,
+                        carpeta: Carpeta,
+                        fuente: AppSettings.ImagenFuente,
+                        campo: Campo,
+                        beneficiarioId: perfil.BeneficiarioId,
+                        observaciones: comentarioTrim);
+                }
+                catch (HttpRequestException ex)
+                {
+                    SetStatus(
+                        string.IsNullOrWhiteSpace(ex.Message)
+                            ? $"No se pudo subir «{anexo.Etiqueta}». Puedes quitarlo o reintentar."
+                            : $"{ex.Message} («{anexo.Etiqueta}»). Puedes quitarlo o reintentar.",
+                        "danger");
+                    return;
+                }
             }
 
             var imagenIds = anexos
@@ -245,6 +359,12 @@
                     TipoAnexo = a.Tipo
                 })
                 .ToList();
+
+            if (imagenIds.Count == 0)
+            {
+                SetStatus("No hay documentos válidos para registrar. Adjunta al menos uno.", "warning");
+                return;
+            }
 
             var registro = await CuidanetService.RegistrarReembolsoSolicitudAsync(
                 new ReembolsoSolicitudRequest
@@ -263,9 +383,17 @@
             if (registro?.SolicitudId is > 0)
                 Navigation.NavigateTo($"tratamiento/{registro.SolicitudId}");
         }
+        catch (HttpRequestException ex)
+        {
+            SetStatus(
+                string.IsNullOrWhiteSpace(ex.Message)
+                    ? "No se pudo completar el envío. Puedes reintentar sin volver a elegir los archivos."
+                    : $"{ex.Message} Puedes reintentar sin volver a elegir los archivos.",
+                "danger");
+        }
         catch (Exception)
         {
-            SetStatus("No se pudo completar el envío. Intenta de nuevo.", "danger");
+            SetStatus("No se pudo completar el envío. Puedes reintentar o quitar un archivo y subir otro.", "danger");
         }
         finally
         {
@@ -295,7 +423,9 @@
     {
         var mime = GuessMime(fileName);
         if (mime == "application/octet-stream") return null;
+        // Evita previews enormes en memoria (causa frecuente de error del circuito Blazor).
+        if (bytes.Length > 2 * 1024 * 1024)
+            return null;
         return $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
     }
 }
-

@@ -12,6 +12,21 @@ public sealed class ReembolsoAnexoVm
     public byte[]? Bytes { get; set; }
     public string? ContentType { get; set; }
     public UploadImagenResponse? Upload { get; set; }
+    /// <summary>Fuerza remount de InputFile al quitar/reemplazar el archivo.</summary>
+    public int InputKey { get; set; }
+
+    public bool TieneArchivo =>
+        !string.IsNullOrEmpty(FileName) || Bytes is { Length: > 0 } || Upload is not null;
+
+    public void Clear()
+    {
+        FileName = null;
+        PreviewDataUrl = null;
+        Bytes = null;
+        ContentType = null;
+        Upload = null;
+        InputKey++;
+    }
 }
 
 public sealed class ReembolsoSolicitudImagenDto

@@ -37,10 +37,19 @@ h1:focus {
 
 .cn-page__logo {
     display: block;
-    max-height: 36px;
+    max-height: 54px;
     width: auto;
-    max-width: min(148px, 52vw);
+    max-width: min(200px, 64vw);
     margin: 0 auto;
+}
+
+.cn-page__ids {
+    margin: 0.35rem 0 0;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #0170a0;
+    text-align: center;
 }
 
 .cn-page__back {
