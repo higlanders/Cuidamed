@@ -9,9 +9,10 @@
 
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <!-- CSP: GitHub Pages no admite headers HTTP custom; meta como defensa en profundidad. -->
+    <!-- CSP: GitHub Pages no admite headers HTTP custom; meta como defensa en profundidad.
+         frame-ancestors no aplica en <meta> (solo header HTTP); se omite a propósito. -->
     <meta http-equiv="Content-Security-Policy"
-          content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self' https://admin.cuidanet.net; worker-src 'self' blob:;" />
+          content="default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self' https://admin.cuidanet.net; worker-src 'self' blob:;" />
 
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="lib/bootstrap-icons/bootstrap-icons.min.css" />

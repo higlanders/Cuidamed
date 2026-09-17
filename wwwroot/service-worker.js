@@ -5,7 +5,9 @@ self.addEventListener('activate', event => event.waitUntil(self.clients.claim())
 self.addEventListener('fetch', event => {
     const url = event.request.url || '';
     if (url.indexOf('appsettings') !== -1 || url.indexOf('/api/') !== -1 || url.indexOf('/APILIS/') !== -1) {
-        event.respondWith(fetch(event.request, { cache: 'no-store' }));
+        event.respondWith(
+            fetch(event.request, { cache: 'no-store' }).catch(() => Response.error())
+        );
         return;
     }
 });

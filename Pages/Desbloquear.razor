@@ -24,21 +24,23 @@
                 </button>
             }
 
-            <div class="cn-login-field">
-                <label class="cn-login-label" for="pin">PIN</label>
-                <input id="pin" class="cn-login-input" type="password" inputmode="numeric" maxlength="8"
-                       autocomplete="current-password" @bind="_pin" @bind:event="oninput"
-                       @onkeydown="OnKey" />
-            </div>
+            <form class="cn-login-form" @onsubmit:preventDefault="true" @onsubmit="UnlockPinAsync">
+                <div class="cn-login-field">
+                    <label class="cn-login-label" for="pin">PIN</label>
+                    <input id="pin" class="cn-login-input" type="password" name="pin" inputmode="numeric" maxlength="8"
+                           autocomplete="current-password" @bind="_pin" @bind:event="oninput"
+                           @onkeydown="OnKey" />
+                </div>
 
-            @if (!string.IsNullOrEmpty(_error))
-            {
-                <div class="cn-login-error" role="alert">@_error</div>
-            }
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="cn-login-error" role="alert">@_error</div>
+                }
 
-            <button type="button" class="cn-login-cta" disabled="@_busy" @onclick="UnlockPinAsync">
-                @(_busy ? "…" : "Entrar")
-            </button>
+                <button type="submit" class="cn-login-cta" disabled="@_busy">
+                    @(_busy ? "…" : "Entrar")
+                </button>
+            </form>
 
             <button type="button" class="cn-login-linkish" style="margin-top:1rem;background:none;border:0;color:#007a8a;text-decoration:underline;cursor:pointer;"
                     @onclick="LogoutAsync">

@@ -294,8 +294,21 @@
 
         try
         {
+            // Preferir consulta por cédula (sin Foto). GET Beneficiario/{id} incluye Foto y
+            // en prod puede devolver 500 si el blob está corrupto o es demasiado grande.
             List<BeneficiarioDto>? grupo = null;
-            if (perfil.BeneficiarioId is > 0)
+            if (!string.IsNullOrWhiteSpace(cedulaSesion))
+            {
+                var porCedula = await CuidanetService.GetBeneficiariosAsync(cedula: cedulaSesion);
+                var primero = porCedula?.FirstOrDefault();
+                if (primero is not null)
+                {
+                    cedulaBeneficiario = Digits(primero.Cedula);
+                    grupo = await CuidanetService.GetBeneficiariosAsync(titularId: primero.TitularId);
+                }
+            }
+
+            if (grupo is null && perfil.BeneficiarioId is > 0)
             {
                 var detalle = await CuidanetService.GetBeneficiarioDetalleAsync(perfil.BeneficiarioId.Value);
                 if (detalle is not null)
@@ -303,14 +316,6 @@
                     cedulaBeneficiario = Digits(detalle.Cedula);
                     grupo = await CuidanetService.GetBeneficiariosAsync(titularId: detalle.TitularId);
                 }
-            }
-
-            if (grupo is null && !string.IsNullOrWhiteSpace(cedulaSesion))
-            {
-                var porCedula = await CuidanetService.GetBeneficiariosAsync(cedula: cedulaSesion);
-                var primero = porCedula?.FirstOrDefault();
-                if (primero is not null)
-                    grupo = await CuidanetService.GetBeneficiariosAsync(titularId: primero.TitularId);
             }
 
             if (grupo is { Count: > 0 })

@@ -18,36 +18,38 @@
                 El PIN es obligatorio para abrir Cuidamed en este celular. La huella es opcional.
             </p>
 
-            <div class="cn-login-field">
-                <label class="cn-login-label" for="pin1">PIN (4 a 8 dígitos)</label>
-                <input id="pin1" class="cn-login-input" type="password" inputmode="numeric" maxlength="8"
-                       autocomplete="new-password" @bind="_pin" @bind:event="oninput" />
-            </div>
-            <div class="cn-login-field">
-                <label class="cn-login-label" for="pin2">Confirmá el PIN</label>
-                <input id="pin2" class="cn-login-input" type="password" inputmode="numeric" maxlength="8"
-                       autocomplete="new-password" @bind="_pinConfirm" @bind:event="oninput" />
-            </div>
-
-            @if (_webAuthnOk)
-            {
-                <div class="cn-login-check" style="margin-top:0.75rem;">
-                    <label class="cn-login-check__control">
-                        <input type="checkbox" @bind="_wantBiometric" />
-                        <span class="cn-login-check__box" aria-hidden="true"></span>
-                    </label>
-                    <span class="cn-login-check__link" style="cursor:default;">También activar huella / Face ID</span>
+            <form class="cn-login-form" @onsubmit:preventDefault="true" @onsubmit="SaveAsync">
+                <div class="cn-login-field">
+                    <label class="cn-login-label" for="pin1">PIN (4 a 8 dígitos)</label>
+                    <input id="pin1" class="cn-login-input" type="password" name="pin" inputmode="numeric" maxlength="8"
+                           autocomplete="new-password" @bind="_pin" @bind:event="oninput" />
                 </div>
-            }
+                <div class="cn-login-field">
+                    <label class="cn-login-label" for="pin2">Confirmá el PIN</label>
+                    <input id="pin2" class="cn-login-input" type="password" name="pin-confirm" inputmode="numeric" maxlength="8"
+                           autocomplete="new-password" @bind="_pinConfirm" @bind:event="oninput" />
+                </div>
 
-            @if (!string.IsNullOrEmpty(_error))
-            {
-                <div class="cn-login-error" role="alert">@_error</div>
-            }
+                @if (_webAuthnOk)
+                {
+                    <div class="cn-login-check" style="margin-top:0.75rem;">
+                        <label class="cn-login-check__control">
+                            <input type="checkbox" @bind="_wantBiometric" />
+                            <span class="cn-login-check__box" aria-hidden="true"></span>
+                        </label>
+                        <span class="cn-login-check__link" style="cursor:default;">También activar huella / Face ID</span>
+                    </div>
+                }
 
-            <button type="button" class="cn-login-cta" disabled="@_busy" @onclick="SaveAsync">
-                @(_busy ? "Guardando…" : "Guardar y continuar")
-            </button>
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="cn-login-error" role="alert">@_error</div>
+                }
+
+                <button type="submit" class="cn-login-cta" disabled="@_busy">
+                    @(_busy ? "Guardando…" : "Guardar y continuar")
+                </button>
+            </form>
         </section>
     </div>
 </div>

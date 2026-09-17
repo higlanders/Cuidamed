@@ -400,7 +400,7 @@ namespace Cuidanet.Services
         }
 
         /// <summary>
-        /// Endpoint 4: Consulta de Ficha de Detalle (Incluye foto en Base64).
+        /// Endpoint 4: Ficha de detalle (la API ya no envía Foto).
         /// </summary>
         public async Task<BeneficiarioDto?> GetBeneficiarioDetalleAsync(int beneficiarioId)
         {

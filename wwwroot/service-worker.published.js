@@ -35,12 +35,14 @@ function isSensitiveRequest(request) {
 }
 
 // Handler fetch obligatorio para que Chrome considere la app instalable.
+// Si la red falla, devolvemos Response.error() para no dejar promesas sin atrapar.
 self.addEventListener('fetch', event => {
     const req = event.request;
-    if (isSensitiveRequest(req)) {
-        event.respondWith(fetch(req, { cache: 'no-store' }));
-        return;
-    }
+    const network = isSensitiveRequest(req)
+        ? fetch(req, { cache: 'no-store' })
+        : fetch(req);
 
-    event.respondWith(fetch(req));
+    event.respondWith(
+        network.catch(() => Response.error())
+    );
 });
