@@ -9,6 +9,7 @@
 @inject CuidanetAppSettings AppSettings
 @inject AfiliadoPerfilService PerfilService
 @inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Cuidanet — Solicitud</PageTitle>
 
@@ -49,6 +50,13 @@
                                 Estado: <strong>@ReembolsoUiLabels.EstadoAsegurado(borrador.Status)</strong>
                             </p>
                         </div>
+
+                        @if (!string.IsNullOrWhiteSpace(textoBeneficiario))
+                        {
+                            <p class="cn-lab__footnote" style="margin-top:0.35rem;">
+                                Beneficiario: <strong>@textoBeneficiario</strong>
+                            </p>
+                        }
 
                         @if (ReembolsoUiLabels.EsError(borrador.Status))
                         {
@@ -208,6 +216,7 @@
     private string statusMessage = string.Empty;
     private string statusTone = "info";
     private ReembolsoBorradorResponse? borrador;
+    private string? textoBeneficiario;
 
     private readonly List<ReembolsoAnexoVm> anexosCorreccion =
     [
@@ -231,11 +240,14 @@
     {
         cargando = true;
         errorMsg = null;
+        textoBeneficiario = null;
         try
         {
             borrador = await CuidanetService.GetReembolsoBorradorAsync(SolicitudId);
             if (borrador is null)
                 errorMsg = "No encontramos esa solicitud.";
+            else
+                textoBeneficiario = await ResolverBeneficiarioAsync(borrador);
         }
         catch
         {
@@ -245,6 +257,45 @@
         {
             cargando = false;
         }
+    }
+
+    private async Task<string?> ResolverBeneficiarioAsync(ReembolsoBorradorResponse b)
+    {
+        var nombre = b.NombreBeneficiario?.Trim();
+        var cedula = b.CedulaBeneficiario?.Trim();
+
+        if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(cedula))
+        {
+            try
+            {
+                var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+                var cedulaSesion = auth.User.Identity?.Name;
+                if (!string.IsNullOrWhiteSpace(cedulaSesion))
+                {
+                    var grupo = await CuidanetService.GetBeneficiariosAsync(cedula: cedulaSesion);
+                    var match = grupo.FirstOrDefault(x => x.BeneficiarioId == b.BeneficiarioId);
+                    if (match is not null)
+                    {
+                        if (string.IsNullOrWhiteSpace(nombre))
+                            nombre = match.NombreCompleto;
+                        if (string.IsNullOrWhiteSpace(cedula))
+                            cedula = match.Cedula;
+                    }
+                }
+            }
+            catch
+            {
+                // Detalle sigue sin etiqueta de beneficiario.
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(nombre) && string.IsNullOrWhiteSpace(cedula))
+            return null;
+        if (string.IsNullOrWhiteSpace(cedula))
+            return nombre;
+        if (string.IsNullOrWhiteSpace(nombre))
+            return $"C.I. {cedula}";
+        return $"{nombre} · C.I. {cedula}";
     }
 
     private void IniciarCorreccion()

@@ -91,6 +91,14 @@ public sealed class ReembolsoSolicitudListaDto
     [JsonPropertyName("beneficiarioId")]
     public int BeneficiarioId { get; set; }
 
+    /// <summary>Opcional: si APILIS lo envía en el listado.</summary>
+    [JsonPropertyName("nombreBeneficiario")]
+    public string? NombreBeneficiario { get; set; }
+
+    /// <summary>Opcional: cédula del beneficiario de la solicitud.</summary>
+    [JsonPropertyName("cedulaBeneficiario")]
+    public string? CedulaBeneficiario { get; set; }
+
     [JsonPropertyName("status")]
     public string Status { get; set; } = string.Empty;
 
@@ -250,6 +258,12 @@ public sealed class ReembolsoBorradorResponse
 
     [JsonPropertyName("beneficiarioId")]
     public int BeneficiarioId { get; set; }
+
+    [JsonPropertyName("nombreBeneficiario")]
+    public string? NombreBeneficiario { get; set; }
+
+    [JsonPropertyName("cedulaBeneficiario")]
+    public string? CedulaBeneficiario { get; set; }
 
     [JsonPropertyName("status")]
     public string Status { get; set; } = "";

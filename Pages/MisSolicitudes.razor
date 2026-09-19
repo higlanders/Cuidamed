@@ -5,6 +5,7 @@
 @inject NavigationManager Navigation
 @inject AfiliadoPerfilService PerfilService
 @inject CuidanetApiClient CuidanetService
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Cuidanet — Mis solicitudes</PageTitle>
 
@@ -53,6 +54,7 @@
                         <div class="cn-lab__anexo-list" aria-label="Solicitudes">
                             @foreach (var s in items)
                             {
+                                var beneficiario = TextoBeneficiario(s);
                                 <button type="button"
                                         class="cn-lab__anexo"
                                         style="width:100%;text-align:left;cursor:pointer;"
@@ -61,6 +63,12 @@
                                         <p class="cn-lab__anexo-title">Solicitud #@s.SolicitudId</p>
                                         <span class="cn-lab__anexo-badge">@EtiquetaStatus(s.Status)</span>
                                     </div>
+                                    @if (!string.IsNullOrWhiteSpace(beneficiario))
+                                    {
+                                        <p class="cn-lab__drop-hint" style="margin:0.15rem 0 0;">
+                                            @beneficiario
+                                        </p>
+                                    }
                                     <p class="cn-lab__drop-hint" style="margin:0;">
                                         @s.FechaCrea.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                                         · @s.CantidadAdjuntos adjunto(s)
@@ -92,6 +100,7 @@
     private bool cargando = true;
     private string? errorMsg;
     private List<ReembolsoSolicitudListaDto> items = [];
+    private Dictionary<int, (string Nombre, string Cedula)> beneficiariosPorId = new();
 
     protected override async Task OnInitializedAsync() => await CargarAsync();
 
@@ -109,6 +118,7 @@
                 return;
             }
 
+            await CargarMapaBeneficiariosAsync();
             items = await CuidanetService.GetReembolsoSolicitudesAsync(perfil.BeneficiarioId.Value);
         }
         catch
@@ -120,6 +130,54 @@
         {
             cargando = false;
         }
+    }
+
+    private async Task CargarMapaBeneficiariosAsync()
+    {
+        beneficiariosPorId = new Dictionary<int, (string Nombre, string Cedula)>();
+        try
+        {
+            var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+            var cedulaSesion = auth.User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(cedulaSesion))
+                return;
+
+            var grupo = await CuidanetService.GetBeneficiariosAsync(cedula: cedulaSesion);
+            foreach (var b in grupo)
+            {
+                beneficiariosPorId[b.BeneficiarioId] = (b.NombreCompleto, b.Cedula ?? string.Empty);
+            }
+        }
+        catch
+        {
+            // El listado sigue; solo sin etiqueta de beneficiario resuelta.
+        }
+    }
+
+    private string TextoBeneficiario(ReembolsoSolicitudListaDto s)
+    {
+        var nombre = s.NombreBeneficiario?.Trim();
+        var cedula = s.CedulaBeneficiario?.Trim();
+
+        if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(cedula))
+        {
+            if (beneficiariosPorId.TryGetValue(s.BeneficiarioId, out var info))
+            {
+                if (string.IsNullOrWhiteSpace(nombre))
+                    nombre = info.Nombre;
+                if (string.IsNullOrWhiteSpace(cedula))
+                    cedula = info.Cedula;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(nombre) && string.IsNullOrWhiteSpace(cedula))
+            return string.Empty;
+
+        if (string.IsNullOrWhiteSpace(cedula))
+            return nombre!;
+        if (string.IsNullOrWhiteSpace(nombre))
+            return $"C.I. {cedula}";
+        return $"{nombre} · C.I. {cedula}";
     }
 
     private void Abrir(int id) => Navigation.NavigateTo($"tratamiento/{id}");
