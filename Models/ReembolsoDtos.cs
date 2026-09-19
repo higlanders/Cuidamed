@@ -2,7 +2,7 @@
 
 namespace Cuidanet.Models;
 
-/// <summary>Documento anexado en el flujo de reembolso.</summary>
+/// <summary>Documento anexado en el flujo de reembolso (un archivo).</summary>
 public sealed class ReembolsoAnexoVm
 {
     public required string Tipo { get; init; }
@@ -27,6 +27,21 @@ public sealed class ReembolsoAnexoVm
         Upload = null;
         InputKey++;
     }
+}
+
+/// <summary>Sección de anexos (récipe / indicaciones / informe) con varios archivos.</summary>
+public sealed class ReembolsoSeccionVm
+{
+    public required string Tipo { get; init; }
+    public required string Etiqueta { get; init; }
+    public List<ReembolsoAnexoVm> Archivos { get; } = [];
+
+    public bool TieneArchivos => Archivos.Any(a => a.TieneArchivo);
+
+    public ReembolsoAnexoVm CrearArchivo() =>
+        new() { Tipo = Tipo, Etiqueta = Etiqueta };
+
+    public void Clear() => Archivos.Clear();
 }
 
 public sealed class ReembolsoSolicitudImagenDto
@@ -169,6 +184,9 @@ public sealed class ResultadoExtraccionTratamientoDto
 
     [JsonPropertyName("motivoSinEncabezado")]
     public string? MotivoSinEncabezado { get; set; }
+
+    [JsonPropertyName("origen")]
+    public string? Origen { get; set; }
 }
 
 public sealed class MedicamentoMatchDto
@@ -274,4 +292,54 @@ public sealed class ReembolsoBorradorResponse
 
     [JsonPropertyName("puedeEditar")]
     public bool PuedeEditar { get; set; }
+}
+
+/// <summary>PUT Reembolso/solicitud/{id}/lectura-manual — admin N1/N2.</summary>
+public sealed class ReembolsoLecturaManualRequest
+{
+    [JsonPropertyName("nombreMedico")]
+    public string? NombreMedico { get; set; }
+
+    [JsonPropertyName("fechaRecipe")]
+    public DateTime? FechaRecipe { get; set; }
+
+    [JsonPropertyName("diagnosticoId")]
+    public int? DiagnosticoId { get; set; }
+
+    [JsonPropertyName("diagnosticoTexto")]
+    public string? DiagnosticoTexto { get; set; }
+
+    [JsonPropertyName("observaciones")]
+    public string? Observaciones { get; set; }
+
+    [JsonPropertyName("medicamentos")]
+    public List<ReembolsoLecturaManualMedicamentoDto> Medicamentos { get; set; } = [];
+}
+
+public sealed class ReembolsoLecturaManualMedicamentoDto
+{
+    [JsonPropertyName("medicamentoId")]
+    public int MedicamentoId { get; set; }
+
+    [JsonPropertyName("cantidad")]
+    public decimal? Cantidad { get; set; }
+
+    [JsonPropertyName("presentacion")]
+    public string? Presentacion { get; set; }
+
+    [JsonPropertyName("posologia")]
+    public string? Posologia { get; set; }
+
+    /// <summary>Solo UI; no se envía al API.</summary>
+    [JsonIgnore]
+    public string? NombreCatalogo { get; set; }
+}
+
+public sealed class ReembolsoMedicamentoBusquedaDto
+{
+    [JsonPropertyName("medicamentoId")]
+    public int MedicamentoId { get; set; }
+
+    [JsonPropertyName("nombre")]
+    public string? Nombre { get; set; }
 }

@@ -1,0 +1,524 @@
+﻿@page "/tratamiento/{SolicitudId:int}/validar"
+@layout EmptyLayout
+@using System.Net.Http
+@using Cuidanet.Models
+@using Cuidanet.Services
+@inject NavigationManager Navigation
+@inject CuidanetApiClient CuidanetService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
+
+<PageTitle>Cuidanet — Validar medicamentos</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-lab">
+            <div class="cn-lab__shell">
+                <PageHeader Title="Validar medicamentos"
+                            Lead="Revisa el registro propuesto antes de continuar."
+                            Back="GoBack" />
+
+                <section class="cn-lab__sheet">
+                    @if (cargando)
+                    {
+                        <div class="cn-lab__status cn-lab__status--info" role="status">
+                            <span class="cn-lab__spinner" aria-hidden="true"></span>
+                            <p>Cargando registro…</p>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(errorMsg))
+                    {
+                        <div class="cn-lab__status cn-lab__status--danger" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                            <p>@errorMsg</p>
+                        </div>
+                        <div class="cn-lab__btn-row">
+                            <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="CargarAsync">Reintentar</button>
+                        </div>
+                    }
+                    else if (borrador is not null)
+                    {
+                        <div class="cn-lab__status @StatusToneClass" role="status">
+                            <i class="bi @StatusIcon" aria-hidden="true"></i>
+                            <p>
+                                Solicitud #@borrador.SolicitudId ·
+                                Estado: <strong>@ReembolsoUiLabels.EstadoAsegurado(borrador.Status)</strong>
+                            </p>
+                        </div>
+
+                        @* —— Vista asegurado: sin menciones a IA —— *@
+                        <h3 class="cn-lab__anexo-title" style="margin-top:1rem;">Medicamentos del registro</h3>
+                        @if (borrador.Detalle.Count == 0)
+                        {
+                            <p class="cn-lab__footnote">
+                                Aún no hay medicamentos en el registro.
+                                Si acabas de enviar los documentos, vuelve al detalle y actualiza el estado.
+                                Un analista podrá completar el registro si hace falta.
+                            </p>
+                        }
+                        else
+                        {
+                            <ul class="cn-lab__anexo-list" style="list-style:none;padding:0;margin:0.5rem 0 0;">
+                                @foreach (var d in borrador.Detalle)
+                                {
+                                    <li class="cn-lab__anexo" style="margin-bottom:0.5rem;">
+                                        <p class="cn-lab__anexo-title">@(d.NombreMedicamento ?? $"#{d.MedicamentoId}")</p>
+                                        <p class="cn-lab__footnote">
+                                            Cant. @(d.Cantidad?.ToString("0.##") ?? "—")
+                                            @if (!string.IsNullOrWhiteSpace(d.Presentacion))
+                                            {
+                                                <span> · @d.Presentacion</span>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(d.Posologia))
+                                            {
+                                                <span> · @d.Posologia</span>
+                                            }
+                                        </p>
+                                    </li>
+                                }
+                            </ul>
+                        }
+
+                        @if (!string.IsNullOrEmpty(statusMessage))
+                        {
+                            <div class="cn-lab__status @StatusMsgClass" role="status" style="margin-top:0.85rem;">
+                                <i class="bi @StatusMsgIcon" aria-hidden="true"></i>
+                                <p>@statusMessage</p>
+                            </div>
+                        }
+
+                        <div class="cn-lab__btn-row" style="margin-top:1.15rem;">
+                            @if (ReembolsoUiLabels.EsListaParaValidar(borrador.Status) && borrador.Detalle.Count > 0 && !esAdminN1o2)
+                            {
+                                <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="ConfirmarRevisionAsync" disabled="@ocupado">
+                                    <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                                    He revisado los medicamentos
+                                </button>
+                            }
+                            <button type="button" class="cn-lab__btn cn-lab__btn--ghost" @onclick="GoBack">Volver al detalle</button>
+                            <button type="button" class="cn-lab__btn cn-lab__btn--ghost" @onclick="IrMisSolicitudes">Mis solicitudes</button>
+                        </div>
+
+                        @* —— Solo admin nivel 1/2: lectura manual (sin reproceso IA) —— *@
+                        @if (esAdminN1o2)
+                        {
+                            <div class="cn-lab__admin-panel" style="margin-top:1.35rem;">
+                                <h3><i class="bi bi-shield-lock" aria-hidden="true"></i> Analista — lectura manual</h3>
+                                <p class="cn-lab__footnote" style="margin-bottom:0.75rem;">
+                                    Completa médico, fecha y medicamentos del catálogo. No vuelve a leer los PDF con IA.
+                                </p>
+
+                                @if (borrador.Extraccion is not null)
+                                {
+                                    <div class="cn-lab__field">
+                                        <p class="cn-lab__label">Última extracción IA</p>
+                                        <p>
+                                            Origen: @(borrador.Extraccion.Origen ?? "IA") ·
+                                            Confianza: @(borrador.Extraccion.Confianza ?? "—")
+                                            @if (!borrador.Extraccion.EncabezadoAplicado
+                                                 && !string.IsNullOrWhiteSpace(borrador.Extraccion.MotivoSinEncabezado))
+                                            {
+                                                <span class="cn-lab__footnote"> · @borrador.Extraccion.MotivoSinEncabezado</span>
+                                            }
+                                        </p>
+                                    </div>
+                                    @if (borrador.Extraccion.Unmatched is { Count: > 0 })
+                                    {
+                                        <p class="cn-lab__footnote">
+                                            No catalogados por IA:
+                                            @string.Join("; ", borrador.Extraccion.Unmatched.Select(u => u.NombreExtraido))
+                                        </p>
+                                    }
+                                }
+
+                                <h3 class="cn-lab__anexo-title" style="margin-top:0.85rem;">Adjuntos</h3>
+                                @if (borrador.Imagenes.Count == 0)
+                                {
+                                    <p class="cn-lab__footnote">Sin adjuntos.</p>
+                                }
+                                else
+                                {
+                                    <div class="cn-lab__anexo-list">
+                                        @foreach (var img in borrador.Imagenes)
+                                        {
+                                            <div class="cn-lab__anexo">
+                                                <div class="cn-lab__anexo-head">
+                                                    <p class="cn-lab__anexo-title">@ReembolsoUiLabels.TipoAnexo(img.TipoAnexo)</p>
+                                                    <button type="button"
+                                                            class="cn-lab__btn cn-lab__btn--outline cn-lab__btn--sm"
+                                                            disabled="@ocupado"
+                                                            @onclick="() => VerAdjuntoAsync(img.ImagenesId)">
+                                                        <i class="bi bi-eye" aria-hidden="true"></i>
+                                                        Ver
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                <div class="cn-lab__field" style="margin-top:1rem;">
+                                    <label class="cn-lab__label" for="man-medico">Médico</label>
+                                    <input id="man-medico" class="cn-lab__input" @bind="manualMedico" disabled="@ocupado" maxlength="200" />
+                                </div>
+                                <div class="cn-lab__field">
+                                    <label class="cn-lab__label" for="man-fecha">Fecha récipe</label>
+                                    <input id="man-fecha" type="date" class="cn-lab__input" @bind="manualFecha" disabled="@ocupado" />
+                                </div>
+                                <div class="cn-lab__field">
+                                    <label class="cn-lab__label" for="man-obs">Observaciones</label>
+                                    <textarea id="man-obs" class="cn-lab__input" rows="2" @bind="manualObs" disabled="@ocupado" maxlength="1000"></textarea>
+                                </div>
+
+                                <h3 class="cn-lab__anexo-title" style="margin-top:1rem;">Medicamentos (catálogo)</h3>
+                                <div class="cn-lab__field">
+                                    <label class="cn-lab__label" for="man-buscar">Buscar medicamento</label>
+                                    <div style="display:flex;gap:0.5rem;align-items:stretch;">
+                                        <input id="man-buscar" class="cn-lab__input" style="flex:1;" @bind="busquedaQ" @bind:event="oninput"
+                                               disabled="@ocupado" placeholder="Mín. 2 letras…" />
+                                        <button type="button" class="cn-lab__btn cn-lab__btn--outline cn-lab__btn--sm"
+                                                style="width:auto;align-self:center;"
+                                                disabled="@(ocupado || (busquedaQ?.Trim().Length ?? 0) < 2)"
+                                                @onclick="BuscarMedsAsync">
+                                            Buscar
+                                        </button>
+                                    </div>
+                                </div>
+                                @if (busquedaResultados.Count > 0)
+                                {
+                                    <div class="cn-lab__anexo-list" style="margin-top:0.35rem;">
+                                        @foreach (var hit in busquedaResultados)
+                                        {
+                                            <div class="cn-lab__anexo">
+                                                <div class="cn-lab__anexo-head">
+                                                    <p class="cn-lab__anexo-title">@(hit.Nombre ?? $"#{hit.MedicamentoId}")</p>
+                                                    <button type="button"
+                                                            class="cn-lab__btn cn-lab__btn--outline cn-lab__btn--sm"
+                                                            disabled="@ocupado"
+                                                            @onclick="() => AgregarMedicamento(hit)">
+                                                        Añadir
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                @if (manualMeds.Count == 0)
+                                {
+                                    <p class="cn-lab__footnote">Añade al menos un medicamento del catálogo.</p>
+                                }
+                                else
+                                {
+                                    <ul class="cn-lab__anexo-list" style="list-style:none;padding:0;margin:0.5rem 0 0;">
+                                        @foreach (var m in manualMeds)
+                                        {
+                                            <li class="cn-lab__anexo" style="margin-bottom:0.5rem;">
+                                                <div class="cn-lab__anexo-head">
+                                                    <p class="cn-lab__anexo-title">@(m.NombreCatalogo ?? $"#{m.MedicamentoId}")</p>
+                                                    <button type="button" class="cn-lab__btn cn-lab__btn--outline cn-lab__btn--sm"
+                                                            disabled="@ocupado" @onclick="() => QuitarMedicamento(m.MedicamentoId)">
+                                                        Quitar
+                                                    </button>
+                                                </div>
+                                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.45rem;">
+                                                    <div>
+                                                        <label class="cn-lab__label">Cantidad</label>
+                                                        <input class="cn-lab__input" type="number" min="0.01" step="0.01"
+                                                               value="@m.Cantidad" disabled="@ocupado"
+                                                               @onchange="e => OnCantidad(m, e.Value?.ToString())" />
+                                                    </div>
+                                                    <div>
+                                                        <label class="cn-lab__label">Presentación</label>
+                                                        <input class="cn-lab__input" @bind="m.Presentacion" disabled="@ocupado" maxlength="100" />
+                                                    </div>
+                                                </div>
+                                                <div class="cn-lab__field" style="margin-top:0.35rem;">
+                                                    <label class="cn-lab__label">Posología</label>
+                                                    <input class="cn-lab__input" @bind="m.Posologia" disabled="@ocupado" maxlength="500" />
+                                                </div>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+
+                                <div class="cn-lab__btn-row" style="margin-top:0.95rem;">
+                                    <button type="button"
+                                            class="cn-lab__btn cn-lab__btn--primary"
+                                            disabled="@(ocupado || manualMeds.Count == 0)"
+                                            @onclick="GuardarLecturaManualAsync">
+                                        @if (ocupado)
+                                        {
+                                            <span class="cn-lab__spinner" aria-hidden="true"></span>
+                                            <span>Guardando…</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-save" aria-hidden="true"></i>
+                                            <span>Guardar lectura manual</span>
+                                        }
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    }
+                </section>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [Parameter] public int SolicitudId { get; set; }
+
+    private bool cargando = true;
+    private bool ocupado;
+    private bool esAdminN1o2;
+    private string? errorMsg;
+    private string statusMessage = string.Empty;
+    private string statusTone = "info";
+    private ReembolsoBorradorResponse? borrador;
+
+    private string? manualMedico;
+    private DateTime? manualFecha;
+    private string? manualObs;
+    private string? busquedaQ;
+    private List<ReembolsoMedicamentoBusquedaDto> busquedaResultados = [];
+    private List<ReembolsoLecturaManualMedicamentoDto> manualMeds = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        esAdminN1o2 = StaffAccessHelper.EsAdminNivel1o2(auth.User);
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        errorMsg = null;
+        try
+        {
+            borrador = await CuidanetService.GetReembolsoBorradorAsync(SolicitudId);
+            if (borrador is null)
+            {
+                errorMsg = "No encontramos esa solicitud.";
+                return;
+            }
+
+            PrefillManualDesdeBorrador();
+        }
+        catch
+        {
+            errorMsg = "No se pudo cargar el registro. Intenta de nuevo.";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void PrefillManualDesdeBorrador()
+    {
+        if (borrador is null) return;
+        manualMedico = borrador.NombreMedico;
+        manualFecha = borrador.FechaRecipe?.Date;
+        manualObs = borrador.Observaciones;
+        manualMeds = borrador.Detalle
+            .Where(d => d.MedicamentoId > 0)
+            .Select(d => new ReembolsoLecturaManualMedicamentoDto
+            {
+                MedicamentoId = d.MedicamentoId,
+                NombreCatalogo = d.NombreMedicamento,
+                Cantidad = d.Cantidad is > 0 ? d.Cantidad : 1,
+                Presentacion = d.Presentacion,
+                Posologia = d.Posologia
+            })
+            .ToList();
+        busquedaResultados = [];
+        busquedaQ = null;
+    }
+
+    private async Task BuscarMedsAsync()
+    {
+        try
+        {
+            ocupado = true;
+            busquedaResultados = await CuidanetService.BuscarMedicamentosReembolsoAsync(busquedaQ ?? "");
+            if (busquedaResultados.Count == 0)
+            {
+                statusTone = "warning";
+                statusMessage = "Sin coincidencias en el catálogo.";
+            }
+            else
+            {
+                statusMessage = string.Empty;
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            statusTone = "danger";
+            statusMessage = string.IsNullOrWhiteSpace(ex.Message) ? "No se pudo buscar." : ex.Message;
+        }
+        catch
+        {
+            statusTone = "danger";
+            statusMessage = "No se pudo buscar medicamentos.";
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private void AgregarMedicamento(ReembolsoMedicamentoBusquedaDto hit)
+    {
+        if (manualMeds.Any(m => m.MedicamentoId == hit.MedicamentoId))
+            return;
+        manualMeds.Add(new ReembolsoLecturaManualMedicamentoDto
+        {
+            MedicamentoId = hit.MedicamentoId,
+            NombreCatalogo = hit.Nombre,
+            Cantidad = 1
+        });
+    }
+
+    private void QuitarMedicamento(int id) =>
+        manualMeds.RemoveAll(m => m.MedicamentoId == id);
+
+    private static void OnCantidad(ReembolsoLecturaManualMedicamentoDto m, string? raw)
+    {
+        if (decimal.TryParse(raw, out var v) && v > 0)
+            m.Cantidad = v;
+    }
+
+    private async Task GuardarLecturaManualAsync()
+    {
+        if (borrador is null || manualMeds.Count == 0) return;
+        try
+        {
+            ocupado = true;
+            statusTone = "info";
+            statusMessage = "Guardando lectura manual…";
+            StateHasChanged();
+
+            var result = await CuidanetService.CompletarLecturaManualAsync(
+                borrador.SolicitudId,
+                new ReembolsoLecturaManualRequest
+                {
+                    NombreMedico = manualMedico,
+                    FechaRecipe = manualFecha,
+                    Observaciones = manualObs,
+                    Medicamentos = manualMeds
+                });
+
+            borrador = result ?? borrador;
+            PrefillManualDesdeBorrador();
+            statusTone = "success";
+            statusMessage = "Lectura manual guardada. La solicitud quedó lista.";
+        }
+        catch (HttpRequestException ex)
+        {
+            statusTone = "danger";
+            statusMessage = string.IsNullOrWhiteSpace(ex.Message)
+                ? "No se pudo guardar la lectura manual."
+                : ex.Message;
+        }
+        catch
+        {
+            statusTone = "danger";
+            statusMessage = "No se pudo guardar la lectura manual.";
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private async Task ConfirmarRevisionAsync()
+    {
+        ocupado = true;
+        try
+        {
+            statusTone = "success";
+            statusMessage = "Gracias. Registramos tu revisión. El equipo continuará con la solicitud.";
+            await Task.Delay(600);
+            Navigation.NavigateTo("mis-solicitudes");
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private async Task VerAdjuntoAsync(int imagenesId)
+    {
+        try
+        {
+            ocupado = true;
+            var file = await CuidanetService.DownloadImagenContenidoAsync(imagenesId);
+            if (file is null)
+            {
+                statusTone = "danger";
+                statusMessage = "No se encontró el documento.";
+                return;
+            }
+
+            var ok = await JS.InvokeAsync<bool>("CuidanetUi.openBytes", file.Value.Bytes, file.Value.ContentType);
+            if (!ok)
+            {
+                statusTone = "warning";
+                statusMessage = "Permite ventanas emergentes para ver el documento.";
+            }
+        }
+        catch
+        {
+            statusTone = "danger";
+            statusMessage = "No se pudo abrir el documento.";
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private void GoBack() => Navigation.NavigateTo($"tratamiento/{SolicitudId}");
+    private void IrMisSolicitudes() => Navigation.NavigateTo("mis-solicitudes");
+
+    private string StatusToneClass => borrador?.Status switch
+    {
+        "Listo" => "cn-lab__status--success",
+        "Error" => "cn-lab__status--danger",
+        "Anulado" => "cn-lab__status--warning",
+        "Procesando" => "cn-lab__status--warning",
+        _ => "cn-lab__status--info"
+    };
+
+    private string StatusIcon => borrador?.Status switch
+    {
+        "Listo" => "bi-check-circle-fill",
+        "Error" => "bi-x-circle-fill",
+        "Anulado" => "bi-slash-circle",
+        "Procesando" => "bi-hourglass-split",
+        _ => "bi-info-circle-fill"
+    };
+
+    private string StatusMsgClass => statusTone switch
+    {
+        "success" => "cn-lab__status--success",
+        "warning" => "cn-lab__status--warning",
+        "danger" => "cn-lab__status--danger",
+        _ => "cn-lab__status--info"
+    };
+
+    private string StatusMsgIcon => statusTone switch
+    {
+        "success" => "bi-check-circle-fill",
+        "warning" => "bi-exclamation-triangle-fill",
+        "danger" => "bi-x-circle-fill",
+        _ => "bi-info-circle-fill"
+    };
+}

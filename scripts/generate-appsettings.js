@@ -33,6 +33,8 @@ const settings = {
       ReembolsoLista: process.env.CUIDANET_REEMBOLSO_LISTA || "Reembolso/solicitudes",
       ReembolsoReemplazar: process.env.CUIDANET_REEMBOLSO_REEMPLAZAR || "Reembolso/solicitud/{0}/imagenes",
       ReembolsoAnular: process.env.CUIDANET_REEMBOLSO_ANULAR || "Reembolso/solicitud/{0}/anular",
+      ReembolsoLecturaManual: process.env.CUIDANET_REEMBOLSO_LECTURA_MANUAL || "Reembolso/solicitud/{0}/lectura-manual",
+      ReembolsoMedicamentos: process.env.CUIDANET_REEMBOLSO_MEDICAMENTOS || "Reembolso/medicamentos",
       ImagenesContenido: process.env.CUIDANET_IMAGENES_CONTENIDO || "Imagenes/{0}/contenido",
       EnviarSms: process.env.CUIDANET_SMS_ENVIAR || "sms/enviar-codigo",
       VerificarSms: process.env.CUIDANET_SMS_VERIFICAR || "sms/verificar-codigo",

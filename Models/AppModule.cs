@@ -51,6 +51,7 @@ public static class AppModules
         "reembolso",
         "mis-solicitudes",
         "tratamiento",
+        "validar",
         "mi-celular",
         // Acceso / sesión
         "",

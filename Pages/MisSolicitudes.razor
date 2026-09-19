@@ -13,7 +13,7 @@
         <div class="cn-lab">
             <div class="cn-lab__shell">
                 <PageHeader Title="Mis solicitudes"
-                            Lead="Revisa el estado, abre los adjuntos o corrige una solicitud."
+                            Lead="Revisa el estado de tus solicitudes de medicamentos."
                             Back="GoHome" />
 
                 <section class="cn-lab__sheet">
@@ -69,10 +69,11 @@
                                             <span> · Se puede corregir</span>
                                         }
                                     </p>
-                                    @if (!string.IsNullOrWhiteSpace(s.UltimoError)
-                                         && string.Equals(s.Status, "Error", StringComparison.OrdinalIgnoreCase))
+                                    @if (string.Equals(s.Status, "Error", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        <p class="cn-lab__footnote" style="color:var(--cn-orange);margin-top:0.35rem;">@s.UltimoError</p>
+                                        <p class="cn-lab__footnote" style="color:var(--cn-orange);margin-top:0.35rem;">
+                                            No se pudo completar. Abre la solicitud para corregir documentos.
+                                        </p>
                                     }
                                 </button>
                             }
@@ -125,13 +126,5 @@
     private void NuevaSolicitud() => Navigation.NavigateTo("reembolso");
     private void GoHome() => Navigation.NavigateTo("Home");
 
-    private static string EtiquetaStatus(string? status) => status switch
-    {
-        "Pendiente" => "En cola",
-        "Procesando" => "Analizando",
-        "Listo" => "Procesada",
-        "Error" => "Error",
-        "Anulado" => "Anulada",
-        _ => status ?? "—"
-    };
+    private static string EtiquetaStatus(string? status) => ReembolsoUiLabels.EstadoLista(status);
 }

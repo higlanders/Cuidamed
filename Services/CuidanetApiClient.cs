@@ -23,6 +23,8 @@ namespace Cuidanet.Services
         private readonly string _reembolsoListaUrl;
         private readonly string _reembolsoReemplazarUrl;
         private readonly string _reembolsoAnularUrl;
+        private readonly string _reembolsoLecturaManualUrl;
+        private readonly string _reembolsoMedicamentosUrl;
         private readonly string _imagenesContenidoUrl;
         private readonly string _enviarSmsUrl;
         private readonly string _verificarSmsUrl;
@@ -60,6 +62,8 @@ namespace Cuidanet.Services
             _reembolsoListaUrl = configuration["CuidanetServices:Endpoints:ReembolsoLista"] ?? "Reembolso/solicitudes";
             _reembolsoReemplazarUrl = configuration["CuidanetServices:Endpoints:ReembolsoReemplazar"] ?? "Reembolso/solicitud/{0}/imagenes";
             _reembolsoAnularUrl = configuration["CuidanetServices:Endpoints:ReembolsoAnular"] ?? "Reembolso/solicitud/{0}/anular";
+            _reembolsoLecturaManualUrl = configuration["CuidanetServices:Endpoints:ReembolsoLecturaManual"] ?? "Reembolso/solicitud/{0}/lectura-manual";
+            _reembolsoMedicamentosUrl = configuration["CuidanetServices:Endpoints:ReembolsoMedicamentos"] ?? "Reembolso/medicamentos";
             _imagenesContenidoUrl = configuration["CuidanetServices:Endpoints:ImagenesContenido"] ?? "Imagenes/{0}/contenido";
             _enviarSmsUrl = configuration["CuidanetServices:Endpoints:EnviarSms"] ?? "sms/enviar-codigo";
             _verificarSmsUrl = configuration["CuidanetServices:Endpoints:VerificarSms"] ?? "sms/verificar-codigo";
@@ -664,6 +668,39 @@ namespace Cuidanet.Services
             }
 
             return await response.Content.ReadFromJsonAsync<ReembolsoAnularResponse>();
+        }
+
+        /// <summary>PUT /api/Reembolso/solicitud/{id}/lectura-manual — admin N1/N2.</summary>
+        public async Task<ReembolsoBorradorResponse?> CompletarLecturaManualAsync(
+            int solicitudId,
+            ReembolsoLecturaManualRequest request)
+        {
+            var url = string.Format(_reembolsoLecturaManualUrl, solicitudId);
+            var response = await _httpClient.PutAsJsonAsync(url, request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"[CuidanetApi] Reembolso lectura-manual {response.StatusCode} {TrimError(errorMsg)}");
+                throw new HttpRequestException(TryApiMessage(errorMsg) ?? "No se pudo guardar la lectura manual.");
+            }
+
+            return await response.Content.ReadFromJsonAsync<ReembolsoBorradorResponse>();
+        }
+
+        /// <summary>GET /api/Reembolso/medicamentos?q= — admin N1/N2.</summary>
+        public async Task<List<ReembolsoMedicamentoBusquedaDto>> BuscarMedicamentosReembolsoAsync(string q)
+        {
+            var query = HttpUtility.ParseQueryString(string.Empty);
+            query["q"] = q;
+            var response = await _httpClient.GetAsync($"{_reembolsoMedicamentosUrl}?{query}");
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"[CuidanetApi] Reembolso medicamentos {response.StatusCode} {TrimError(errorMsg)}");
+                throw new HttpRequestException(TryApiMessage(errorMsg) ?? "No se pudo buscar medicamentos.");
+            }
+
+            return await response.Content.ReadFromJsonAsync<List<ReembolsoMedicamentoBusquedaDto>>() ?? [];
         }
 
         /// <summary>GET /api/Imagenes/{id}/contenido — bytes autenticados (JWT).</summary>

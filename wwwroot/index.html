@@ -257,6 +257,14 @@
 
                 // Retorna la imagen en formato Base64 comprimida como JPEG
                 return canvas.toDataURL('image/jpeg', 0.85);
+            },
+            stop: (videoId) => {
+                const video = document.getElementById(videoId);
+                if (!video || !video.srcObject) return;
+                try {
+                    video.srcObject.getTracks().forEach(t => t.stop());
+                } catch (_) { /* ignore */ }
+                video.srcObject = null;
             }
         };
 
