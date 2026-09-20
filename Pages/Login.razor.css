@@ -677,7 +677,7 @@
 
     .cn-login-visual__img {
         object-fit: cover;
-        object-position: center 42%;
+        object-position: center center;
     }
 
     .cn-login-shell {

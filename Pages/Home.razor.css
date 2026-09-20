@@ -449,7 +449,7 @@
 
     .cn-home__visual-img {
         object-fit: cover;
-        object-position: center 42%;
+        object-position: center center;
     }
 
     .cn-home__grid {
