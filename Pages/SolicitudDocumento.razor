@@ -384,12 +384,13 @@
             var bytes = Convert.FromBase64String(dataUrl.Split(',')[1]);
             var nombre = $"Captura_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
-            if (!UploadFileGuard.TryValidate(
-                    nombre,
+            if (!CameraCapturePdf.TryFromJpeg(
                     bytes,
+                    nombre,
                     MaxFileSizeBytes,
                     AppSettings.MaxUploadMb,
                     out var safeName,
+                    out var pdfBytes,
                     out var validationError))
             {
                 statusMessage = validationError ?? "La captura no es una imagen válida.";
@@ -397,7 +398,8 @@
                 return;
             }
 
-            using var memory = new MemoryStream(bytes);
+            selectedFileName = safeName;
+            using var memory = new MemoryStream(pdfBytes);
 
             statusMessage = "Transmitiendo a CuidaNet…";
             StateHasChanged();

@@ -673,19 +673,20 @@
             var imageBytes = Convert.FromBase64String(base64Data);
             var nombreArchivo = $"Captura_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
-            if (!UploadFileGuard.TryValidate(
-                    nombreArchivo,
+            if (!CameraCapturePdf.TryFromJpeg(
                     imageBytes,
+                    nombreArchivo,
                     MaxFileSizeBytes,
                     AppSettings.MaxUploadMb,
-                    out var safeName,
+                    out var pdfName,
+                    out var pdfBytes,
                     out var validationError))
             {
                 SetStatus(validationError ?? "La captura no es una imagen válida.", "danger");
                 return;
             }
 
-            AgregarArchivo(seccion, safeName, imageBytes, "image/jpeg", base64DataUrl);
+            AgregarArchivo(seccion, pdfName, pdfBytes, "application/pdf", base64DataUrl);
             SetStatus($"Foto agregada a «{seccion.Etiqueta}».", "success");
         }
         catch (Exception)

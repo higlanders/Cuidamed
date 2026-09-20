@@ -20,13 +20,15 @@ Documentos de prueba para adjuntar en **Reembolso** (récipe, indicaciones e inf
 
 ```
 App → Imagenes/upload → POST Reembolso/solicitud
-  → Tratamiento Status=Pendiente + cola ReembolsoAppSolicitud
+  → TratamientoTemp Status=Pendiente + cola ReembolsoAppSolicitud
   → Worker APILIS → CoraNet tipo 3 → CuidamedIA
   → ResultadoExtraccionTratamiento (schemaVersion=1)
-  → Match EXACTO Medicamento → TratamientoDetalle
-  → Encabezado (médico/fecha/diagnóstico/vigencia) solo si confianza=alta
-  → GET Reembolso/solicitud/{id}/borrador (módulo nuevo)
+  → Match EXACTO Medicamento → TratamientoDetalleTemp
+  → Encabezado (médico/fecha/diagnóstico/vigencia) en Temp solo si confianza=alta
+  → GET Reembolso/solicitud/{id}/borrador
 ```
+
+Nota: `tratamientoId` en la respuesta de la app es el **TratamientoTempId** hasta que staff promueva a `Tratamiento` / `TratamientoDetalle`.
 
 ### Reglas de apply
 

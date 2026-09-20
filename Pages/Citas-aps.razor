@@ -554,12 +554,13 @@
             byte[] imageBytes = Convert.FromBase64String(base64Data);
             string nombreArchivo = $"CitaAPS_Soporte_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
-            if (!UploadFileGuard.TryValidate(
-                    nombreArchivo,
+            if (!CameraCapturePdf.TryFromJpeg(
                     imageBytes,
+                    nombreArchivo,
                     MaxFileSizeBytes,
                     AppSettings.MaxUploadMb,
                     out var safeName,
+                    out var pdfBytes,
                     out var validationError))
             {
                 statusMessage = validationError ?? "La captura no es una imagen válida.";
@@ -567,7 +568,7 @@
                 return;
             }
 
-            using var memoryStream = new MemoryStream(imageBytes);
+            using var memoryStream = new MemoryStream(pdfBytes);
 
             var resultado = await CuidanetService.UploadImagenAsync(
                 fileStream: memoryStream,
