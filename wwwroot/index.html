@@ -12,7 +12,7 @@
     <!-- CSP: GitHub Pages no admite headers HTTP custom; meta como defensa en profundidad.
          frame-ancestors no aplica en <meta> (solo header HTTP); se omite a propósito. -->
     <meta http-equiv="Content-Security-Policy"
-          content="default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self' https://admin.cuidanet.net; worker-src 'self' blob:;" />
+          content="default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self' https://admin.cuidanet.net; frame-src 'self' blob: data: https://admin.cuidanet.net; worker-src 'self' blob:;" />
 
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="lib/bootstrap-icons/bootstrap-icons.min.css" />
@@ -270,21 +270,62 @@
 
         // Vista a pantalla completa sin mostrar la ruta física /Imagenes/...
         window.CuidanetUi = {
-            openUrlHidden: function (url) {
+            _isPdf: function (url, contentType, bytes) {
+                if (contentType && /pdf/i.test(String(contentType))) return true;
+                if (url) {
+                    var u = String(url);
+                    if (/^data:application\/pdf/i.test(u) || /\.pdf(\?|#|$)/i.test(u)) return true;
+                }
+                // %PDF- (blob: no trae extensión; el MIME a veces llega como octet-stream)
+                return !!(bytes && bytes.length >= 5
+                    && bytes[0] === 0x25 && bytes[1] === 0x50
+                    && bytes[2] === 0x44 && bytes[3] === 0x46);
+            },
+            _dataUrlToBlobUrl: function (dataUrl, fallbackType) {
+                var comma = String(dataUrl).indexOf(',');
+                if (comma < 0) return dataUrl;
+                var header = dataUrl.slice(0, comma);
+                var body = dataUrl.slice(comma + 1);
+                var mimeMatch = header.match(/data:([^;,]+)/i);
+                var mime = (mimeMatch && mimeMatch[1]) || fallbackType || 'application/octet-stream';
+                var bin = atob(body);
+                var arr = new Uint8Array(bin.length);
+                for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                return URL.createObjectURL(new Blob([arr], { type: mime }));
+            },
+            _revokeLater: function (url) {
+                if (!url || String(url).indexOf('blob:') !== 0) return;
+                setTimeout(function () {
+                    try { URL.revokeObjectURL(url); } catch (e) { }
+                }, 600000);
+            },
+            _escapeAttr: function (url) {
+                return String(url)
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;');
+            },
+            openUrlHidden: function (url, contentType) {
                 if (!url) return false;
                 var w = window.open('about:blank', '_blank');
                 if (!w) return false;
 
-                var isPdf = /\.pdf(\?|#|$)/i.test(url) || /^data:application\/pdf/i.test(url);
+                var isPdf = this._isPdf(url, contentType);
+                var viewUrl = url;
+                if (isPdf && /^data:/i.test(url)) {
+                    try { viewUrl = this._dataUrlToBlobUrl(url, 'application/pdf'); } catch (e) { viewUrl = url; }
+                }
+
+                // PDF blob: visor nativo (un <img> no renderiza PDF; blob: tampoco tiene .pdf).
+                if (isPdf && /^blob:/i.test(viewUrl)) {
+                    w.location.replace(viewUrl);
+                    this._revokeLater(viewUrl);
+                    return true;
+                }
+
                 var isServir = /ServirAdjunto/i.test(url);
                 var useFrame = isPdf || isServir;
-
-                // Escapar solo lo necesario para atributo HTML (data: URLs no deben romperse).
-                var safe = String(url)
-                    .replace(/&/g, '&amp;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/</g, '&lt;');
-
+                var safe = this._escapeAttr(viewUrl);
                 var body = useFrame
                     ? '<iframe class="doc" src="' + safe + '" title="Documento" allowfullscreen></iframe>'
                     : '<img class="doc" src="' + safe + '" alt="Documento" />';
@@ -299,20 +340,24 @@
                     'html,body{margin:0;padding:0;width:100%;height:100%;background:#000;}' +
                     'body{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;overflow:auto;-webkit-overflow-scrolling:touch;}' +
                     'img.doc{display:block;width:100%;max-width:100vw;height:auto;max-height:100vh;max-height:100dvh;object-fit:contain;margin:auto;}' +
-                    'iframe.doc{display:block;border:0;width:100vw;height:100vh;height:100dvh;}' +
+                    'iframe.doc{display:block;border:0;width:100vw;height:100vh;height:100dvh;background:#323639;}' +
                     '</style></head><body>' + body + '</body></html>'
                 );
                 w.document.close();
+                this._revokeLater(viewUrl);
                 return true;
             },
             openBytes: function (bytes, contentType) {
                 try {
                     var arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
                     var type = contentType || 'application/octet-stream';
+                    if (this._isPdf(null, type, arr)) type = 'application/pdf';
                     var blob = new Blob([arr], { type: type });
                     var url = URL.createObjectURL(blob);
-                    var ok = this.openUrlHidden(url);
-                    setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) { } }, 120000);
+                    var ok = this.openUrlHidden(url, type);
+                    if (!ok) {
+                        try { URL.revokeObjectURL(url); } catch (e) { }
+                    }
                     return !!ok;
                 } catch (e) {
                     console.error('openBytes', e);
