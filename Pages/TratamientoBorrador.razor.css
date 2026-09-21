@@ -10,7 +10,7 @@
     --cn-surface: #ffffff;
     --cn-sheet-bg: #f7fafb;
     --cn-radius-sheet: 28px;
-    --cn-font: 'Poppins', system-ui, sans-serif;
+    --cn-font: var(--cn-brand-font, 'Poppins', system-ui, sans-serif);
 
     min-height: 100dvh;
     min-height: 100vh;

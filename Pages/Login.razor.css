@@ -13,7 +13,7 @@
     --cn-danger: #c0392b;
     --cn-radius-sheet: 28px;
     --cn-radius-ctrl: 14px;
-    --cn-font: 'Poppins', system-ui, sans-serif;
+    --cn-font: var(--cn-brand-font, 'Poppins', system-ui, sans-serif);
 
     position: fixed;
     inset: 0;

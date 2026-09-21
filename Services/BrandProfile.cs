@@ -11,6 +11,12 @@ public sealed class BrandProfile
 
     public string LogoAlt { get; private set; } = "CuidaNet";
 
+    public string Slogan { get; private set; } = "Lo que necesitas en un solo lugar";
+
+    public string Hero { get; private set; } = "img/cuidamed-login-completo.png";
+
+    public string HomeImage { get; private set; } = "img/home-desktop.jpg";
+
     public string Title(string? page = null) =>
         string.IsNullOrWhiteSpace(page) ? Name : $"{Name} — {page.Trim()}";
 
@@ -26,15 +32,21 @@ public sealed class BrandProfile
             LogoAlt = alt;
         if (SafeAsset(snapshot.Logo) is string logo)
             Logo = logo;
+        if (CleanLabel(snapshot.Slogan, 60) is string slogan)
+            Slogan = slogan;
+        if (SafeAsset(snapshot.Hero) is string hero)
+            Hero = hero;
+        if (SafeAsset(snapshot.HomeImage) is string home)
+            HomeImage = home;
     }
 
-    private static string? CleanLabel(string? value)
+    private static string? CleanLabel(string? value, int max = 40)
     {
         if (string.IsNullOrWhiteSpace(value))
             return null;
 
         var trimmed = value.Trim();
-        if (trimmed.Length is < 1 or > 40)
+        if (trimmed.Length < 1 || trimmed.Length > max)
             return null;
 
         foreach (var c in trimmed)
@@ -76,4 +88,10 @@ public sealed class BrandSnapshot
     public string? Logo { get; set; }
 
     public string? LogoAlt { get; set; }
+
+    public string? Slogan { get; set; }
+
+    public string? Hero { get; set; }
+
+    public string? HomeImage { get; set; }
 }

@@ -1,5 +1,5 @@
 ﻿.cn-terms {
-    --cn-font: 'Poppins', system-ui, sans-serif;
+    --cn-font: var(--cn-brand-font, 'Poppins', system-ui, sans-serif);
     min-height: 100dvh;
     min-height: 100vh;
     display: flex;

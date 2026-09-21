@@ -1,5 +1,5 @@
 ﻿:root {
-    --cn-font: 'Poppins', system-ui, sans-serif;
+    --cn-font: var(--cn-brand-font, 'Poppins', system-ui, sans-serif);
     --bs-body-font-family: var(--cn-font);
     --cn-brand-primary: #0170a0;
     --cn-brand-deep: #0a4180;
@@ -280,7 +280,7 @@ code {
     --cn-danger: #c0392b;
     --cn-radius-sheet: 28px;
     --cn-radius-ctrl: 14px;
-    --cn-font: 'Poppins', system-ui, sans-serif;
+    --cn-font: var(--cn-brand-font, 'Poppins', system-ui, sans-serif);
     position: fixed;
     inset: 0;
     z-index: 20;
@@ -988,7 +988,7 @@ code {
     --cn-surface: #ffffff;
     --cn-sheet-bg: #f4f7f8;
     --cn-line: #d9e4e8;
-    --cn-font: 'Poppins', system-ui, sans-serif;
+    --cn-font: var(--cn-brand-font, 'Poppins', system-ui, sans-serif);
     min-height: 100dvh;
     min-height: 100vh;
     display: flex;
@@ -1189,5 +1189,47 @@ code {
     margin: 0.75rem 0 0;
     font-size: 0.88rem;
     color: var(--cn-muted);
+}
+
+/* Latitud: Montserrat, azul #003B95 y beige #DBB06E del sitio público. */
+html.cn-brand-latitud .cn-login-hero__slogan {
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    color: #003B95;
+}
+
+html.cn-brand-latitud .cn-login-cta {
+    background: #003B95;
+    box-shadow: 0 8px 20px color-mix(in srgb, #003B95 28%, transparent);
+}
+
+html.cn-brand-latitud .cn-login-progress__seg.is-active {
+    background: #003B95;
+}
+
+html.cn-brand-latitud .cn-login-progress__seg.is-done {
+    background: #DBB06E;
+}
+
+html.cn-brand-latitud .cn-page__hero {
+    border-bottom-color: #DBB06E;
+}
+
+html.cn-brand-latitud .cn-login-hero::after {
+    content: "";
+    display: block;
+    height: 128px;
+    margin-top: 0.9rem;
+    border-radius: 14px;
+    background: #003B95 url("../brands/latitud/hero.jpg") center 22% / cover no-repeat;
+}
+
+@media (min-width: 768px) {
+    html.cn-brand-latitud .cn-login-hero::after {
+        display: none;
+    }
 }
 

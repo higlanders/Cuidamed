@@ -36,6 +36,16 @@
             root.style.setProperty("--cn-brand-accent", b.accent);
             root.style.setProperty("--cn-brand-teal", b.teal);
             root.style.setProperty("--cn-brand-teal-bright", b.tealBright);
+            if (b.fontFamily) root.style.setProperty("--cn-brand-font", b.fontFamily);
+            root.classList.remove("cn-brand-cuidamed", "cn-brand-latitud");
+            if (b.id) root.classList.add("cn-brand-" + b.id);
+            if (b.fontHref && !document.getElementById("cn-brand-font")) {
+                var font = document.createElement("link");
+                font.id = "cn-brand-font";
+                font.rel = "stylesheet";
+                font.href = b.fontHref;
+                document.head.appendChild(font);
+            }
             document.title = b.name;
             var theme = document.querySelector('meta[name="theme-color"]');
             if (!theme) {
