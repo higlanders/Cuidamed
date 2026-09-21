@@ -4,8 +4,9 @@
 @using Cuidanet.Services
 @inject NavigationManager Navigation
 @inject LisRouteGuard LisGuard
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — @Titulo</PageTitle>
+<PageTitle>@Brand.Title(Titulo)</PageTitle>
 
 <AuthorizeView>
     <Authorized>

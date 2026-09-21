@@ -4,8 +4,9 @@
 @inject NavigationManager Navigation
 @inject AfiliadoPerfilService PerfilService
 @inject LisRouteGuard LisGuard
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — Notificaciones</PageTitle>
+<PageTitle>@Brand.Title("Notificaciones")</PageTitle>
 
 <AuthorizeView>
     <Authorized>

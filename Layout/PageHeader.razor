@@ -1,9 +1,10 @@
-﻿<header class="cn-page__hero">
+﻿@inject BrandProfile Brand
+<header class="cn-page__hero">
     <div class="cn-page__topbar">
         <button type="button" class="cn-page__back" @onclick="Back" aria-label="@BackLabel">
             <i class="bi bi-arrow-left" aria-hidden="true"></i>
         </button>
-        <img class="cn-page__logo" src="LogoCuidaNet.png" alt="CuidaNet" />
+        <img class="cn-page__logo" src="@Brand.Logo" alt="@Brand.LogoAlt" />
         <span class="cn-page__spacer" aria-hidden="true"></span>
     </div>
     <h1 class="cn-page__title">@Title</h1>

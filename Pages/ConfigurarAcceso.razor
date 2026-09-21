@@ -4,18 +4,19 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject DeviceAccessService DeviceAccess
 @inject NavigationManager Navigation
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — Acceso rápido</PageTitle>
+<PageTitle>@Brand.Title("Acceso rápido")</PageTitle>
 
 <div class="cn-login-page">
     <div class="cn-login-shell">
         <header class="cn-login-hero cn-login-hero--compact">
-            <img src="LogoCuidaNet.png" alt="CuidaNet" class="cn-login-hero__logo" />
+            <img src="@Brand.Logo" alt="@Brand.LogoAlt" class="cn-login-hero__logo" />
         </header>
         <section class="cn-login-sheet">
             <h1 class="cn-login-step__title">Creá tu PIN</h1>
             <p class="cn-login-step__subtitle">
-                El PIN es obligatorio para abrir Cuidamed en este celular. La huella es opcional.
+                El PIN es obligatorio para abrir @(Brand.Id == "latitud" ? Brand.Name : "Cuidamed") en este celular. La huella es opcional.
             </p>
 
             <form class="cn-login-form" @onsubmit:preventDefault="true" @onsubmit="SaveAsync">

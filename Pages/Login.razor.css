@@ -1,10 +1,10 @@
 ﻿/* —— Tokens CuidaNet —— */
 .cn-login-page {
-    --cn-deep: #0a4180;
-    --cn-primary: #0170a0;
-    --cn-teal: #1a9a9e;
-    --cn-teal-bright: #00a4ba;
-    --cn-orange: #ff6600;
+    --cn-deep: var(--cn-brand-deep, #0a4180);
+    --cn-primary: var(--cn-brand-primary, #0170a0);
+    --cn-teal: var(--cn-brand-teal, #1a9a9e);
+    --cn-teal-bright: var(--cn-brand-teal-bright, #00a4ba);
+    --cn-orange: var(--cn-brand-accent, #ff6600);
     --cn-orange-soft: #e06d11;
     --cn-text: #1a2b33;
     --cn-muted: #6b7c85;
@@ -310,7 +310,7 @@
     justify-content: center;
     gap: 0.55rem;
     transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
-    box-shadow: 0 8px 20px rgba(1, 112, 160, 0.28);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--cn-primary, #0170a0) 28%, transparent);
 }
 
 .cn-login-cta:hover:not(:disabled) {
@@ -654,7 +654,7 @@
         align-items: stretch;
         justify-content: flex-end;
         padding: 0;
-        background: #0a4180;
+        background: var(--cn-deep, #0a4180);
         overflow: hidden;
     }
 
@@ -665,7 +665,7 @@
         min-width: 0;
         height: 100%;
         overflow: hidden;
-        background: #0a4180;
+        background: var(--cn-deep, #0a4180);
     }
 
     .cn-login-visual__img {

@@ -1,10 +1,10 @@
 ﻿/* —— Tokens CuidaNet (Proveedores) —— */
 .cn-prov {
-    --cn-deep: #0a4180;
-    --cn-primary: #0170a0;
-    --cn-teal: #1a9a9e;
-    --cn-teal-bright: #00a4ba;
-    --cn-orange: #ff6600;
+    --cn-deep: var(--cn-brand-deep, #0a4180);
+    --cn-primary: var(--cn-brand-primary, #0170a0);
+    --cn-teal: var(--cn-brand-teal, #1a9a9e);
+    --cn-teal-bright: var(--cn-brand-teal-bright, #00a4ba);
+    --cn-orange: var(--cn-brand-accent, #ff6600);
     --cn-text: #1a2b33;
     --cn-muted: #6b7c85;
     --cn-surface: #ffffff;

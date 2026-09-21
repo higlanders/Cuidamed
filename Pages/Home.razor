@@ -8,8 +8,9 @@
 @inject CuidanetApiClient CuidanetService
 @inject AfiliadoPerfilService PerfilService
 @inject LoginFlowState LoginFlow
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — Inicio</PageTitle>
+<PageTitle>@Brand.Title("Inicio")</PageTitle>
 
 <AuthorizeView>
     <Authorizing>
@@ -23,7 +24,7 @@
                 <header class="cn-home__hero">
                     <div class="cn-home__hero-bar">
                         <div class="cn-home__topbar">
-                            <img class="cn-home__logo" src="LogoCuidaNet.png" alt="CuidaNet" />
+                            <img class="cn-home__logo" src="@Brand.Logo" alt="@Brand.LogoAlt" />
                             <div class="cn-home__top-actions">
                                 <button type="button" class="cn-home__avatar-btn" @onclick="ToggleSidebar" aria-label="Mi perfil">
                                     @if (afiliadoDetalle != null && !string.IsNullOrEmpty(afiliadoDetalle.FotoBase64))

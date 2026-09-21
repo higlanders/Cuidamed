@@ -7,13 +7,14 @@
 @inject LoginFlowState LoginFlow
 @inject IJSRuntime JS
 @inject CuidanetAppSettings AppSettings
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — Registrar celular</PageTitle>
+<PageTitle>@Brand.Title("Registrar celular")</PageTitle>
 
 <div class="cn-login-page">
     <div class="cn-login-shell">
         <header class="cn-login-hero cn-login-hero--compact">
-            <img src="LogoCuidaNet.png" alt="CuidaNet" class="cn-login-hero__logo" />
+            <img src="@Brand.Logo" alt="@Brand.LogoAlt" class="cn-login-hero__logo" />
         </header>
         <section class="cn-login-sheet">
             <h1 class="cn-login-step__title">Registrar celular</h1>
@@ -63,7 +64,7 @@
             <p class="cn-login-step__subtitle" style="margin-top:1.25rem;">
                 ¿No podés validar tus datos?
                 <a href="@AyudaWhatsAppUrl" target="_blank" rel="noopener noreferrer">Pedí asistencia por WhatsApp</a>
-                (CuidamedIA / call center puede cargar el celular).
+                @(Brand.Id == "latitud" ? "El call center puede cargar el celular." : "(CuidamedIA / call center puede cargar el celular).")
             </p>
 
             <button type="button" class="cn-login-linkish" style="margin-top:0.75rem;background:none;border:0;color:#007a8a;text-decoration:underline;cursor:pointer;"

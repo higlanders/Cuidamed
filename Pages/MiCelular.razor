@@ -4,8 +4,9 @@
 @inject NavigationManager Navigation
 @inject CuidanetApiClient Api
 @inject IJSRuntime JS
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — Cambiar celular</PageTitle>
+<PageTitle>@Brand.Title("Cambiar celular")</PageTitle>
 
 <AuthorizeView>
     <Authorized>

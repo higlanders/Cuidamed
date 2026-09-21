@@ -8,8 +8,9 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject CuidanetApiClient CuidanetService
 @inject CuidanetAppSettings AppSettings
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — @TituloPagina</PageTitle>
+<PageTitle>@Brand.Title(TituloPagina)</PageTitle>
 
 <AuthorizeView>
     <Authorized>

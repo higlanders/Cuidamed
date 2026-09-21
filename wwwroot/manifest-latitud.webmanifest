@@ -1,0 +1,18 @@
+﻿{
+  "name": "Latitud",
+  "short_name": "Latitud",
+  "id": "./",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#003B95",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "brands/latitud/logo.png",
+      "type": "image/png",
+      "sizes": "2640x2640",
+      "purpose": "any"
+    }
+  ]
+}

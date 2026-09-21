@@ -11,10 +11,11 @@
 @inject AfiliadoTokenHolder TokenHolder
 @inject DeviceAccessService DeviceAccess
 @inject CuidanetAppSettings AppSettings
+@inject BrandProfile Brand
 @inject IJSRuntime JS
 @implements IDisposable
 
-<PageTitle>Cuidanet</PageTitle>
+<PageTitle>@Brand.Name</PageTitle>
 
 <div class="cn-login-page">
     <div class="cn-login-visual" aria-hidden="true">
@@ -27,7 +28,7 @@
     <div class="cn-login-shell">
         <header class="cn-login-hero @(CurrentStep == LoginStep.Afiliado ? "cn-login-hero--compact" : "")">
             <div class="cn-login-hero__glow" aria-hidden="true"></div>
-            <img src="LogoCuidaNet.png" alt="CuidaNet" class="cn-login-hero__logo" />
+            <img src="@Brand.Logo" alt="@Brand.LogoAlt" class="cn-login-hero__logo" />
             <p class="cn-login-hero__slogan">Lo que necesitas en un solo lugar</p>
             <SocialLinks />
         </header>

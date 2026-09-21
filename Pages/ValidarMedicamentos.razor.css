@@ -1,10 +1,10 @@
 ﻿/* —— Tokens CuidaNet (Laboratorios) —— */
 .cn-lab {
-    --cn-deep: #0a4180;
-    --cn-primary: #0170a0;
-    --cn-teal: #1a9a9e;
-    --cn-teal-bright: #00a4ba;
-    --cn-orange: #ff6600;
+    --cn-deep: var(--cn-brand-deep, #0a4180);
+    --cn-primary: var(--cn-brand-primary, #0170a0);
+    --cn-teal: var(--cn-brand-teal, #1a9a9e);
+    --cn-teal-bright: var(--cn-brand-teal-bright, #00a4ba);
+    --cn-orange: var(--cn-brand-accent, #ff6600);
     --cn-text: #1a2b33;
     --cn-muted: #6b7c85;
     --cn-surface: #ffffff;
@@ -192,7 +192,7 @@
 .cn-lab__tab.is-active {
     background: linear-gradient(135deg, var(--cn-primary), var(--cn-teal-bright));
     color: #fff;
-    box-shadow: 0 4px 14px rgba(1, 112, 160, 0.28);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--cn-primary, #0170a0) 28%, transparent);
 }
 
 .cn-lab__tab:active {
@@ -440,11 +440,11 @@
 .cn-lab__btn--primary {
     background: linear-gradient(135deg, var(--cn-primary), var(--cn-teal-bright));
     color: #fff;
-    box-shadow: 0 6px 18px rgba(1, 112, 160, 0.28);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--cn-primary, #0170a0) 28%, transparent);
 }
 
 .cn-lab__btn--primary:not(:disabled):hover {
-    box-shadow: 0 8px 22px rgba(1, 112, 160, 0.34);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--cn-primary, #0170a0) 34%, transparent);
 }
 
 .cn-lab__btn--ghost {
@@ -498,8 +498,8 @@
     margin-top: 1.35rem;
     padding: 1rem 0.95rem;
     border-radius: 16px;
-    border: 1.5px solid rgba(1, 112, 160, 0.22);
-    background: linear-gradient(180deg, rgba(1, 112, 160, 0.05) 0%, #fff 55%);
+    border: 1.5px solid color-mix(in srgb, var(--cn-primary, #0170a0) 22%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--cn-primary, #0170a0) 5%, transparent) 0%, #fff 55%);
 }
 
 .cn-lab__admin-panel h3 {
@@ -532,7 +532,7 @@
 }
 
 .cn-lab__status--info {
-    background: rgba(1, 112, 160, 0.08);
+    background: color-mix(in srgb, var(--cn-primary, #0170a0) 8%, transparent);
     color: var(--cn-primary);
 }
 
@@ -652,7 +652,7 @@
 }
 
 .cn-lab__busy .cn-lab__spinner {
-    border-color: rgba(1, 112, 160, 0.25);
+    border-color: color-mix(in srgb, var(--cn-primary, #0170a0) 25%, transparent);
     border-top-color: var(--cn-primary);
 }
 
@@ -716,8 +716,8 @@
     font-family: inherit;
 }
 .cn-lab__input:focus {
-    outline: 2px solid rgba(1, 112, 160, 0.35);
-    border-color: #0170a0;
+    outline: 2px solid color-mix(in srgb, var(--cn-primary, #0170a0) 35%, transparent);
+    border-color: var(--cn-primary, #0170a0);
 }
 .cn-lab__anexo-list {
     display: flex;
@@ -745,7 +745,7 @@
 }
 .cn-lab__anexo-badge {
     font-size: 0.68rem;
-    color: #0170a0;
+    color: var(--cn-primary, #0170a0);
     background: #e8f6fa;
     border-radius: 999px;
     padding: 0.15rem 0.55rem;

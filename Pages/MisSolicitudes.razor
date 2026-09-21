@@ -6,8 +6,9 @@
 @inject AfiliadoPerfilService PerfilService
 @inject CuidanetApiClient CuidanetService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — Mis solicitudes</PageTitle>
+<PageTitle>@Brand.Title("Mis solicitudes")</PageTitle>
 
 <AuthorizeView>
     <Authorized>

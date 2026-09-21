@@ -8,6 +8,7 @@
 @inject NavigationManager Navigation
 @inject CuidanetAppSettings AppSettings
 @inject LisRouteGuard LisGuard
+@inject BrandProfile Brand
 
 <AuthorizeView>
     <Authorized>
@@ -232,7 +233,7 @@
                 <div class="d-flex justify-content-between small mb-1">
                     <span class="text-muted">Modalidad de Cita:</span>
                     <span class="fw-bold @(esPagadaPorSeguro ? "text-primary" : "text-dark")">
-                        @(esPagadaPorSeguro ? "Póliza de Seguro Cuidanet" : "Cita Particular / Sin Seguro")
+                        @(esPagadaPorSeguro ? $"Póliza de Seguro {Brand.Name}" : "Cita Particular / Sin Seguro")
                     </span>
                 </div>
                 <div class="d-flex justify-content-between small mb-1">

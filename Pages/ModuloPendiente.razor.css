@@ -1,5 +1,5 @@
 ﻿.cn-mod {
-    --cn-primary: #0170a0;
+    --cn-primary: var(--cn-brand-primary, #0170a0);
     --cn-text: #1a2b33;
     --cn-muted: #6b7c85;
     --cn-surface: #ffffff;

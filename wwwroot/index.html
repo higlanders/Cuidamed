@@ -21,26 +21,71 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/app.css" />
     <link href="Cuidanet.styles.css" rel="stylesheet" />
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <link href="manifest.webmanifest" rel="manifest" />
-    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <link id="cn-favicon" rel="icon" type="image/png" href="favicon.png" />
+    <link id="cn-manifest" href="manifest.webmanifest" rel="manifest" />
+    <link id="cn-apple-512" rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+    <link id="cn-apple-192" rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <script src="brand.js"></script>
+    <script>
+        (function applyBrandChrome() {
+            var b = window.__CN_BRAND;
+            if (!b) return;
+            var root = document.documentElement;
+            root.style.setProperty("--cn-brand-primary", b.primary);
+            root.style.setProperty("--cn-brand-deep", b.deep);
+            root.style.setProperty("--cn-brand-accent", b.accent);
+            root.style.setProperty("--cn-brand-teal", b.teal);
+            root.style.setProperty("--cn-brand-teal-bright", b.tealBright);
+            document.title = b.name;
+            var theme = document.querySelector('meta[name="theme-color"]');
+            if (!theme) {
+                theme = document.createElement("meta");
+                theme.setAttribute("name", "theme-color");
+                document.head.appendChild(theme);
+            }
+            theme.setAttribute("content", b.theme);
+            var favicon = document.getElementById("cn-favicon");
+            if (favicon && b.icon) favicon.href = b.icon;
+            var manifest = document.getElementById("cn-manifest");
+            if (manifest && b.manifest) manifest.href = b.manifest;
+            function apple(id, href) {
+                var el = document.getElementById(id);
+                if (!el || !href) return;
+                el.href = href;
+                if (b.appleSize) el.setAttribute("sizes", b.appleSize);
+            }
+            apple("cn-apple-192", b.apple192);
+            apple("cn-apple-512", b.apple512);
+        })();
+    </script>
     <script type="importmap"></script>
 
 </head>
 
 <body>
-    <div id="cn-boot-reveal" role="status" aria-label="Cuidanet">
+    <div id="cn-boot-reveal" role="status" data-cn-label>
         <div class="cn-boot-reveal__stage">
-            <img src="LogoCuidaNet.png" alt="Cuidanet" />
+            <img data-cn-logo alt="" />
         </div>
     </div>
 
     <div id="app">
-        <div class="cn-boot" role="status" aria-label="Cuidanet">
-            <img class="cn-boot__logo" src="LogoCuidaNet.png" alt="Cuidanet" />
+        <div class="cn-boot" role="status" data-cn-label>
+            <img class="cn-boot__logo" data-cn-logo alt="" />
         </div>
     </div>
+    <script>
+        (function applyBrandSplash() {
+            var b = window.__CN_BRAND || { name: "Cuidanet", logo: "LogoCuidaNet.png", logoAlt: "CuidaNet" };
+            document.querySelectorAll("[data-cn-logo]").forEach(function (img) {
+                img.src = b.logo;
+                img.alt = b.logoAlt || b.name;
+            });
+            document.querySelectorAll("[data-cn-label]").forEach(function (el) {
+                el.setAttribute("aria-label", b.name);
+            });
+        })();
+    </script>
 
     <div id="blazor-error-ui">
         Ocurrió un error al cargar la app.

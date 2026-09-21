@@ -10,8 +10,9 @@
 @inject AfiliadoPerfilService PerfilService
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — Solicitud</PageTitle>
+<PageTitle>@Brand.Title("Solicitud")</PageTitle>
 
 <AuthorizeView>
     <Authorized>

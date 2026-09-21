@@ -1,6 +1,16 @@
 ﻿:root {
     --cn-font: 'Poppins', system-ui, sans-serif;
     --bs-body-font-family: var(--cn-font);
+    --cn-brand-primary: #0170a0;
+    --cn-brand-deep: #0a4180;
+    --cn-brand-accent: #ff6600;
+    --cn-brand-teal: #1a9a9e;
+    --cn-brand-teal-bright: #00a4ba;
+    --cn-primary: var(--cn-brand-primary);
+    --cn-deep: var(--cn-brand-deep);
+    --cn-orange: var(--cn-brand-accent);
+    --cn-teal: var(--cn-brand-teal);
+    --cn-teal-bright: var(--cn-brand-teal-bright);
 }
 
 html, body {
@@ -25,7 +35,7 @@ h1:focus {
     padding: calc(0.85rem + env(safe-area-inset-top, 0px)) 1.25rem 1.15rem;
     background: #ffffff;
     color: #1a2b33;
-    border-bottom: 3px solid #0170a0;
+    border-bottom: 3px solid var(--cn-primary, #0170a0);
 }
 
 .cn-page__topbar {
@@ -48,7 +58,7 @@ h1:focus {
     font-size: 0.78rem;
     font-weight: 500;
     line-height: 1.4;
-    color: #0170a0;
+    color: var(--cn-primary, #0170a0);
     text-align: center;
 }
 
@@ -56,10 +66,10 @@ h1:focus {
     width: 2.35rem;
     height: 2.35rem;
     padding: 0;
-    border: 1.5px solid #0170a0;
+    border: 1.5px solid var(--cn-primary, #0170a0);
     border-radius: 12px;
     background: #eef7f9;
-    color: #0170a0;
+    color: var(--cn-primary, #0170a0);
     display: grid;
     place-items: center;
     cursor: pointer;
@@ -76,7 +86,7 @@ h1:focus {
     font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.25;
-    color: #0a4180;
+    color: var(--cn-deep, #0a4180);
     text-align: center;
 }
 
@@ -257,11 +267,11 @@ code {
 
 /* —— Tokens CuidaNet —— */
 .cn-login-page {
-    --cn-deep: #0a4180;
-    --cn-primary: #0170a0;
-    --cn-teal: #1a9a9e;
-    --cn-teal-bright: #00a4ba;
-    --cn-orange: #ff6600;
+    --cn-deep: var(--cn-brand-deep, #0a4180);
+    --cn-primary: var(--cn-brand-primary, #0170a0);
+    --cn-teal: var(--cn-brand-teal, #1a9a9e);
+    --cn-teal-bright: var(--cn-brand-teal-bright, #00a4ba);
+    --cn-orange: var(--cn-brand-accent, #ff6600);
     --cn-orange-soft: #e06d11;
     --cn-text: #1a2b33;
     --cn-muted: #6b7c85;
@@ -601,7 +611,7 @@ code {
     justify-content: center;
     gap: 0.55rem;
     transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
-    box-shadow: 0 8px 20px rgba(1, 112, 160, 0.28);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--cn-primary, #0170a0) 28%, transparent);
 }
 
     .cn-login-cta:hover:not(:disabled) {
@@ -906,7 +916,7 @@ code {
         max-height: min(860px, calc(100dvh - 2rem));
         border-radius: 28px;
         border: 1px solid #e6eef1;
-        box-shadow: 0 12px 40px rgba(1, 112, 160, 0.08);
+        box-shadow: 0 12px 40px color-mix(in srgb, var(--cn-primary, #0170a0) 8%, transparent);
         overflow: hidden;
     }
 
@@ -972,7 +982,7 @@ code {
 
 /* —— Módulos de servicio (LIS / Cuidamed) —— */
 .cn-svc {
-    --cn-primary: #0170a0;
+    --cn-primary: var(--cn-brand-primary, #0170a0);
     --cn-text: #1a2b33;
     --cn-muted: #6b7c85;
     --cn-surface: #ffffff;
@@ -1031,7 +1041,7 @@ code {
     font-size: 1rem;
     font-weight: 700;
     text-align: center;
-    color: #0a4180;
+    color: var(--cn-deep, #0a4180);
 }
 
 .cn-svc__spacer {
@@ -1089,7 +1099,7 @@ code {
 
 .cn-svc__input:focus,
 .cn-svc__textarea:focus {
-    outline: 2px solid rgba(1, 112, 160, 0.25);
+    outline: 2px solid color-mix(in srgb, var(--cn-primary, #0170a0) 25%, transparent);
     border-color: var(--cn-primary);
 }
 

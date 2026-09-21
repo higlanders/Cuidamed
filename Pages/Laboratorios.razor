@@ -10,8 +10,9 @@
 @inject CuidanetApiClient CuidanetService
 @inject CuidanetAppSettings AppSettings
 @inject LisRouteGuard LisGuard
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — Consultas y Laboratorios</PageTitle>
+<PageTitle>@Brand.Title("Consultas y Laboratorios")</PageTitle>
 
 <AuthorizeView>
     <Authorized>

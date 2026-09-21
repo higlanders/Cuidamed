@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.JSInterop;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -41,6 +42,7 @@ if (string.IsNullOrWhiteSpace(builder.Configuration["CuidanetServices:BaseUrl"])
 }
 
 builder.Services.AddSingleton<CuidanetAppSettings>();
+builder.Services.AddSingleton<BrandProfile>();
 builder.Services.AddSingleton<AfiliadoTokenHolder>();
 builder.Services.AddScoped<DeviceAccessService>();
 builder.Services.AddScoped<CustomAuthStateProvider>();
@@ -59,4 +61,16 @@ builder.Services.AddScoped<LisRouteGuard>();
 builder.Services.AddHttpClient<CuidanetApiClient>()
     .AddHttpMessageHandler<CuidanetAuthHandler>();
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+try
+{
+    var js = host.Services.GetRequiredService<IJSRuntime>();
+    var brand = await js.InvokeAsync<BrandSnapshot>("cnGetBrand");
+    host.Services.GetRequiredService<BrandProfile>().Apply(brand);
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine($"[Cuidanet] No se pudo leer la marca: {ex.Message}");
+}
+
+await host.RunAsync();

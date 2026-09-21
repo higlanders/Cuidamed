@@ -78,7 +78,7 @@
 }
 
 .cn-install-tip__primary {
-    background: #0170a0;
+    background: var(--cn-primary, #0170a0);
     color: #fff;
 }
 
@@ -91,7 +91,7 @@
     margin-top: 0.35rem;
     padding: 0;
     background: transparent;
-    color: #0170a0;
+    color: var(--cn-primary, #0170a0);
 }
 
 .cn-install-menu {
@@ -104,7 +104,7 @@
     border: 1px solid #d9e4e8;
     border-radius: 10px;
     background: #fff;
-    color: #0170a0;
+    color: var(--cn-primary, #0170a0);
     font-family: 'Poppins', system-ui, sans-serif;
     font-size: 0.85rem;
     font-weight: 600;

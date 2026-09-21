@@ -1,5 +1,5 @@
 ﻿.cn-ben {
-    --cn-teal: #00a4ba;
+    --cn-teal: var(--cn-brand-teal-bright, #00a4ba);
     --cn-teal-dark: #007a8a;
     --cn-ink: #1a2b32;
     --cn-muted: #6b7c83;

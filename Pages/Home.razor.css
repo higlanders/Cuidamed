@@ -1,9 +1,9 @@
 ﻿/* —— Tokens CuidaNet (Home) —— */
 .cn-home {
-    --cn-deep: #0a4180;
-    --cn-primary: #0170a0;
-    --cn-teal: #1a9a9e;
-    --cn-teal-bright: #00a4ba;
+    --cn-deep: var(--cn-brand-deep, #0a4180);
+    --cn-primary: var(--cn-brand-primary, #0170a0);
+    --cn-teal: var(--cn-brand-teal, #1a9a9e);
+    --cn-teal-bright: var(--cn-brand-teal-bright, #00a4ba);
     --cn-text: #1a2b33;
     --cn-muted: #6b7c85;
     --cn-surface: #ffffff;
@@ -437,7 +437,7 @@
         height: min(42vh, 440px);
         margin: 0 0 1.35rem;
         overflow: hidden;
-        background: #0a4180;
+        background: var(--cn-deep, #0a4180);
     }
 
     .cn-home__visual picture,

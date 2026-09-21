@@ -7,8 +7,9 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject AfiliadoPerfilService PerfilService
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — Coberturas y consumos</PageTitle>
+<PageTitle>@Brand.Title("Coberturas y consumos")</PageTitle>
 
 <AuthorizeView>
     <Authorized>

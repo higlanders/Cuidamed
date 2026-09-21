@@ -6,8 +6,9 @@
 @inject CuidanetAppSettings AppSettings
 @inject LisRouteGuard LisGuard
 @inject IJSRuntime JS
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — Odontología</PageTitle>
+<PageTitle>@Brand.Title("Odontología")</PageTitle>
 
 <AuthorizeView>
     <Authorized>

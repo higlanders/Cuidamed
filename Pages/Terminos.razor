@@ -2,8 +2,9 @@
 @layout EmptyLayout
 @using Cuidanet.Models
 @inject NavigationManager Navigation
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — Términos y Condiciones</PageTitle>
+<PageTitle>@Brand.Title("Términos y Condiciones")</PageTitle>
 
 <div class="cn-terms">
     <div class="cn-terms__shell">

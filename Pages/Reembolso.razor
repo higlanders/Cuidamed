@@ -11,8 +11,9 @@
 @inject CuidanetApiClient CuidanetService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — Medicamentos</PageTitle>
+<PageTitle>@Brand.Title("Medicamentos")</PageTitle>
 
 <AuthorizeView>
     <Authorized>

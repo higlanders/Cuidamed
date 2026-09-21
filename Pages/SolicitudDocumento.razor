@@ -9,8 +9,9 @@
 @inject CuidanetApiClient CuidanetService
 @inject LisRouteGuard LisGuard
 @inject IJSRuntime JS
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — @Titulo</PageTitle>
+<PageTitle>@Brand.Title(Titulo)</PageTitle>
 
 <AuthorizeView>
     <Authorized>

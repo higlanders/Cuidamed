@@ -8,8 +8,9 @@
 @inject CuidanetAppSettings AppSettings
 @inject LisRouteGuard LisGuard
 @inject IJSRuntime JS
+@inject BrandProfile Brand
 
-<PageTitle>Cuidanet — @Titulo</PageTitle>
+<PageTitle>@Brand.Title(Titulo)</PageTitle>
 
 <AuthorizeView>
     <Authorized>
@@ -138,7 +139,9 @@
         var url = WhatsAppLink.Chat(AppSettings.WhatsAppCuidamed, mensaje);
         if (url is null)
         {
-            errorMessage = "El WhatsApp de Cuidamed no está configurado.";
+            errorMessage = Brand.Id == "latitud"
+                ? $"El WhatsApp de {Brand.Name} no está configurado."
+                : "El WhatsApp de Cuidamed no está configurado.";
             return;
         }
 
