@@ -35,9 +35,17 @@ function isSensitiveRequest(request) {
 }
 
 // Handler fetch obligatorio para que Chrome considere la app instalable.
-// Si la red falla, devolvemos Response.error() para no dejar promesas sin atrapar.
+// No interceptar orígenes cruzados (APILIS): en PWA Android respondWith rompe CORS
+// y el login muestra "No se pudo validar la cédula".
 self.addEventListener('fetch', event => {
     const req = event.request;
+    try {
+        if (new URL(req.url).origin !== self.location.origin)
+            return;
+    } catch {
+        return;
+    }
+
     const network = isSensitiveRequest(req)
         ? fetch(req, { cache: 'no-store' })
         : fetch(req);

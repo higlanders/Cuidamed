@@ -156,14 +156,15 @@ namespace Cuidanet.Services
 
         public async Task<SmsApiResponse> GetContactoLoginAsync(string cedula)
         {
-            var query = HttpUtility.ParseQueryString(string.Empty);
-            query["cedula"] = cedula;
-            var response = await _httpClient.GetAsync($"{_smsContactoUrl}?{query}");
+            var digits = new string((cedula ?? string.Empty).Where(char.IsDigit).ToArray());
+            var response = await _httpClient.GetAsync(
+                $"{_smsContactoUrl}?cedula={Uri.EscapeDataString(digits)}");
             var body = await response.Content.ReadAsStringAsync();
             var parsed = ParseSmsResponse(body);
 
             if (!response.IsSuccessStatusCode)
             {
+                Console.Error.WriteLine($"[CuidanetApi] sms/contacto {(int)response.StatusCode} {TrimError(body)}");
                 if (parsed != null)
                 {
                     parsed.Ok = false;

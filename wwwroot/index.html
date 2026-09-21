@@ -63,7 +63,7 @@
 
         // Una sola limpieza por versión (caches offline viejos). No desregistrar SW en cada carga.
         (async function clearStalePwaOnce() {
-            var flag = 'cn_pwa_bust_20260903a';
+            var flag = 'cn_pwa_bust_20260920a';
             try {
                 if (localStorage.getItem(flag)) return;
                 if (window.caches && caches.keys) {

@@ -31,7 +31,7 @@ namespace Cuidanet.Handlers
             if (uri is null)
                 return false;
 
-            var path = uri.AbsolutePath;
+            var path = uri.IsAbsoluteUri ? uri.AbsolutePath : uri.OriginalString;
             return path.Contains("sms/contacto", StringComparison.OrdinalIgnoreCase)
                 || path.Contains("sms/enviar-codigo", StringComparison.OrdinalIgnoreCase)
                 || path.Contains("sms/verificar-codigo", StringComparison.OrdinalIgnoreCase)

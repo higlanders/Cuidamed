@@ -415,24 +415,28 @@
 
         try
         {
-            var contacto = await CuidanetService.GetContactoLoginAsync(loginModel.Cedula.ToString()!);
+            var cedula = loginModel.Cedula.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var contacto = await CuidanetService.GetContactoLoginAsync(cedula);
             if (contacto.PuedeEnrolar == true)
             {
-                Navigation.NavigateTo($"./enrolar-celular?cedula={loginModel.Cedula}");
+                Navigation.NavigateTo($"./enrolar-celular?cedula={cedula}");
                 return;
             }
 
             if (contacto.Ok != true || string.IsNullOrWhiteSpace(contacto.TelefonoEnmascarado))
             {
-                errorMessage = "Esta cédula no esta registrada en nuestro sistema";
+                errorMessage = string.IsNullOrWhiteSpace(contacto.UserMessage)
+                    ? "Esta cédula no esta registrada en nuestro sistema"
+                    : contacto.UserMessage;
                 return;
             }
 
             loginModel.Telefono = contacto.TelefonoEnmascarado;
             CurrentStep = LoginStep.Telefono;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.Error.WriteLine($"[Login] Validar cédula: {ex.GetType().Name}: {ex.Message}");
             errorMessage = "No se pudo validar la cédula. Intenta de nuevo.";
         }
     }
