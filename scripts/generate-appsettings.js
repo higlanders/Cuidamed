@@ -48,7 +48,6 @@ const settings = {
       CoberturaPlan: "Cobertura/plan",
       CoberturaConsumos: "Cobertura/consumos",
       PwaInstalacion: "Pwa/instalacion",
-      SistemaEstado: "Sistema/estado",
     },
   },
   CuidanetApp: {

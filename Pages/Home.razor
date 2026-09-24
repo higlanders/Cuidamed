@@ -156,14 +156,6 @@
 
                     <InstallAppButton Variant="InstallAppButton.InstallVariant.MenuItem" />
 
-                    @if (esStaff)
-                    {
-                        <button type="button" class="cn-home__logout" @onclick='() => NavigateTo("estado-servicios")'>
-                            <i class="bi bi-activity" aria-hidden="true"></i>
-                            Estado de servicios
-                        </button>
-                    }
-
                     <button type="button" class="cn-home__logout" @onclick="BeginLogOut">
                         <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
                         Salir
@@ -187,7 +179,6 @@
     private CoberturaPlanDto? planActivo;
     private IReadOnlyList<AppModule> modulosVisibles = AppModules.All;
     private bool esLis;
-    private bool esStaff;
 
     private string NombreAfiliado
     {
@@ -218,7 +209,6 @@
         if (user.Identity != null && user.Identity.IsAuthenticated)
         {
             cedulaUsuario = user.Identity.Name ?? string.Empty;
-            esStaff = StaffAccessHelper.EsAdminNivel1o2(user);
 
             try
             {
