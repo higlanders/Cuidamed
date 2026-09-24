@@ -60,6 +60,7 @@ public static class AppModules
         "configurar-acceso",
         "desbloquear",
         "terminos",
+        "estado-servicios",
     };
 
     public static IReadOnlyList<AppModule> VisibleFor(bool esLis) =>

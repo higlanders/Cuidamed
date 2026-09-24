@@ -40,6 +40,7 @@ namespace Cuidanet.Services
         private readonly string _coberturaPlanUrl;
         private readonly string _coberturaConsumosUrl;
         private readonly string _pwaInstalacionUrl;
+        private readonly string _sistemaEstadoUrl;
 
         public CuidanetApiClient(HttpClient httpClient, IConfiguration configuration)
         {
@@ -79,6 +80,7 @@ namespace Cuidanet.Services
             _coberturaPlanUrl = configuration["CuidanetServices:Endpoints:CoberturaPlan"] ?? "Cobertura/plan";
             _coberturaConsumosUrl = configuration["CuidanetServices:Endpoints:CoberturaConsumos"] ?? "Cobertura/consumos";
             _pwaInstalacionUrl = configuration["CuidanetServices:Endpoints:PwaInstalacion"] ?? "Pwa/instalacion";
+            _sistemaEstadoUrl = configuration["CuidanetServices:Endpoints:SistemaEstado"] ?? "Sistema/estado";
         }
 
         /// <summary>
@@ -772,6 +774,22 @@ namespace Cuidanet.Services
             }
 
             return await response.Content.ReadFromJsonAsync<PwaInstalacionResponseDto>();
+        }
+
+        /// <summary>GET /api/Sistema/estado — health APILIS / Worker / cadena IA (solo staff N1/N2).</summary>
+        public async Task<SistemaEstadoResponse?> GetSistemaEstadoAsync()
+        {
+            var response = await _httpClient.GetAsync(_sistemaEstadoUrl);
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+                throw new UnauthorizedAccessException("Se requiere admin nivel 1 o 2.");
+            if (!response.IsSuccessStatusCode)
+            {
+                var detail = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"[CuidanetApi] Sistema/estado {(int)response.StatusCode} {TrimError(detail)}");
+                throw new HttpRequestException("No se pudo consultar el estado de servicios.");
+            }
+
+            return await response.Content.ReadFromJsonAsync<SistemaEstadoResponse>();
         }
 
         private string GetMimeType(string fileName)

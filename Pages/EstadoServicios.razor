@@ -1,0 +1,139 @@
+﻿@page "/estado-servicios"
+@layout EmptyLayout
+@using Microsoft.AspNetCore.Components.Authorization
+@using Cuidanet.Services
+@using Cuidanet.Models
+@inject CuidanetApiClient Api
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject BrandProfile Brand
+
+<PageTitle>@Brand.Title("Estado de servicios")</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-estado">
+            <PageHeader Title="Estado de servicios" Lead="Monitoreo staff (APILIS e IA)" Back="GoHome">
+                <button type="button" class="cn-estado__refresh" @onclick="CargarAsync" disabled="@cargando">
+                    @(cargando ? "Consultando…" : "Actualizar")
+                </button>
+            </PageHeader>
+
+            @if (!esStaff)
+            {
+                <div class="cn-estado__alert" role="alert">
+                    Esta pantalla es solo para administradores nivel 1 o 2.
+                </div>
+            }
+            else if (cargando && estado is null)
+            {
+                <div class="cn-estado__state">
+                    <div class="spinner-border text-info" role="status">
+                        <span class="visually-hidden">Cargando…</span>
+                    </div>
+                    <p>Consultando servicios…</p>
+                </div>
+            }
+            else
+            {
+                @if (!string.IsNullOrWhiteSpace(errorMsg))
+                {
+                    <div class="cn-estado__alert" role="alert">@errorMsg</div>
+                }
+
+                @if (estado is not null)
+                {
+                    <p class="cn-estado__meta">
+                        Revisado @estado.CheckedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                    </p>
+
+                    <ul class="cn-estado__list">
+                        <li class="cn-estado__item @(estado.Apilis?.Ok == true ? "is-ok" : "is-fail")">
+                            <span class="cn-estado__dot" aria-hidden="true"></span>
+                            <div>
+                                <strong>APILIS</strong>
+                                <p>@(estado.Apilis?.Detail ?? "Sin datos")</p>
+                            </div>
+                        </li>
+
+                        <li class="cn-estado__item @(estado.WorkerApilis?.Ok == true ? "is-ok" : "is-fail")">
+                            <span class="cn-estado__dot" aria-hidden="true"></span>
+                            <div>
+                                <strong>Worker APILIS</strong>
+                                <p>@(estado.WorkerApilis?.Detail ?? "Sin datos")</p>
+                            </div>
+                        </li>
+
+                        <li class="cn-estado__item @(estado.CoraNetIaWorker?.Ok == true ? "is-ok" : "is-fail")">
+                            <span class="cn-estado__dot" aria-hidden="true"></span>
+                            <div>
+                                <strong>CoraNet.IaWorker (cadena IA)</strong>
+                                <p>@(estado.CoraNetIaWorker?.Detail ?? "Sin datos")</p>
+                                <ul class="cn-estado__sub">
+                                    <li class="@(estado.CoraNetIaWorker?.CoraNetApi?.Ok == true ? "is-ok" : "is-fail")">
+                                        CoraNetApi — @(estado.CoraNetIaWorker?.CoraNetApi?.Detail ?? "—")
+                                    </li>
+                                    <li class="@(estado.CoraNetIaWorker?.CuidamedIa?.Ok == true ? "is-ok" : "is-fail")">
+                                        CuidamedIA — @(estado.CoraNetIaWorker?.CuidamedIa?.Detail ?? "—")
+                                    </li>
+                                    <li class="@(estado.CoraNetIaWorker?.Ollama?.Ok == true ? "is-ok" : "is-fail")">
+                                        Ollama — @(estado.CoraNetIaWorker?.Ollama?.Detail ?? "—")
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </ul>
+                }
+            }
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool esStaff;
+    private bool cargando;
+    private string? errorMsg;
+    private SistemaEstadoResponse? estado;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        esStaff = StaffAccessHelper.EsAdminNivel1o2(auth.User);
+        if (!esStaff)
+            return;
+
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        if (!esStaff)
+            return;
+
+        cargando = true;
+        errorMsg = null;
+        try
+        {
+            estado = await Api.GetSistemaEstadoAsync();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            esStaff = false;
+            estado = null;
+            errorMsg = "No tienes permiso para ver el estado de servicios.";
+        }
+        catch (Exception)
+        {
+            errorMsg = "No se pudo consultar el estado. Revisa la conexión con APILIS.";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+}
