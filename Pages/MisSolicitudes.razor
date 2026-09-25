@@ -19,7 +19,38 @@
                             Back="GoHome" />
 
                 <section class="cn-lab__sheet">
-                    <div class="cn-lab__btn-row" style="margin-bottom:1rem;">
+                    @if (grupoFamiliar.Count > 0)
+                    {
+                        <div class="cn-lab__field" style="margin-bottom:1rem;">
+                            <label class="cn-lab__label" id="lbl-asegurado">Asegurado</label>
+                            <p class="cn-lab__drop-hint" style="margin:0 0 0.45rem;">
+                                Elige de quién quieres ver las solicitudes.
+                            </p>
+                            <div class="cn-lab__familia" role="listbox" aria-labelledby="lbl-asegurado">
+                                @foreach (var afiliado in grupoFamiliar)
+                                {
+                                    var selected = beneficiarioSeleccionadoId == afiliado.BeneficiarioId;
+                                    <button type="button"
+                                            role="option"
+                                            aria-selected="@selected"
+                                            class="cn-lab__familia-item @(selected ? "is-selected" : "")"
+                                            disabled="@cargando"
+                                            @onclick="() => SeleccionarAseguradoAsync(afiliado)">
+                                        <span class="cn-lab__familia-avatar" aria-hidden="true">
+                                            @GetInitials(afiliado)
+                                        </span>
+                                        <span class="cn-lab__familia-meta">
+                                            <span class="cn-lab__familia-nombre">@afiliado.NombreCompleto</span>
+                                            <span class="cn-lab__familia-cedula">Cédula @afiliado.Cedula</span>
+                                        </span>
+                                        <span class="cn-lab__familia-radio" aria-hidden="true"></span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="cn-lab__btn-row" style="margin-bottom:1rem;margin-top:0;">
                         <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="NuevaSolicitud">
                             <i class="bi bi-plus-lg" aria-hidden="true"></i>
                             Nueva solicitud
@@ -47,7 +78,16 @@
                     {
                         <div class="cn-lab__status cn-lab__status--info" role="status">
                             <i class="bi bi-inbox" aria-hidden="true"></i>
-                            <p>Aún no tienes solicitudes de medicamentos.</p>
+                            <p>
+                                @if (!string.IsNullOrWhiteSpace(textoAseguradoSeleccionado))
+                                {
+                                    <text>Aún no hay solicitudes de medicamentos para @textoAseguradoSeleccionado.</text>
+                                }
+                                else
+                                {
+                                    <text>Aún no tienes solicitudes de medicamentos.</text>
+                                }
+                            </p>
                         </div>
                     }
                     else
@@ -100,7 +140,10 @@
 @code {
     private bool cargando = true;
     private string? errorMsg;
+    private string textoAseguradoSeleccionado = string.Empty;
+    private int? beneficiarioSeleccionadoId;
     private List<ReembolsoSolicitudListaDto> items = [];
+    private List<BeneficiarioDto> grupoFamiliar = [];
     private Dictionary<int, (string Nombre, string Cedula)> beneficiariosPorId = new();
 
     protected override async Task OnInitializedAsync() => await CargarAsync();
@@ -112,15 +155,16 @@
         try
         {
             var perfil = await PerfilService.GetAsync();
-            if (perfil.BeneficiarioId is not > 0)
+            await CargarGrupoFamiliarAsync(perfil.BeneficiarioId);
+
+            if (beneficiarioSeleccionadoId is not > 0)
             {
-                errorMsg = "No encontramos tu perfil de afiliado.";
+                errorMsg = "No encontramos el grupo familiar para consultar solicitudes.";
                 items = [];
                 return;
             }
 
-            await CargarMapaBeneficiariosAsync();
-            items = await CuidanetService.GetReembolsoSolicitudesAsync(perfil.BeneficiarioId.Value);
+            await CargarSolicitudesAsync(beneficiarioSeleccionadoId.Value);
         }
         catch
         {
@@ -133,26 +177,99 @@
         }
     }
 
-    private async Task CargarMapaBeneficiariosAsync()
+    private async Task CargarGrupoFamiliarAsync(int? beneficiarioPerfilId)
     {
+        grupoFamiliar = [];
         beneficiariosPorId = new Dictionary<int, (string Nombre, string Cedula)>();
+
         try
         {
             var auth = await AuthStateProvider.GetAuthenticationStateAsync();
-            var cedulaSesion = auth.User.Identity?.Name;
-            if (string.IsNullOrWhiteSpace(cedulaSesion))
-                return;
+            var cedulaSesion = auth.User.Identity?.Name?.Trim() ?? string.Empty;
 
-            var grupo = await CuidanetService.GetBeneficiariosAsync(cedula: cedulaSesion);
-            foreach (var b in grupo)
+            List<BeneficiarioDto>? grupo = null;
+            if (!string.IsNullOrWhiteSpace(cedulaSesion))
             {
+                var porCedula = await CuidanetService.GetBeneficiariosAsync(cedula: cedulaSesion);
+                var primero = porCedula?.FirstOrDefault();
+                if (primero is not null)
+                    grupo = await CuidanetService.GetBeneficiariosAsync(titularId: primero.TitularId);
+            }
+
+            if ((grupo is null || grupo.Count == 0) && beneficiarioPerfilId is > 0)
+            {
+                var detalle = await CuidanetService.GetBeneficiarioDetalleAsync(beneficiarioPerfilId.Value);
+                if (detalle is not null)
+                    grupo = await CuidanetService.GetBeneficiariosAsync(titularId: detalle.TitularId);
+            }
+
+            grupoFamiliar = (grupo ?? [])
+                .OrderBy(b => b.BeneficiarioId == b.TitularId ? 0 : 1)
+                .ThenBy(b => b.NombreCompleto, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            foreach (var b in grupoFamiliar)
                 beneficiariosPorId[b.BeneficiarioId] = (b.NombreCompleto, b.Cedula ?? string.Empty);
+
+            if (beneficiarioSeleccionadoId is null
+                || !grupoFamiliar.Any(b => b.BeneficiarioId == beneficiarioSeleccionadoId))
+            {
+                BeneficiarioDto? elegido = null;
+                if (beneficiarioPerfilId is > 0)
+                    elegido = grupoFamiliar.FirstOrDefault(b => b.BeneficiarioId == beneficiarioPerfilId.Value);
+                elegido ??= grupoFamiliar.FirstOrDefault();
+                if (elegido is not null)
+                    AplicarAsegurado(elegido);
+            }
+            else
+            {
+                var actual = grupoFamiliar.First(b => b.BeneficiarioId == beneficiarioSeleccionadoId);
+                AplicarAsegurado(actual);
             }
         }
         catch
         {
-            // El listado sigue; solo sin etiqueta de beneficiario resuelta.
+            // Sin grupo familiar no bloqueamos del todo; se intenta con el perfil más abajo.
+            if (beneficiarioPerfilId is > 0 && beneficiarioSeleccionadoId is null)
+            {
+                beneficiarioSeleccionadoId = beneficiarioPerfilId;
+                textoAseguradoSeleccionado = string.Empty;
+            }
         }
+    }
+
+    private async Task SeleccionarAseguradoAsync(BeneficiarioDto afiliado)
+    {
+        if (beneficiarioSeleccionadoId == afiliado.BeneficiarioId && !cargando)
+            return;
+
+        AplicarAsegurado(afiliado);
+        cargando = true;
+        errorMsg = null;
+        try
+        {
+            await CargarSolicitudesAsync(afiliado.BeneficiarioId);
+        }
+        catch
+        {
+            errorMsg = "No se pudo cargar el listado. Intenta de nuevo.";
+            items = [];
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void AplicarAsegurado(BeneficiarioDto afiliado)
+    {
+        beneficiarioSeleccionadoId = afiliado.BeneficiarioId;
+        textoAseguradoSeleccionado = afiliado.NombreCompleto;
+    }
+
+    private async Task CargarSolicitudesAsync(int beneficiarioId)
+    {
+        items = await CuidanetService.GetReembolsoSolicitudesAsync(beneficiarioId);
     }
 
     private string TextoBeneficiario(ReembolsoSolicitudListaDto s)
@@ -179,6 +296,16 @@
         if (string.IsNullOrWhiteSpace(nombre))
             return $"C.I. {cedula}";
         return $"{nombre} · C.I. {cedula}";
+    }
+
+    private static string GetInitials(BeneficiarioDto b)
+    {
+        var n = (b.Nombre ?? string.Empty).Trim();
+        var a = (b.Apellido ?? string.Empty).Trim();
+        if (n.Length > 0 && a.Length > 0)
+            return $"{char.ToUpperInvariant(n[0])}{char.ToUpperInvariant(a[0])}";
+        var digits = new string((b.Cedula ?? string.Empty).Where(char.IsDigit).ToArray());
+        return digits.Length >= 2 ? digits[^2..] : "?";
     }
 
     private void Abrir(int id) => Navigation.NavigateTo($"tratamiento/{id}");
