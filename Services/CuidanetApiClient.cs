@@ -39,6 +39,7 @@ namespace Cuidanet.Services
         private readonly string _afiliadoRedFiltrosUrl;
         private readonly string _coberturaPlanUrl;
         private readonly string _coberturaConsumosUrl;
+        private readonly string _coberturaBeneficiosUrl;
         private readonly string _pwaInstalacionUrl;
 
         public CuidanetApiClient(HttpClient httpClient, IConfiguration configuration)
@@ -78,6 +79,7 @@ namespace Cuidanet.Services
             _afiliadoRedFiltrosUrl = configuration["CuidanetServices:Endpoints:AfiliadoRedFiltros"] ?? "Afiliado/red/filtros";
             _coberturaPlanUrl = configuration["CuidanetServices:Endpoints:CoberturaPlan"] ?? "Cobertura/plan";
             _coberturaConsumosUrl = configuration["CuidanetServices:Endpoints:CoberturaConsumos"] ?? "Cobertura/consumos";
+            _coberturaBeneficiosUrl = configuration["CuidanetServices:Endpoints:CoberturaBeneficios"] ?? "Cobertura/beneficios";
             _pwaInstalacionUrl = configuration["CuidanetServices:Endpoints:PwaInstalacion"] ?? "Pwa/instalacion";
         }
 
@@ -476,7 +478,7 @@ namespace Cuidanet.Services
 
         /// <summary>
         /// GET /api/Cobertura/consumos?cedula=&amp;fechaDesde=&amp;fechaHasta=
-        /// Consumos APS, reembolso, carta aval y medicamentos.
+        /// Consumos APS, órdenes de servicio, reembolso, carta aval y medicamentos.
         /// </summary>
         public async Task<CoberturaConsumoDto?> GetCoberturaConsumosAsync(
             string cedula,
@@ -499,6 +501,27 @@ namespace Cuidanet.Services
             }
 
             return await response.Content.ReadFromJsonAsync<CoberturaConsumoDto>();
+        }
+
+        /// <summary>
+        /// GET /api/Cobertura/beneficios?cedula=
+        /// Beneficios del plan con monto cubierto, acumulado y disponible.
+        /// </summary>
+        public async Task<List<CoberturaBeneficioDto>> GetCoberturaBeneficiosAsync(string cedula)
+        {
+            var query = HttpUtility.ParseQueryString(string.Empty);
+            query["cedula"] = cedula;
+
+            var response = await _httpClient.GetAsync($"{_coberturaBeneficiosUrl}?{query}");
+            if (!response.IsSuccessStatusCode)
+            {
+                var detail = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"[CuidanetApi] Cobertura/beneficios {(int)response.StatusCode} {TrimError(detail)}");
+                throw new HttpRequestException("No se pudo cargar los beneficios. Intenta de nuevo.");
+            }
+
+            return await response.Content.ReadFromJsonAsync<List<CoberturaBeneficioDto>>()
+                   ?? new List<CoberturaBeneficioDto>();
         }
 
         /// <summary>

@@ -1,4 +1,6 @@
-﻿@page "/beneficios"
+﻿@page "/coberturas"
+@page "/consumos"
+@page "/beneficios"
 @layout EmptyLayout
 @using Microsoft.AspNetCore.Components.Authorization
 @using Cuidanet.Services
@@ -9,17 +11,32 @@
 @inject AfiliadoPerfilService PerfilService
 @inject BrandProfile Brand
 
-<PageTitle>@Brand.Title("Coberturas y consumos")</PageTitle>
+<PageTitle>@Brand.Title(Titulo)</PageTitle>
 
 <AuthorizeView>
     <Authorized>
         <div class="cn-ben">
-            <PageHeader Title="Coberturas y consumos" Lead="@Subtitulo" Back="GoHome">
-                @if (planActivo is not null)
+            <PageHeader Title="@Titulo" Lead="@Subtitulo" Back="GoHome">
+                @if (!esConsumos && planActivo is not null)
                 {
                     <span class="cn-ben__badge">Plan activo</span>
                 }
             </PageHeader>
+
+            <nav class="cn-ben__switch" aria-label="Coberturas o consumos">
+                <button type="button"
+                        class="cn-ben__switch-btn @(!esConsumos ? "is-active" : null)"
+                        aria-current="@(!esConsumos ? "page" : null)"
+                        @onclick="IrCoberturas">
+                    Coberturas
+                </button>
+                <button type="button"
+                        class="cn-ben__switch-btn @(esConsumos ? "is-active" : null)"
+                        aria-current="@(esConsumos ? "page" : null)"
+                        @onclick="IrConsumos">
+                    Consumos
+                </button>
+            </nav>
 
             @if (cargando)
             {
@@ -27,15 +44,64 @@
                     <div class="spinner-border text-info" role="status">
                         <span class="visually-hidden">Cargando…</span>
                     </div>
-                    <p>Consultando coberturas y consumos…</p>
+                    <p>@(esConsumos ? "Consultando consumos…" : "Consultando coberturas…")</p>
                 </div>
+            }
+            else if (esConsumos)
+            {
+                @if (!string.IsNullOrWhiteSpace(errorMessage))
+                {
+                    <div class="cn-ben__alert cn-ben__alert--error" role="alert">
+                        <strong>No se pudo cargar los consumos.</strong>
+                        <p>@errorMessage</p>
+                    </div>
+                }
+
+                <section class="cn-ben__section">
+                    <div class="cn-ben__section-head">
+                        <h2 class="cn-ben__section-title">Período</h2>
+                        <p class="cn-ben__muted">@fechaDesde.ToString("dd/MM/yyyy") – @fechaHasta.ToString("dd/MM/yyyy")</p>
+                    </div>
+
+                    @if (consumo is null)
+                    {
+                        <div class="cn-ben__empty">
+                            <h3>Sin consumos en el período</h3>
+                            <p>No se registraron movimientos para tu cuenta en estas fechas.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="cn-ben__total">
+                            <span class="cn-ben__label cn-ben__label--light">Consumo total</span>
+                            <strong>$@totalVisible.ToString("N2")</strong>
+                        </div>
+
+                        <div class="cn-ben__cards">
+                            @foreach (var item in ItemsConsumo)
+                            {
+                                <article class="cn-ben__card">
+                                    <div class="cn-ben__card-head">
+                                        <h3>@item.Titulo</h3>
+                                        <span class="cn-ben__chip">@item.Casos @(item.Casos == 1 ? "caso" : "casos")</span>
+                                    </div>
+                                    <p class="cn-ben__muted">@item.Descripcion</p>
+                                    <div class="cn-ben__card-foot">
+                                        <span class="cn-ben__muted">Consumido</span>
+                                        <strong class="cn-ben__value--accent">$@item.Monto.ToString("N2")</strong>
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    }
+                </section>
             }
             else
             {
                 @if (!string.IsNullOrWhiteSpace(errorMessage))
                 {
                     <div class="cn-ben__alert cn-ben__alert--error" role="alert">
-                        <strong>No se pudo cargar parte de la información.</strong>
+                        <strong>No se pudo cargar las coberturas.</strong>
                         <p>@errorMessage</p>
                     </div>
                 }
@@ -81,44 +147,53 @@
                     }
                 </section>
 
-                <section class="cn-ben__section">
-                    <div class="cn-ben__section-head">
-                        <h2 class="cn-ben__section-title">Consumos</h2>
-                        <p class="cn-ben__muted">@fechaDesde.ToString("dd/MM/yyyy") – @fechaHasta.ToString("dd/MM/yyyy")</p>
-                    </div>
-
-                    @if (consumo is null)
-                    {
-                        <div class="cn-ben__empty">
-                            <h3>Sin consumos en el período</h3>
-                            <p>No se registraron movimientos para tu cuenta en estas fechas.</p>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="cn-ben__total">
-                            <span class="cn-ben__label cn-ben__label--light">Consumo total</span>
-                            <strong>$@totalVisible.ToString("N2")</strong>
-                        </div>
-
-                        <div class="cn-ben__cards">
-                            @foreach (var item in ItemsConsumo)
-                            {
-                                <article class="cn-ben__card">
-                                    <div class="cn-ben__card-head">
-                                        <h3>@item.Titulo</h3>
-                                        <span class="cn-ben__chip">@item.Casos @(item.Casos == 1 ? "caso" : "casos")</span>
-                                    </div>
-                                    <p class="cn-ben__muted">@item.Descripcion</p>
-                                    <div class="cn-ben__card-foot">
-                                        <span class="cn-ben__muted">Consumido</span>
-                                        <strong class="cn-ben__value--accent">$@item.Monto.ToString("N2")</strong>
-                                    </div>
-                                </article>
-                            }
-                        </div>
-                    }
-                </section>
+                @if (!esLis)
+                {
+                    <section class="cn-ben__section">
+                        <h2 class="cn-ben__section-title">Beneficios</h2>
+                        @if (BeneficiosPlan.Count == 0 && string.IsNullOrWhiteSpace(errorMessage))
+                        {
+                            <div class="cn-ben__empty">
+                                <h3>Detalle no disponible</h3>
+                                <p>La consulta del plan todavía no incluye cada beneficio con su monto cubierto y acumulado.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="cn-ben__cards">
+                                @foreach (var beneficio in BeneficiosPlan)
+                                {
+                                    <article class="cn-ben__card">
+                                        <div class="cn-ben__card-head">
+                                            <h3>@beneficio.Nombre</h3>
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(beneficio.Detalle))
+                                        {
+                                            <p class="cn-ben__muted">@beneficio.Detalle</p>
+                                        }
+                                        <div class="cn-ben__grid2">
+                                            <div>
+                                                <span class="cn-ben__label">Cubierto</span>
+                                                <p class="cn-ben__value">@FormatoMonto(beneficio.MontoCubierto)</p>
+                                            </div>
+                                            <div>
+                                                <span class="cn-ben__label">Acumulado</span>
+                                                <p class="cn-ben__value cn-ben__value--accent">@FormatoMonto(beneficio.MontoAcumulado)</p>
+                                            </div>
+                                        </div>
+                                        @if (beneficio.Disponible is not null)
+                                        {
+                                            <div class="cn-ben__card-foot">
+                                                <span class="cn-ben__muted">Disponible</span>
+                                                <strong>@FormatoMonto(beneficio.Disponible)</strong>
+                                            </div>
+                                        }
+                                    </article>
+                                }
+                            </div>
+                        }
+                    </section>
+                }
             }
         </div>
     </Authorized>
@@ -129,6 +204,7 @@
 
 @code {
     private bool cargando = true;
+    private bool esConsumos;
     private string? errorMessage;
     private string cedulaUsuario = string.Empty;
 
@@ -141,44 +217,76 @@
     private CoberturaPlanDto? planActivo => planes.Count > 0 ? planes[0] : null;
 
     private List<ConsumoItemVm> ItemsConsumo { get; set; } = new();
+    private List<BeneficioVm> BeneficiosPlan { get; set; } = new();
     private bool esLis;
     private decimal totalVisible;
 
-    private string Subtitulo => esLis
-        ? "Consumos de APS y farmacia cubiertos"
-        : "Cliente, plan activo y consumos del período";
+    private string Titulo => esConsumos ? "Consumos" : "Coberturas";
 
-    protected override async Task OnInitializedAsync()
+    private string? vistaCargada;
+
+    private string Subtitulo
     {
+        get
+        {
+            if (!esConsumos)
+                return esLis ? "Cliente y plan activo" : "Coberturas y beneficios de tu plan";
+
+            if (!esLis)
+                return "Todos los consumos del período";
+
+            return "APS, órdenes de servicio y farmacia cubierta";
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var vista = SlugActual().StartsWith("consumos", StringComparison.OrdinalIgnoreCase)
+            ? "consumos"
+            : "coberturas";
+        if (vista == vistaCargada)
+            return;
+
+        vistaCargada = vista;
+        esConsumos = vista == "consumos";
+        cargando = true;
+        errorMessage = null;
+
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
 
             if (user.Identity is not { IsAuthenticated: true })
-            {
-                cargando = false;
                 return;
-            }
 
             cedulaUsuario = user.Identity.Name ?? string.Empty;
             if (string.IsNullOrWhiteSpace(cedulaUsuario))
             {
                 errorMessage = "No se encontró la cédula de sesión.";
-                cargando = false;
                 return;
             }
 
             var perfil = await PerfilService.GetAsync();
             esLis = perfil.EsLis;
 
-            await LoadPlanAsync();
-            await LoadConsumosAsync();
-            RebuildConsumoItems();
+            if (esConsumos)
+            {
+                await LoadConsumosAsync();
+                RebuildConsumoItems();
+            }
+            else
+            {
+                await LoadPlanAsync();
+                if (!esLis)
+                    await LoadBeneficiosAsync();
+            }
         }
         catch (Exception)
         {
-            errorMessage = "No se pudo cargar la información de coberturas. Intenta de nuevo.";
+            errorMessage = esConsumos
+                ? "No se pudo cargar los consumos. Intenta de nuevo."
+                : "No se pudo cargar la información de coberturas. Intenta de nuevo.";
         }
         finally
         {
@@ -195,7 +303,32 @@
         catch (Exception)
         {
             planes = new();
-            errorMessage = AppendError(errorMessage, "No se pudo cargar el cliente y plan.");
+            errorMessage = "No se pudo cargar el cliente y plan.";
+        }
+    }
+
+    private async Task LoadBeneficiosAsync()
+    {
+        try
+        {
+            var beneficios = await CuidanetService.GetCoberturaBeneficiosAsync(cedulaUsuario) ?? new();
+            BeneficiosPlan = beneficios
+                .Where(b => !string.IsNullOrWhiteSpace(b.Nombre))
+                .Select(b => new BeneficioVm
+                {
+                    Nombre = b.Nombre!.Trim(),
+                    Detalle = b.Detalle,
+                    MontoCubierto = b.MontoCubierto,
+                    MontoAcumulado = b.MontoAcumulado,
+                    Disponible = b.Disponible
+                })
+                .ToList();
+        }
+        catch (Exception)
+        {
+            BeneficiosPlan = new();
+            if (string.IsNullOrWhiteSpace(errorMessage))
+                errorMessage = "No se pudo cargar el detalle de beneficios.";
         }
     }
 
@@ -210,7 +343,7 @@
         catch (Exception)
         {
             consumo = null;
-            errorMessage = AppendError(errorMessage, "No se pudo cargar los consumos.");
+            errorMessage = "No se pudo cargar los consumos.";
         }
     }
 
@@ -220,11 +353,15 @@
         if (consumo is null) return;
 
         ItemsConsumo.Add(new ConsumoItemVm("APS", "Consultas y servicios APS", consumo.ConsumoAps, consumo.CasosAps));
+        ItemsConsumo.Add(new ConsumoItemVm(
+            "Órdenes de servicio",
+            "Órdenes de servicio aprobadas",
+            consumo.ConsumoOrdenesServicio,
+            consumo.CasosOrdenesServicio));
 
-        var farmaciaCubierta = consumo.CasosMedicamentos > 0 || consumo.ConsumoMedicamentos > 0;
-        if (!esLis || farmaciaCubierta)
+        if (!esLis || consumo.FarmaciaCubierta)
         {
-            ItemsConsumo.Add(new ConsumoItemVm("Medicamentos", "Farmacia / medicamentos", consumo.ConsumoMedicamentos, consumo.CasosMedicamentos));
+            ItemsConsumo.Add(new ConsumoItemVm("Farmacia", "Medicamentos cubiertos", consumo.ConsumoMedicamentos, consumo.CasosMedicamentos));
         }
 
         if (!esLis)
@@ -236,10 +373,28 @@
         totalVisible = ItemsConsumo.Sum(i => i.Monto);
     }
 
+    private void IrCoberturas()
+    {
+        if (!esConsumos) return;
+        Navigation.NavigateTo("coberturas");
+    }
+
+    private void IrConsumos()
+    {
+        if (esConsumos) return;
+        Navigation.NavigateTo("consumos");
+    }
+
     private void GoHome() => Navigation.NavigateTo("Home");
 
-    private static string AppendError(string? current, string next) =>
-        string.IsNullOrWhiteSpace(current) ? next : $"{current} | {next}";
+    private string SlugActual()
+    {
+        var relative = Navigation.ToBaseRelativePath(Navigation.Uri);
+        return relative.Split('?', '#')[0].Trim('/');
+    }
+
+    private static string FormatoMonto(decimal? monto) =>
+        monto is null ? "—" : $"${monto.Value.ToString("N2")}";
 
     private sealed class ConsumoItemVm
     {
@@ -255,5 +410,14 @@
         public string Descripcion { get; }
         public decimal Monto { get; }
         public int Casos { get; }
+    }
+
+    private sealed class BeneficioVm
+    {
+        public required string Nombre { get; init; }
+        public string? Detalle { get; init; }
+        public decimal? MontoCubierto { get; init; }
+        public decimal? MontoAcumulado { get; init; }
+        public decimal? Disponible { get; init; }
     }
 }

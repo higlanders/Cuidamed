@@ -100,6 +100,34 @@
     font-size: 0.85rem;
 }
 
+.cn-ben__switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem;
+    margin: 0.25rem 0 1.25rem;
+    padding: 0.3rem;
+    border-radius: 999px;
+    background: #f3f5f7;
+}
+
+.cn-ben__switch-btn {
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--cn-muted);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.55rem 0.75rem;
+    cursor: pointer;
+}
+
+.cn-ben__switch-btn.is-active {
+    background: #fff;
+    color: var(--cn-teal-dark);
+    box-shadow: 0 2px 8px rgba(26, 43, 50, 0.08);
+}
+
 .cn-ben__section {
     margin-bottom: 1.5rem;
 }

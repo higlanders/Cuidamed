@@ -11,13 +11,14 @@ public sealed class AppModule
 
 /// <summary>
 /// Catálogo de funcionalidades.
-/// LIS (empresa 10 / Internacional de Seguros): solo coberturas, proveedores, farmacias y medicamentos.
+/// LIS (empresa contratante del plan): coberturas, consumos, telemedicina, proveedores, farmacias y medicamentos.
 /// </summary>
 public static class AppModules
 {
     public static IReadOnlyList<AppModule> All { get; } =
     [
-        new() { Id = "coberturas", Label = "Coberturas y consumos", IconPath = "icons/coberturas.svg", Route = "beneficios" },
+        new() { Id = "coberturas", Label = "Coberturas", IconPath = "icons/coberturas.svg", Route = "coberturas" },
+        new() { Id = "consumos", Label = "Consumos", IconPath = "icons/consumos.svg", Route = "consumos" },
         new() { Id = "proveedores", Label = "Red de proveedores", IconPath = "icons/proveedores.svg", Route = "proveedores" },
         new() { Id = "citas-aps", Label = "Agendar cita APS", IconPath = "icons/citas-aps.svg", Route = "Citas-aps" },
         new() { Id = "telemedicina", Label = "Telemedicina", IconPath = "icons/telemedicina.svg", Route = "telemedicina" },
@@ -35,7 +36,9 @@ public static class AppModules
     /// <summary>Módulos del Home para afiliados LIS (Internacional de Seguros).</summary>
     public static IReadOnlyList<AppModule> ForLis { get; } =
     [
-        new() { Id = "coberturas", Label = "Coberturas", IconPath = "icons/coberturas.svg", Route = "beneficios" },
+        new() { Id = "coberturas", Label = "Coberturas", IconPath = "icons/coberturas.svg", Route = "coberturas" },
+        new() { Id = "consumos", Label = "Consumos", IconPath = "icons/consumos.svg", Route = "consumos" },
+        new() { Id = "telemedicina", Label = "Telemedicina", IconPath = "icons/telemedicina.svg", Route = "telemedicina" },
         new() { Id = "proveedores", Label = "Red de proveedores", IconPath = "icons/proveedores.svg", Route = "proveedores" },
         new() { Id = "farmacias", Label = "Red de farmacias", IconPath = "icons/farmacias.svg", Route = "farmacias" },
         new() { Id = "reembolso", Label = "Medicamentos", IconPath = "icons/reembolso.svg", Route = "reembolso" },
@@ -46,6 +49,9 @@ public static class AppModules
     {
         "home",
         "beneficios",
+        "coberturas",
+        "consumos",
+        "telemedicina",
         "proveedores",
         "farmacias",
         "reembolso",

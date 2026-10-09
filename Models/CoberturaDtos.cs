@@ -82,6 +82,15 @@ public class CoberturaConsumoDto
     [JsonPropertyName("casosMedicamentos")]
     public int CasosMedicamentos { get; set; }
 
+    [JsonPropertyName("consumoOrdenesServicio")]
+    public decimal ConsumoOrdenesServicio { get; set; }
+
+    [JsonPropertyName("casosOrdenesServicio")]
+    public int CasosOrdenesServicio { get; set; }
+
+    [JsonPropertyName("farmaciaCubierta")]
+    public bool FarmaciaCubierta { get; set; }
+
     [JsonPropertyName("consumoTotal")]
     public decimal ConsumoTotal { get; set; }
 
@@ -90,4 +99,23 @@ public class CoberturaConsumoDto
 
     [JsonPropertyName("fechaHasta")]
     public DateTime? FechaHasta { get; set; }
+}
+
+/// <summary>Beneficio del plan (GET Cobertura/beneficios).</summary>
+public class CoberturaBeneficioDto
+{
+    [JsonPropertyName("nombre")]
+    public string? Nombre { get; set; }
+
+    [JsonPropertyName("detalle")]
+    public string? Detalle { get; set; }
+
+    [JsonPropertyName("montoCubierto")]
+    public decimal? MontoCubierto { get; set; }
+
+    [JsonPropertyName("montoAcumulado")]
+    public decimal MontoAcumulado { get; set; }
+
+    [JsonPropertyName("disponible")]
+    public decimal? Disponible { get; set; }
 }

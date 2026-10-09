@@ -47,6 +47,7 @@ const settings = {
       AfiliadoRedFiltros: "Afiliado/red/filtros",
       CoberturaPlan: "Cobertura/plan",
       CoberturaConsumos: "Cobertura/consumos",
+      CoberturaBeneficios: "Cobertura/beneficios",
       PwaInstalacion: "Pwa/instalacion",
     },
   },

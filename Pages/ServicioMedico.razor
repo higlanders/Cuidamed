@@ -23,7 +23,7 @@
                     {
                         <p class="cn-svc__muted">Cargando…</p>
                     }
-                    else if (esLis)
+                    else if (esTelemedicina && esLis)
                     {
                         <p class="cn-svc__lead">Este servicio lo presta Venemergencia.</p>
                         <p class="cn-svc__muted">Te llevamos a su sitio (sitio de terceros, fuera de Cuidanet) para continuar la atención.</p>
@@ -80,6 +80,7 @@
 @code {
     private bool cargando = true;
     private bool esLis;
+    private bool esTelemedicina;
     private bool enviando;
     private string motivo = string.Empty;
     private string direccion = string.Empty;
@@ -96,6 +97,7 @@
 
         var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
         modulo = AppModules.FindByRoute(path);
+        esTelemedicina = path.Trim('/').StartsWith("telemedicina", StringComparison.OrdinalIgnoreCase);
 
         var perfil = await PerfilService.GetAsync();
         esLis = perfil.EsLis;
