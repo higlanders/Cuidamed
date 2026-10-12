@@ -23,28 +23,14 @@
                     {
                         <p class="cn-svc__muted">Cargando…</p>
                     }
-                    else if (esTelemedicina && esLis)
+                    else if (esLis)
                     {
-                        <p class="cn-svc__lead">Este servicio lo presta Venemergencia.</p>
-                        <p class="cn-svc__muted">Te llevamos a su sitio (sitio de terceros, fuera de Cuidanet) para continuar la atención.</p>
-                        @if (AppSettings.EsUrlVenemergenciaValida)
-                        {
-                            <a class="cn-svc__link"
-                               href="@AppSettings.VenemergenciaUrl"
-                               target="_blank"
-                               rel="noopener noreferrer">
-                                Ir a Venemergencia
-                            </a>
-                        }
-                        else
-                        {
-                            <p class="cn-svc__error">El enlace de Venemergencia no está configurado.</p>
-                        }
+                        <p class="cn-svc__error">El enlace de Venemergencia no está configurado.</p>
                     }
                     else
                     {
                         <p class="cn-svc__lead">Indícanos la siguiente información para conectarte con nuestros médicos:</p>
-                        <p class="cn-svc__muted">Al continuar, motivo, dirección y celular se envían a WhatsApp (fuera de Cuidanet).</p>
+                        <p class="cn-svc__muted">Al presionar Continuar te redirigimos al WhatsApp de Cuidamed para validar los datos ingresados y enviar el mensaje.</p>
 
                         <div class="cn-svc__field">
                             <label class="cn-svc__label" for="motivo">Motivo</label>
@@ -65,7 +51,7 @@
                         }
 
                         <button type="button" class="cn-svc__cta" disabled="@enviando" @onclick="EnviarWhatsAppAsync">
-                            Continuar por WhatsApp
+                            Continuar
                         </button>
                     }
                 </section>
@@ -80,7 +66,6 @@
 @code {
     private bool cargando = true;
     private bool esLis;
-    private bool esTelemedicina;
     private bool enviando;
     private string motivo = string.Empty;
     private string direccion = string.Empty;
@@ -97,10 +82,16 @@
 
         var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
         modulo = AppModules.FindByRoute(path);
-        esTelemedicina = path.Trim('/').StartsWith("telemedicina", StringComparison.OrdinalIgnoreCase);
 
         var perfil = await PerfilService.GetAsync();
         esLis = perfil.EsLis;
+
+        if (esLis && AppSettings.EsUrlVenemergenciaValida)
+        {
+            Navigation.NavigateTo(AppSettings.VenemergenciaUrl, forceLoad: true);
+            return;
+        }
+
         cargando = false;
     }
 

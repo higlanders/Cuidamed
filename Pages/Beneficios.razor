@@ -23,21 +23,6 @@
                 }
             </PageHeader>
 
-            <nav class="cn-ben__switch" aria-label="Coberturas o consumos">
-                <button type="button"
-                        class="cn-ben__switch-btn @(!esConsumos ? "is-active" : null)"
-                        aria-current="@(!esConsumos ? "page" : null)"
-                        @onclick="IrCoberturas">
-                    Coberturas
-                </button>
-                <button type="button"
-                        class="cn-ben__switch-btn @(esConsumos ? "is-active" : null)"
-                        aria-current="@(esConsumos ? "page" : null)"
-                        @onclick="IrConsumos">
-                    Consumos
-                </button>
-            </nav>
-
             @if (cargando)
             {
                 <div class="cn-ben__state">
@@ -371,18 +356,6 @@
         }
 
         totalVisible = ItemsConsumo.Sum(i => i.Monto);
-    }
-
-    private void IrCoberturas()
-    {
-        if (!esConsumos) return;
-        Navigation.NavigateTo("coberturas");
-    }
-
-    private void IrConsumos()
-    {
-        if (esConsumos) return;
-        Navigation.NavigateTo("consumos");
     }
 
     private void GoHome() => Navigation.NavigateTo("Home");

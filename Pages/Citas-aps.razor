@@ -1,633 +1,215 @@
 ﻿@page "/Citas-aps"
 @layout EmptyLayout
-@using System.IO
 @using Cuidanet.Services
-@using Cuidanet.Models
-@inject IJSRuntime JS
-@inject CuidanetApiClient CuidanetService
 @inject NavigationManager Navigation
-@inject CuidanetAppSettings AppSettings
 @inject LisRouteGuard LisGuard
 @inject BrandProfile Brand
 
+<PageTitle>@Brand.Title("Solicitar cita")</PageTitle>
+
 <AuthorizeView>
     <Authorized>
-<div class="cn-svc">
-    <div class="cn-svc__shell">
-        <PageHeader Title="Solicitud de Cita APS"
-                    Lead="Agenda tu consulta de atención primaria de salud rápidamente."
-                    Back="GoHome" />
-        <section class="cn-page__sheet">
-<div class="container py-2" style="max-width: 500px;">
+        <div class="cn-svc">
+            <div class="cn-svc__shell">
+                <PageHeader Title="Solicitar cita"
+                            Lead="@Lead"
+                            Back="GoHome" />
 
-    <!-- Indicador de Pasos (Wizard Progress) -->
-    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
-        <div class="step-item text-center @(pasoActual >= 1 ? "active" : "")">
-            <div class="step-circle">1</div>
-            <span class="step-label">Médico</span>
-        </div>
-        <div class="step-line @(pasoActual >= 2 ? "active" : "")"></div>
-        <div class="step-item text-center @(pasoActual >= 2 ? "active" : "")">
-            <div class="step-circle">2</div>
-            <span class="step-label">Soportes</span>
-        </div>
-        <div class="step-line @(pasoActual >= 3 ? "active" : "")"></div>
-        <div class="step-item text-center @(pasoActual >= 3 ? "active" : "")">
-            <div class="step-circle">3</div>
-            <span class="step-label">Pago</span>
-        </div>
-    </div>
-
-    @if (pasoActual == 1)
-    {
-        <!-- PASO 1: SELECCIÓN DE MODALIDAD, ESPECIALIDAD Y FECHA -->
-        <div class="card p-3 shadow-sm mb-3 border-0 bg-light">
-            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-hospital"></i> Detalle de la Cita</h6>
-
-            <!-- Modalidad de Cobertura -->
-            <div class="mb-3">
-                <label class="form-label small fw-bold">Tipo de Cita / Cobertura:</label>
-                <div class="row g-2">
-                    <div class="col-6">
-                        <button type="button"
-                                class="btn w-100 btn-sm text-start p-2 border @(esPagadaPorSeguro ? "btn-info text-white fw-bold shadow-sm" : "btn-white bg-white text-secondary")"
-                                @onclick="() => SeleccionarModalidad(true)">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-shield-check me-2 fs-5"></i>
-                                <div>
-                                    <div class="lh-1 small fw-bold">Póliza / Seguro</div>
-                                    <span style="font-size: 10px;" class="@(esPagadaPorSeguro ? "text-white-50" : "text-muted")">Con cobertura</span>
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-                    <div class="col-6">
-                        <button type="button"
-                                class="btn w-100 btn-sm text-start p-2 border @(!esPagadaPorSeguro ? "btn-warning text-dark fw-bold shadow-sm" : "btn-white bg-white text-secondary")"
-                                @onclick="() => SeleccionarModalidad(false)">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-person-fill-gear me-2 fs-5"></i>
-                                <div>
-                                    <div class="lh-1 small fw-bold">Particular</div>
-                                    <span style="font-size: 10px;" class="text-muted">Sin cobertura</span>
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label small fw-bold">Especialidad:</label>
-                <select class="form-select form-select-sm" @onchange="OnEspecialidadChanged">
-                    <option value="">-- Seleccionar Especialidad --</option>
-                    <option value="1">Medicina General / Familiar</option>
-                    <option value="2">Pediatría</option>
-                    <option value="3">Medicina Interna</option>
-                    <option value="4">Ginecología</option>
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label small fw-bold">Médico / Centro Médico:</label>
-                <select class="form-select form-select-sm" @bind="medicoSeleccionadoId">
-                    <option value="0">-- Seleccionar Médico --</option>
-                    <option value="101">Dr. Carlos Mendoza - Centro Médico La Urbina</option>
-                    <option value="102">Dra. María Gutiérrez - Clínica San José</option>
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label small fw-bold">Fecha y Hora de Atención:</label>
-                <input type="datetime-local" class="form-control form-control-sm" @bind="fechaCita" />
-            </div>
-
-            <button class="btn btn-info text-white w-100 mt-2 fw-bold"
-                    disabled="@(medicoSeleccionadoId == 0 || fechaCita == default)"
-                    @onclick="() => pasoActual = 2">
-                Siguiente: Soportes <i class="bi bi-arrow-right"></i>
-            </button>
-        </div>
-    }
-    else if (pasoActual == 2)
-    {
-        <!-- PASO 2: CARGA DE DOCUMENTOS / EXÁMENES / DIAGNÓSTICOS -->
-        <div class="card p-3 shadow-sm mb-3 border-0 bg-light">
-            <h6 class="fw-bold text-dark mb-1"><i class="bi bi-file-earmark-medical"></i> Soportes Médicos</h6>
-
-            @if (esPagadaPorSeguro)
-            {
-                <div class="alert alert-info py-2 px-3 small mb-3">
-                    <i class="bi bi-info-circle-fill me-1"></i>
-                    <strong>Cita por Seguro:</strong> Es obligatorio adjuntar su diagnóstico o récipe médico de soporte para validar la cobertura.
-                </div>
-            }
-            else
-            {
-                <div class="alert alert-warning py-2 px-3 small mb-3 text-dark">
-                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                    <strong>Cita Particular:</strong> Adjuntar récipe/diagnóstico es opcional para esta modalidad.
-                </div>
-            }
-
-            <div class="d-flex justify-content-center gap-2 mb-3">
-                <button class="btn @(origenSeleccionado == OrigenMedia.Camara ? "btn-secondary" : "btn-outline-secondary") btn-sm"
-                        @onclick="() => CambiarOrigen(OrigenMedia.Camara)">
-                    <i class="bi bi-camera-fill"></i> Usar Cámara
-                </button>
-                <button class="btn @(origenSeleccionado == OrigenMedia.Archivo ? "btn-secondary" : "btn-outline-secondary") btn-sm"
-                        @onclick="() => CambiarOrigen(OrigenMedia.Archivo)">
-                    <i class="bi bi-folder-fill"></i> Subir Archivo
-                </button>
-            </div>
-
-            @if (origenSeleccionado == OrigenMedia.Camara)
-            {
-                <div class="video-container border rounded bg-dark mb-3 position-relative" style="height: 175px; overflow:hidden;">
-                    <video id="webcam" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
-                    <canvas id="captureCanvas" style="display: none;"></canvas>
-                </div>
-
-                <div class="d-grid gap-2 mb-3">
-                    @if (!cameraInitialized)
+                <section class="cn-svc__sheet">
+                    @if (enviada)
                     {
-                        <button class="btn btn-primary btn-sm" @onclick="InicializarCamara">
-                            <i class="bi bi-camera"></i> Encender Cámara
+                        <article class="cn-svc__card">
+                            <p class="cn-svc__muted" style="margin:0 0 0.2rem;">Servicio</p>
+                            <p style="margin:0 0 0.85rem;font-weight:600;">@TextoServicio</p>
+
+                            @if (EsConsulta)
+                            {
+                                <p class="cn-svc__muted" style="margin:0 0 0.2rem;">Especialidad</p>
+                                <p style="margin:0 0 0.85rem;font-weight:600;">@especialidad</p>
+                            }
+
+                            <p class="cn-svc__muted" style="margin:0 0 0.2rem;">Día sugerido</p>
+                            <p style="margin:0 0 0.85rem;font-weight:600;">@diaSemana · @turno</p>
+
+                            <p class="cn-svc__muted" style="margin:0 0 0.2rem;">Día específico</p>
+                            <p style="margin:0;font-weight:600;">@(TextoFechaEspecifica ?? "No indicado")</p>
+                        </article>
+
+                        <button type="button" class="cn-svc__cta" @onclick="Reiniciar">
+                            Solicitar otra
                         </button>
                     }
                     else
                     {
-                        <button class="btn btn-success btn-sm" @onclick="TomarYSubirFoto" disabled="@isUploading">
-                            @if (isUploading)
-                            {
-                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                <span> Subiendo...</span>
-                            }
-                            else
-                            {
-                                <span><i class="bi bi-cloud-arrow-up"></i> Capturar y Enviar Soporte</span>
-                            }
-                        </button>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="card p-3 border-dashed text-center mb-3 bg-white">
-                    <i class="bi bi-file-earmark-arrow-up text-muted mb-2" style="font-size: 36px;"></i>
-                    <p class="fuente-gris mb-2">Selecciona una imagen (.jpg, .png) o documento (.pdf).</p>
-
-                    <InputFile OnChange="HandleFileSelected" class="form-control form-control-sm" accept="image/png, image/jpeg, application/pdf" disabled="@isUploading" />
-
-                    @if (isUploading && origenSeleccionado == OrigenMedia.Archivo)
-                    {
-                        <div class="mt-2">
-                            <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
-                            <span class="text-primary small ms-2">Subiendo archivo local...</span>
+                        <div class="cn-svc__field">
+                            <label class="cn-svc__label" for="tipo-servicio">Tipo de servicio</label>
+                            <select id="tipo-servicio" class="cn-svc__input" @bind="tipoServicio" @bind:after="AlCambiarTipo">
+                                <option value="">Seleccionar</option>
+                                @foreach (var tipo in TiposServicio)
+                                {
+                                    <option value="@tipo">@tipo</option>
+                                }
+                            </select>
                         </div>
-                    }
-                </div>
-            }
 
-            @if (!string.IsNullOrEmpty(statusMessage))
-            {
-                <div class="alert @statusClass small text-center p-2 mb-2" role="alert">
-                    @statusMessage
-                </div>
-            }
-
-            <!-- Documentos Subidos -->
-            @if (documentosCargados.Any())
-            {
-                <div class="mb-3">
-                    <label class="form-label small fw-bold">Documentos Adjuntos (@documentosCargados.Count):</label>
-                    <ul class="list-group list-group-flush border rounded bg-white small">
-                        @foreach (var doc in documentosCargados)
+                        @if (EsConsulta)
                         {
-                            <li class="list-group-item d-flex justify-content-between align-items-center p-2">
-                                <span class="text-truncate" style="max-width: 220px;">📄 ID: @doc.ImagenesId - @doc.Periodo</span>
-                                <a href="@doc.UrlPublica" target="_blank" class="btn btn-link btn-sm p-0">Ver</a>
-                            </li>
+                            <div class="cn-svc__field">
+                                <label class="cn-svc__label" for="especialidad">Especialidad</label>
+                                <select id="especialidad" class="cn-svc__input" @bind="especialidad">
+                                    <option value="">Seleccionar</option>
+                                    @foreach (var item in Especialidades)
+                                    {
+                                        <option value="@item">@item</option>
+                                    }
+                                </select>
+                            </div>
                         }
-                    </ul>
-                </div>
-            }
 
-            <div class="d-flex gap-2 mt-2">
-                <button class="btn btn-outline-secondary w-50 btn-sm" @onclick="() => pasoActual = 1">Atrás</button>
-                <button class="btn btn-info text-white w-50 btn-sm fw-bold"
-                        disabled="@(esPagadaPorSeguro && !documentosCargados.Any())"
-                        @onclick="() => pasoActual = 3">
-                    Continuar al Pago <i class="bi bi-arrow-right"></i>
-                </button>
-            </div>
-        </div>
-    }
-    else if (pasoActual == 3)
-    {
-        <!-- PASO 3: LIQUIDACIÓN DE COBERTURA Y PAGO -->
-        <div class="card p-3 shadow-sm mb-3 border-0 bg-light">
-            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-receipt"></i> Resumen de Pago</h6>
+                        <div class="cn-svc__field">
+                            <label class="cn-svc__label" for="dia-semana">Día de la semana</label>
+                            <select id="dia-semana" class="cn-svc__input" @bind="diaSemana">
+                                <option value="">Seleccionar</option>
+                                @foreach (var dia in DiasSemana)
+                                {
+                                    <option value="@dia">@dia</option>
+                                }
+                            </select>
+                        </div>
 
-            <div class="bg-white p-3 rounded border mb-3">
-                <div class="d-flex justify-content-between small mb-1">
-                    <span class="text-muted">Modalidad de Cita:</span>
-                    <span class="fw-bold @(esPagadaPorSeguro ? "text-primary" : "text-dark")">
-                        @(esPagadaPorSeguro ? $"Póliza de Seguro {Brand.Name}" : "Cita Particular / Sin Seguro")
-                    </span>
-                </div>
-                <div class="d-flex justify-content-between small mb-1">
-                    <span class="text-muted">Costo Consulta APS:</span>
-                    <span class="fw-bold">$ @montoTotal.ToString("F2")</span>
-                </div>
-                <div class="d-flex justify-content-between small mb-1 @(esPagadaPorSeguro ? "text-success" : "text-muted")">
-                    <span>Cobertura Aplicada (@(esPagadaPorSeguro ? "80%" : "0%")):</span>
-                    <span>- $ @montoCobertura.ToString("F2")</span>
-                </div>
-                <hr class="my-1" />
-                <div class="d-flex justify-content-between fw-bold text-dark">
-                    <span>Monto Final a Pagar:</span>
-                    <span class="text-info-custom">$ @montoDeducible.ToString("F2")</span>
-                </div>
-            </div>
+                        <div class="cn-svc__field">
+                            <label class="cn-svc__label" for="turno">Turno</label>
+                            <select id="turno" class="cn-svc__input" @bind="turno">
+                                <option value="">Seleccionar</option>
+                                <option value="Mañana">Mañana</option>
+                                <option value="Tarde">Tarde</option>
+                            </select>
+                        </div>
 
-            <div class="mb-3">
-                <label class="form-label small fw-bold">Método de Pago:</label>
-                <select class="form-select form-select-sm" @bind="metodoPagoSeleccionado">
-                    <option value="pago_movil">Pago Móvil</option>
-                    <option value="transferencia">Transferencia Bancaria</option>
-                    <option value="tdc">Tarjeta de Crédito / Débito Internacional</option>
-                </select>
-            </div>
+                        <div class="cn-svc__field">
+                            <label class="cn-svc__label" for="fecha-especifica">Día específico (opcional)</label>
+                            <input id="fecha-especifica"
+                                   type="date"
+                                   class="cn-svc__input"
+                                   min="@MinFecha"
+                                   @bind="fechaEspecifica" />
+                        </div>
 
-            <div class="mb-3">
-                <label class="form-label small fw-bold">Referencia / Comprobante de Pago:</label>
-                <input type="text" class="form-control form-control-sm" placeholder="Ej: 12345678" @bind="referenciaPago" />
-            </div>
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <p class="cn-svc__error" role="alert">@errorMessage</p>
+                        }
 
-            @if (!string.IsNullOrEmpty(statusMessage))
-            {
-                <div class="alert @statusClass small text-center p-2 mb-2" role="alert">
-                    @statusMessage
-                </div>
-            }
-
-            <div class="d-flex gap-2 mt-2">
-                <button class="btn btn-outline-secondary w-50 btn-sm" @onclick="() => pasoActual = 2">Atrás</button>
-                <button class="btn btn-success w-50 btn-sm fw-bold"
-                        disabled="@(string.IsNullOrWhiteSpace(referenciaPago) || isProcessing)"
-                        @onclick="ProcesarReservaYPago">
-                    @if (isProcessing)
-                    {
-                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        <span> Procesando...</span>
+                        <button type="button" class="cn-svc__cta" @onclick="Continuar">
+                            Continuar
+                        </button>
                     }
-                    else
-                    {
-                        <span>Confirmar Cita</span>
-                    }
-                </button>
+                </section>
             </div>
         </div>
-    }
-    else if (pasoActual == 4)
-    {
-        <!-- PASO 4: CONFIRMACIÓN EXITOSA -->
-        <div class="card p-4 shadow-sm mb-3 border-0 bg-white text-center">
-            <div class="text-success mb-2" style="font-size: 48px;">
-                <i class="bi bi-check-circle-fill"></i>
-            </div>
-            <h5 class="fw-bold text-dark mb-1">¡Cita Agendada con Éxito!</h5>
-            <p class="fuente-gris mb-3">Su solicitud de Cita APS fue agendada e ingresada correctamente al sistema.</p>
-
-            <div class="alert alert-light border text-start small mb-3">
-                <p class="mb-1"><strong>Nº de Ticket / Solicitud:</strong> #APS-@solicitudIdGenerado</p>
-                <p class="mb-1"><strong>Modalidad:</strong> @(esPagadaPorSeguro ? "Cubierta por Seguro" : "Particular / No Cubierta")</p>
-                <p class="mb-1"><strong>Fecha/Hora:</strong> @fechaCita.ToString("dd/MM/yyyy hh:mm tt")</p>
-                <p class="mb-1"><strong>Soportes Adjuntos:</strong> @documentosCargados.Count archivo(s)</p>
-                <p class="mb-0"><strong>Monto Pagado:</strong> $ @montoDeducible.ToString("F2") (Ref: @referenciaPago)</p>
-            </div>
-
-            <button class="btn btn-info text-white w-100 fw-bold btn-sm" @onclick="ReiniciarFormulario">
-                Solicitar Otra Cita
-            </button>
-        </div>
-    }
-</div>
-        </section>
-    </div>
-</div>
     </Authorized>
     <NotAuthorized>
         <RedirectToLogin />
     </NotAuthorized>
 </AuthorizeView>
 
-<style>
-    .text-info-custom {
-        color: #00a4ba !important;
-    }
-
-    .fuente-gris {
-        font-family: 'Poppins', sans-serif;
-        font-weight: 300;
-        color: #808080;
-        font-size: 13px;
-        line-height: 1.2;
-    }
-
-    /* Estilos del Wizard de Progreso */
-    .step-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        opacity: 0.5;
-    }
-
-        .step-item.active {
-            opacity: 1;
-        }
-
-    .step-circle {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background-color: #6c757d;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: bold;
-    }
-
-    .step-item.active .step-circle {
-        background-color: #00a4ba;
-    }
-
-    .step-label {
-        font-size: 11px;
-        margin-top: 4px;
-        color: #333;
-    }
-
-    .step-line {
-        flex-grow: 1;
-        height: 2px;
-        background-color: #dee2e6;
-        margin: 0 8px;
-        margin-bottom: 16px;
-    }
-
-        .step-line.active {
-            background-color: #00a4ba;
-        }
-
-    .border-dashed {
-        border: 2px dashed #00a4ba;
-    }
-
-    @@media (min-width: 576px) {
-        .fuente-gris {
-            font-size: 15px;
-        }
-    }
-</style>
-
 @code {
-    // --- ESTADOS Y CONTROL DE FLUJO ---
-    private int pasoActual = 1;
-    private bool isProcessing = false;
+    private static readonly string[] TiposServicio = ["Consulta", "Laboratorio", "Imágenes", "Estudios"];
 
-    // Modalidad de Cobertura
-    private bool esPagadaPorSeguro = true;
+    private static readonly string[] Especialidades =
+    [
+        "Medicina general / familiar",
+        "Pediatría",
+        "Medicina interna",
+        "Ginecología"
+    ];
 
-    // Paso 1 Datos
-    private int medicoSeleccionadoId = 0;
-    private DateTime fechaCita = DateTime.Now.AddDays(1);
+    private static readonly string[] DiasSemana =
+    [
+        "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"
+    ];
 
-    // Paso 2 Datos (Archivos / Cámara)
-    private enum OrigenMedia { Camara, Archivo }
-    private OrigenMedia origenSeleccionado = OrigenMedia.Camara;
+    private string tipoServicio = string.Empty;
+    private string especialidad = string.Empty;
+    private string diaSemana = string.Empty;
+    private string turno = string.Empty;
+    private DateOnly? fechaEspecifica;
+    private string errorMessage = string.Empty;
+    private bool enviada;
 
-    private bool cameraInitialized = false;
-    private bool isUploading = false;
-    private string statusMessage = string.Empty;
-    private string statusClass = "alert-info";
+    private bool EsConsulta =>
+        string.Equals(tipoServicio, "Consulta", StringComparison.OrdinalIgnoreCase);
 
-    private List<UploadImagenResponse> documentosCargados = new();
-    private int servicioContextoId = 1024;
-    private long MaxFileSizeBytes => AppSettings.MaxUploadBytes;
+    private string Lead => enviada
+        ? "Así quedó la preferencia de tu cita."
+        : "Elige el servicio y sugiere el día y el turno que prefieres.";
 
-    // Paso 3 Datos (Cálculo Dinámico de Cobertura / Pago)
-    private decimal montoTotal = 50.00m;
-    private decimal montoCobertura => esPagadaPorSeguro ? (montoTotal * 0.80m) : 0.00m;
-    private decimal montoDeducible => montoTotal - montoCobertura;
+    private DateOnly MinFecha => DateOnly.FromDateTime(DateTime.Today);
 
-    private string metodoPagoSeleccionado = "pago_movil";
-    private string referenciaPago = string.Empty;
-    private int solicitudIdGenerado = 0;
+    private string TextoServicio => tipoServicio;
 
-    private void GoHome() => Navigation.NavigateTo("Home");
+    private string? TextoFechaEspecifica => fechaEspecifica?.ToString("dd/MM/yyyy");
 
     protected override async Task OnInitializedAsync()
     {
         await LisGuard.EnsureAllowedAsync();
     }
 
-    private void SeleccionarModalidad(bool porSeguro)
+    private void GoHome() => Navigation.NavigateTo("Home");
+
+    private void AlCambiarTipo()
     {
-        esPagadaPorSeguro = porSeguro;
+        if (!EsConsulta)
+            especialidad = string.Empty;
+
+        errorMessage = string.Empty;
     }
 
-    private void OnEspecialidadChanged(ChangeEventArgs e)
+    private void Continuar()
     {
-        medicoSeleccionadoId = 0;
+        errorMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(tipoServicio))
+        {
+            errorMessage = "Elige el tipo de servicio.";
+            return;
+        }
+
+        if (EsConsulta && string.IsNullOrWhiteSpace(especialidad))
+        {
+            errorMessage = "Elige la especialidad.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(diaSemana))
+        {
+            errorMessage = "Elige un día de la semana.";
+            return;
+        }
+
+        if (turno is not ("Mañana" or "Tarde"))
+        {
+            errorMessage = "Indica si prefieres la mañana o la tarde.";
+            return;
+        }
+
+        if (fechaEspecifica is DateOnly fecha && fecha < MinFecha)
+        {
+            errorMessage = "El día específico no puede ser anterior a hoy.";
+            return;
+        }
+
+        enviada = true;
     }
 
-    private void CambiarOrigen(OrigenMedia nuevoOrigen)
+    private void Reiniciar()
     {
-        origenSeleccionado = nuevoOrigen;
-        statusMessage = string.Empty;
-    }
-
-    private async Task InicializarCamara()
-    {
-        statusMessage = "Solicitando permisos de cámara...";
-        statusClass = "alert-info";
-
-        bool resultado = await JS.InvokeAsync<bool>("BlazorCamera.start", "webcam");
-
-        if (resultado)
-        {
-            cameraInitialized = true;
-            statusMessage = "Cámara lista. Enfoca tu récipe o soporte de cita.";
-            statusClass = "alert-success";
-        }
-        else
-        {
-            statusMessage = "No se pudo acceder a la cámara. Revisa permisos.";
-            statusClass = "alert-danger";
-        }
-    }
-
-    private async Task HandleFileSelected(InputFileChangeEventArgs e)
-    {
-        try
-        {
-            var file = e.File;
-            if (file == null) return;
-
-            if (file.Size > MaxFileSizeBytes)
-            {
-                statusMessage = $"El archivo excede el límite permitido de {AppSettings.MaxUploadMb} MB.";
-                statusClass = "alert-danger";
-                return;
-            }
-
-            isUploading = true;
-            statusMessage = "Cargando archivo...";
-            statusClass = "alert-info";
-            StateHasChanged();
-
-            await using var stream = file.OpenReadStream(MaxFileSizeBytes);
-            using var memory = new MemoryStream();
-            await stream.CopyToAsync(memory);
-            var bytes = memory.ToArray();
-
-            if (!UploadFileGuard.TryValidate(
-                    file.Name,
-                    bytes,
-                    MaxFileSizeBytes,
-                    AppSettings.MaxUploadMb,
-                    out var safeName,
-                    out var validationError))
-            {
-                statusMessage = validationError ?? "Archivo no permitido.";
-                statusClass = "alert-danger";
-                return;
-            }
-
-            memory.Position = 0;
-            var resultado = await CuidanetService.UploadImagenAsync(
-                fileStream: memory,
-                fileName: safeName,
-                carpeta: "Servicio",
-                servicioId: servicioContextoId
-            );
-
-            if (resultado != null)
-            {
-                documentosCargados.Add(resultado);
-                statusMessage = "Documento subido con éxito.";
-                statusClass = "alert-success";
-            }
-        }
-        catch (Exception)
-        {
-            statusMessage = "No se pudo cargar el archivo. Intenta de nuevo.";
-            statusClass = "alert-danger";
-        }
-        finally
-        {
-            isUploading = false;
-        }
-    }
-
-    private async Task TomarYSubirFoto()
-    {
-        try
-        {
-            isUploading = true;
-            statusMessage = "Procesando captura de imagen...";
-            statusClass = "alert-info";
-            StateHasChanged();
-
-            string base64DataUrl = await JS.InvokeAsync<string>("BlazorCamera.capture", "webcam", "captureCanvas");
-            if (string.IsNullOrEmpty(base64DataUrl) || !base64DataUrl.Contains(","))
-            {
-                statusMessage = "La captura falló o el video está vacío.";
-                statusClass = "alert-danger";
-                return;
-            }
-
-            string base64Data = base64DataUrl.Split(',')[1];
-            byte[] imageBytes = Convert.FromBase64String(base64Data);
-            string nombreArchivo = $"CitaAPS_Soporte_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
-
-            if (!CameraCapturePdf.TryFromJpeg(
-                    imageBytes,
-                    nombreArchivo,
-                    MaxFileSizeBytes,
-                    AppSettings.MaxUploadMb,
-                    out var safeName,
-                    out var pdfBytes,
-                    out var validationError))
-            {
-                statusMessage = validationError ?? "La captura no es una imagen válida.";
-                statusClass = "alert-danger";
-                return;
-            }
-
-            using var memoryStream = new MemoryStream(pdfBytes);
-
-            var resultado = await CuidanetService.UploadImagenAsync(
-                fileStream: memoryStream,
-                fileName: safeName,
-                carpeta: "Servicio",
-                servicioId: servicioContextoId
-            );
-
-            if (resultado != null)
-            {
-                documentosCargados.Add(resultado);
-                statusMessage = "Captura de soporte agregada con éxito.";
-                statusClass = "alert-success";
-            }
-        }
-        catch (Exception)
-        {
-            statusMessage = "No se pudo procesar la cámara. Intenta de nuevo.";
-            statusClass = "alert-danger";
-        }
-        finally
-        {
-            isUploading = false;
-        }
-    }
-
-    private async Task ProcesarReservaYPago()
-    {
-        try
-        {
-            isProcessing = true;
-            statusMessage = "Registrando solicitud de cita APS y procesando pago...";
-            statusClass = "alert-info";
-            StateHasChanged();
-
-            await Task.Delay(1500);
-
-            solicitudIdGenerado = new Random().Next(10000, 99999);
-            pasoActual = 4;
-        }
-        catch (Exception)
-        {
-            statusMessage = "No se pudo procesar la solicitud. Intenta de nuevo.";
-            statusClass = "alert-danger";
-        }
-        finally
-        {
-            isProcessing = false;
-        }
-    }
-
-    private void ReiniciarFormulario()
-    {
-        pasoActual = 1;
-        esPagadaPorSeguro = true;
-        medicoSeleccionadoId = 0;
-        referenciaPago = string.Empty;
-        documentosCargados.Clear();
-        statusMessage = string.Empty;
+        tipoServicio = string.Empty;
+        especialidad = string.Empty;
+        diaSemana = string.Empty;
+        turno = string.Empty;
+        fechaEspecifica = null;
+        errorMessage = string.Empty;
+        enviada = false;
     }
 }

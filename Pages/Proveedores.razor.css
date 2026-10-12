@@ -271,6 +271,30 @@
     color: #fff;
 }
 
+.cn-prov__banner {
+    display: flex;
+    gap: 0.65rem;
+    align-items: flex-start;
+    margin: 0 0 1rem;
+    padding: 0.85rem 0.9rem;
+    border-radius: 14px;
+    background: #eef7f9;
+    border: 1px solid #d3e7ee;
+    color: var(--cn-text);
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.cn-prov__banner i {
+    color: var(--cn-primary);
+    font-size: 1.05rem;
+    margin-top: 0.1rem;
+}
+
+.cn-prov__banner p {
+    margin: 0;
+}
+
 .cn-prov__count {
     margin: 0 0 0.75rem;
     font-size: 0.78rem;

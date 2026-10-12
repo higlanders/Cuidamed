@@ -8,6 +8,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject CuidanetApiClient CuidanetService
 @inject CuidanetAppSettings AppSettings
+@inject AfiliadoPerfilService PerfilService
 @inject BrandProfile Brand
 
 <PageTitle>@Brand.Title(TituloPagina)</PageTitle>
@@ -19,6 +20,14 @@
                 <PageHeader Title="@TituloPagina" Lead="@LeadPagina" Back="GoHome" />
 
                 <section class="cn-prov__sheet">
+                    @if (sinEntregaMedicamentos)
+                    {
+                        <div class="cn-prov__banner" role="status">
+                            <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+                            <p>Tu póliza/plan actual no incluye el beneficio de entrega de medicamentos.</p>
+                        </div>
+                    }
+
                     <div class="cn-prov__filters-form">
                         <label class="cn-prov__field">
                             <span>Estado</span>
@@ -188,9 +197,10 @@
 
     private string LeadPagina => SoloFarmacias
         ? "Encuentra farmacias activas de CuidaNet."
-        : "Encuentra clínicas, laboratorios y farmacias de tu red.";
+        : "Encuentra los centros de APS, clínicas y farmacias afiliadas a nivel nacional.";
 
     private List<ProveedorRedDto> todosProveedores = new();
+    private bool sinEntregaMedicamentos;
 
     private IEnumerable<string> EstadosDisponibles =>
         todosProveedores
@@ -272,7 +282,28 @@
             return;
         }
 
-        await LoadProveedoresAsync();
+        await Task.WhenAll(LoadProveedoresAsync(), EvaluarEntregaMedicamentosAsync());
+    }
+
+    private async Task EvaluarEntregaMedicamentosAsync()
+    {
+        if (!SoloFarmacias || string.IsNullOrWhiteSpace(cedulaUsuario))
+            return;
+
+        try
+        {
+            var perfil = await PerfilService.GetAsync();
+            if (!perfil.EsLis)
+                return;
+
+            var consumo = await CuidanetService.GetCoberturaConsumosAsync(cedulaUsuario);
+            sinEntregaMedicamentos = consumo is not null && !consumo.FarmaciaCubierta;
+        }
+        catch (Exception ex)
+        {
+            sinEntregaMedicamentos = false;
+            Console.Error.WriteLine($"Cobertura farmacia: {ex.Message}");
+        }
     }
 
     private async Task LoadProveedoresAsync()

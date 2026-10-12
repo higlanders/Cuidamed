@@ -80,9 +80,9 @@
                             <button type="button"
                                     class="cn-home__tile"
                                     @onclick="() => NavigateTo(modulo.Route)">
-                                <span class="cn-home__tile-icon"
-                                      style="--cn-icon: url('@modulo.IconPath')"
-                                      aria-hidden="true"></span>
+                                <img class="cn-home__tile-icon"
+                                     src="@modulo.IconPath"
+                                     alt="" />
                                 <span class="cn-home__tile-label">@modulo.Label</span>
                             </button>
                         }

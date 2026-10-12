@@ -80,13 +80,10 @@
     margin: 0 auto 1.1rem;
 }
 
-.cn-mod__icon::after {
-    content: "";
+.cn-mod__icon img {
     width: 2.4rem;
     height: 2.4rem;
-    background-color: var(--cn-primary);
-    -webkit-mask: var(--cn-icon) center / contain no-repeat;
-    mask: var(--cn-icon) center / contain no-repeat;
+    object-fit: contain;
 }
 
 .cn-mod__sheet h2 {

@@ -11,7 +11,7 @@ public sealed class AppModule
 
 /// <summary>
 /// Catálogo de funcionalidades.
-/// LIS (empresa contratante del plan): coberturas, consumos, telemedicina, proveedores, farmacias y medicamentos.
+/// LIS (empresa contratante del plan): coberturas, consumos, telemedicina, AMD, proveedores, farmacias y medicamentos.
 /// </summary>
 public static class AppModules
 {
@@ -30,7 +30,6 @@ public static class AppModules
         new() { Id = "farmacias", Label = "Red de farmacias", IconPath = "icons/farmacias.svg", Route = "farmacias" },
         new() { Id = "contacto", Label = "Contacto de emergencia", IconPath = "icons/contacto.svg", Route = "contacto-emergencia" },
         new() { Id = "odontologia", Label = "Odontología", IconPath = "icons/odontologia.svg", Route = "odontologia" },
-        new() { Id = "notificaciones", Label = "Notificaciones", IconPath = "icons/notificaciones.svg", Route = "notificaciones" },
     ];
 
     /// <summary>Módulos del Home para afiliados LIS (Internacional de Seguros).</summary>
@@ -39,6 +38,7 @@ public static class AppModules
         new() { Id = "coberturas", Label = "Coberturas", IconPath = "icons/coberturas.svg", Route = "coberturas" },
         new() { Id = "consumos", Label = "Consumos", IconPath = "icons/consumos.svg", Route = "consumos" },
         new() { Id = "telemedicina", Label = "Telemedicina", IconPath = "icons/telemedicina.svg", Route = "telemedicina" },
+        new() { Id = "amd", Label = "AMD / Ambulancia", IconPath = "icons/amd.svg", Route = "amd" },
         new() { Id = "proveedores", Label = "Red de proveedores", IconPath = "icons/proveedores.svg", Route = "proveedores" },
         new() { Id = "farmacias", Label = "Red de farmacias", IconPath = "icons/farmacias.svg", Route = "farmacias" },
         new() { Id = "reembolso", Label = "Medicamentos", IconPath = "icons/reembolso.svg", Route = "reembolso" },
@@ -52,6 +52,7 @@ public static class AppModules
         "coberturas",
         "consumos",
         "telemedicina",
+        "amd",
         "proveedores",
         "farmacias",
         "reembolso",

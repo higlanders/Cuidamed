@@ -200,17 +200,7 @@
     flex-shrink: 0;
     width: 2.85rem;
     height: 2.85rem;
-    display: grid;
-    place-items: center;
-}
-
-.cn-home__tile-icon::after {
-    content: "";
-    width: 2.85rem;
-    height: 2.85rem;
-    background-color: var(--cn-deep);
-    -webkit-mask: var(--cn-icon) center / contain no-repeat;
-    mask: var(--cn-icon) center / contain no-repeat;
+    object-fit: contain;
 }
 
 .cn-home__tile-label {
