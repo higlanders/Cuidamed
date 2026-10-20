@@ -119,6 +119,14 @@ public sealed class ReembolsoSolicitudListaDto
 
     [JsonPropertyName("puedeEditar")]
     public bool PuedeEditar { get; set; }
+
+    /// <summary>Status de Tratamiento o TratamientoTemp (Aprobado, Rechazado, Promovido…).</summary>
+    [JsonPropertyName("tratamientoStatus")]
+    public string? TratamientoStatus { get; set; }
+
+    /// <summary>Resumen de líneas: Aprobado, Rechazado o Mixto.</summary>
+    [JsonPropertyName("estadoLineas")]
+    public string? EstadoLineas { get; set; }
 }
 
 public sealed class ReembolsoAdjuntoDto

@@ -102,7 +102,7 @@
                                         @onclick="() => Abrir(s.SolicitudId)">
                                     <div class="cn-lab__anexo-head">
                                         <p class="cn-lab__anexo-title">Solicitud #@s.SolicitudId</p>
-                                        <span class="cn-lab__anexo-badge">@EtiquetaStatus(s.Status)</span>
+                                        <span class="cn-lab__anexo-badge">@EtiquetaStatus(s)</span>
                                     </div>
                                     @if (!string.IsNullOrWhiteSpace(beneficiario))
                                     {
@@ -118,10 +118,16 @@
                                             <span> · Se puede corregir</span>
                                         }
                                     </p>
-                                    @if (string.Equals(s.Status, "Error", StringComparison.OrdinalIgnoreCase))
+                                    @if (EtiquetaStatus(s) == ReembolsoUiLabels.Correccion)
                                     {
                                         <p class="cn-lab__footnote" style="color:var(--cn-orange);margin-top:0.35rem;">
                                             No se pudo completar. Abre la solicitud para corregir documentos.
+                                        </p>
+                                    }
+                                    else if (EtiquetaStatus(s) is ReembolsoUiLabels.Aprobada or ReembolsoUiLabels.Rechazada)
+                                    {
+                                        <p class="cn-lab__footnote" style="margin-top:0.35rem;">
+                                            Abre la solicitud para ver el detalle y las observaciones.
                                         </p>
                                     }
                                 </button>
@@ -312,5 +318,6 @@
     private void NuevaSolicitud() => Navigation.NavigateTo("reembolso");
     private void GoHome() => Navigation.NavigateTo("Home");
 
-    private static string EtiquetaStatus(string? status) => ReembolsoUiLabels.EstadoLista(status);
+    private static string EtiquetaStatus(ReembolsoSolicitudListaDto s) =>
+        ReembolsoUiLabels.EstadoVisible(s.Status, s.TratamientoStatus, s.EstadoLineas);
 }

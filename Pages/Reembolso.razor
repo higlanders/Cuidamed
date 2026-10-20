@@ -903,14 +903,7 @@
         return digits.Length >= 2 ? digits[^2..] : "?";
     }
 
-    private static string EtiquetaStatus(string? status) => status switch
-    {
-        "Pendiente" => "en cola",
-        "Procesando" => "analizando",
-        "Listo" => "procesada",
-        "Error" => "con error",
-        _ => status ?? "activa"
-    };
+    private static string EtiquetaStatus(string? status) => ReembolsoUiLabels.EstadoVisible(status);
 
     private static string GuessMime(string fileName)
     {

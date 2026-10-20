@@ -48,7 +48,7 @@
                             <i class="bi @StatusIcon" aria-hidden="true"></i>
                             <p>
                                 Solicitud #@borrador.SolicitudId ·
-                                Estado: <strong>@ReembolsoUiLabels.EstadoAsegurado(borrador.Status)</strong>
+                                Estado: <strong>@EstadoVisible</strong>
                             </p>
                         </div>
 
@@ -59,24 +59,9 @@
                             </p>
                         }
 
-                        @if (ReembolsoUiLabels.EsError(borrador.Status))
-                        {
-                            <p class="cn-lab__footnote" style="color:var(--cn-orange);">
-                                No se pudo completar con estos documentos. Puedes corregirlos o anular la solicitud.
-                            </p>
-                        }
-                        else if (ReembolsoUiLabels.EsEnProceso(borrador.Status))
-                        {
-                            <p class="cn-lab__footnote">
-                                Estamos revisando tu solicitud. Puedes actualizar el estado en unos momentos.
-                            </p>
-                        }
-                        else if (ReembolsoUiLabels.EsListaParaValidar(borrador.Status))
-                        {
-                            <p class="cn-lab__footnote">
-                                Ya puedes validar el registro de medicamentos.
-                            </p>
-                        }
+                        <p class="cn-lab__footnote">
+                            @ReembolsoUiLabels.Mensaje(EstadoVisible, borrador.Detalle.Count > 0, borrador.Observaciones)
+                        </p>
 
                         <h3 class="cn-lab__anexo-title" style="margin-top:1rem;">Documentos adjuntos</h3>
                         @if (borrador.Imagenes.Count == 0)
@@ -104,7 +89,7 @@
                             </div>
                         }
 
-                        @if (borrador.PuedeEditar && !modoCorregir)
+                        @if (PuedeCorregir && !modoCorregir)
                         {
                             <div class="cn-lab__btn-row" style="margin-top:0.85rem;">
                                 <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="IniciarCorreccion" disabled="@ocupado">
@@ -180,14 +165,14 @@
                         }
 
                         <div class="cn-lab__btn-row" style="margin-top:1.25rem;">
-                            @if (ReembolsoUiLabels.EsListaParaValidar(borrador.Status))
+                            @if (ReembolsoUiLabels.MuestraMedicamentos(EstadoVisible))
                             {
                                 <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="IrValidar">
                                     <i class="bi bi-clipboard2-check" aria-hidden="true"></i>
-                                    Validar medicamentos
+                                    Ver medicamentos
                                 </button>
                             }
-                            @if (ReembolsoUiLabels.EsEnProceso(borrador.Status))
+                            @if (EstadoVisible is ReembolsoUiLabels.Pendiente or ReembolsoUiLabels.EnRevision)
                             {
                                 <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="CargarAsync" disabled="@cargando">
                                     <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
@@ -493,23 +478,23 @@
         };
     }
 
-    private string StatusToneClass => borrador?.Status switch
-    {
-        "Listo" => "cn-lab__status--success",
-        "Error" => "cn-lab__status--danger",
-        "Anulado" => "cn-lab__status--warning",
-        "Procesando" => "cn-lab__status--warning",
-        _ => "cn-lab__status--info"
-    };
+    private bool PuedeCorregir =>
+        borrador is { PuedeEditar: true }
+        && EstadoVisible is not (ReembolsoUiLabels.Aprobada or ReembolsoUiLabels.Rechazada)
+        && !borrador.Detalle.Any(d =>
+            string.Equals(d.Status, "Aprobado", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(d.Status, "Rechazado", StringComparison.OrdinalIgnoreCase));
 
-    private string StatusIcon => borrador?.Status switch
-    {
-        "Listo" => "bi-check-circle-fill",
-        "Error" => "bi-x-circle-fill",
-        "Anulado" => "bi-slash-circle",
-        "Procesando" => "bi-hourglass-split",
-        _ => "bi-info-circle-fill"
-    };
+    private string EstadoVisible => borrador is null
+        ? "—"
+        : ReembolsoUiLabels.EstadoVisible(
+            borrador.Status,
+            borrador.TratamientoStatus,
+            lineas: borrador.Detalle.Select(d => d.Status));
+
+    private string StatusToneClass => $"cn-lab__status--{ReembolsoUiLabels.Tono(EstadoVisible)}";
+
+    private string StatusIcon => ReembolsoUiLabels.Icono(EstadoVisible);
 
     private string StatusMsgClass => statusTone switch
     {

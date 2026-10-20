@@ -15,8 +15,8 @@
     <Authorized>
         <div class="cn-lab">
             <div class="cn-lab__shell">
-                <PageHeader Title="Validar medicamentos"
-                            Lead="Revisa el registro propuesto antes de continuar."
+                <PageHeader Title="Medicamentos"
+                            Lead="Estado de cada medicamento según la revisión del analista."
                             Back="GoBack" />
 
                 <section class="cn-lab__sheet">
@@ -43,18 +43,18 @@
                             <i class="bi @StatusIcon" aria-hidden="true"></i>
                             <p>
                                 Solicitud #@borrador.SolicitudId ·
-                                Estado: <strong>@ReembolsoUiLabels.EstadoAsegurado(borrador.Status)</strong>
+                                Estado: <strong>@EstadoVisible</strong>
                             </p>
                         </div>
+                        <p class="cn-lab__footnote">
+                            @ReembolsoUiLabels.Mensaje(EstadoVisible, borrador.Detalle.Count > 0, borrador.Observaciones)
+                        </p>
 
-                        @* —— Vista asegurado: sin menciones a IA —— *@
                         <h3 class="cn-lab__anexo-title" style="margin-top:1rem;">Medicamentos del registro</h3>
                         @if (borrador.Detalle.Count == 0)
                         {
                             <p class="cn-lab__footnote">
                                 Aún no hay medicamentos en el registro.
-                                Si acabas de enviar los documentos, vuelve al detalle y actualiza el estado.
-                                Un analista podrá completar el registro si hace falta.
                             </p>
                         }
                         else
@@ -63,7 +63,10 @@
                                 @foreach (var d in borrador.Detalle)
                                 {
                                     <li class="cn-lab__anexo" style="margin-bottom:0.5rem;">
-                                        <p class="cn-lab__anexo-title">@(d.NombreMedicamento ?? $"#{d.MedicamentoId}")</p>
+                                        <div class="cn-lab__anexo-head">
+                                            <p class="cn-lab__anexo-title">@(d.NombreMedicamento ?? $"#{d.MedicamentoId}")</p>
+                                            <span class="cn-lab__anexo-badge">@ReembolsoUiLabels.EstadoLinea(d.Status)</span>
+                                        </div>
                                         <p class="cn-lab__footnote">
                                             Cant. @(d.Cantidad?.ToString("0.##") ?? "—")
                                             @if (!string.IsNullOrWhiteSpace(d.Presentacion))
@@ -89,13 +92,6 @@
                         }
 
                         <div class="cn-lab__btn-row" style="margin-top:1.15rem;">
-                            @if (ReembolsoUiLabels.EsListaParaValidar(borrador.Status) && borrador.Detalle.Count > 0 && !esAdminN1o2)
-                            {
-                                <button type="button" class="cn-lab__btn cn-lab__btn--primary" @onclick="ConfirmarRevisionAsync" disabled="@ocupado">
-                                    <i class="bi bi-check2-circle" aria-hidden="true"></i>
-                                    He revisado los medicamentos
-                                </button>
-                            }
                             <button type="button" class="cn-lab__btn cn-lab__btn--ghost" @onclick="GoBack">Volver al detalle</button>
                             <button type="button" class="cn-lab__btn cn-lab__btn--ghost" @onclick="IrMisSolicitudes">Mis solicitudes</button>
                         </div>
@@ -439,22 +435,6 @@
         }
     }
 
-    private async Task ConfirmarRevisionAsync()
-    {
-        ocupado = true;
-        try
-        {
-            statusTone = "success";
-            statusMessage = "Gracias. Registramos tu revisión. El equipo continuará con la solicitud.";
-            await Task.Delay(600);
-            Navigation.NavigateTo("mis-solicitudes");
-        }
-        finally
-        {
-            ocupado = false;
-        }
-    }
-
     private async Task VerAdjuntoAsync(int imagenesId)
     {
         try
@@ -489,23 +469,16 @@
     private void GoBack() => Navigation.NavigateTo($"tratamiento/{SolicitudId}");
     private void IrMisSolicitudes() => Navigation.NavigateTo("mis-solicitudes");
 
-    private string StatusToneClass => borrador?.Status switch
-    {
-        "Listo" => "cn-lab__status--success",
-        "Error" => "cn-lab__status--danger",
-        "Anulado" => "cn-lab__status--warning",
-        "Procesando" => "cn-lab__status--warning",
-        _ => "cn-lab__status--info"
-    };
+    private string EstadoVisible => borrador is null
+        ? "—"
+        : ReembolsoUiLabels.EstadoVisible(
+            borrador.Status,
+            borrador.TratamientoStatus,
+            lineas: borrador.Detalle.Select(d => d.Status));
 
-    private string StatusIcon => borrador?.Status switch
-    {
-        "Listo" => "bi-check-circle-fill",
-        "Error" => "bi-x-circle-fill",
-        "Anulado" => "bi-slash-circle",
-        "Procesando" => "bi-hourglass-split",
-        _ => "bi-info-circle-fill"
-    };
+    private string StatusToneClass => $"cn-lab__status--{ReembolsoUiLabels.Tono(EstadoVisible)}";
+
+    private string StatusIcon => ReembolsoUiLabels.Icono(EstadoVisible);
 
     private string StatusMsgClass => statusTone switch
     {
