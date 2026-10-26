@@ -11,7 +11,7 @@
     <Authorized>
         <div class="cn-svc">
             <div class="cn-svc__shell">
-                <PageHeader Title="Glosario" Lead="Términos de tu póliza y de la atención." Back="GoHome" />
+                <PageHeader Title="Glosario" Lead="" Back="GoHome" />
 
                 <section class="cn-svc__sheet">
                     <h2 class="cn-svc__group">Términos</h2>
@@ -23,7 +23,7 @@
                         </article>
                     }
 
-                    <h2 class="cn-svc__group">Términos de cobertura y atención</h2>
+                   
                     @foreach (var termino in TerminosCobertura)
                     {
                         <article class="cn-svc__card">
@@ -50,7 +50,7 @@
 
     private static readonly (string Nombre, string Definicion)[] TerminosCobertura =
     [
-        ("Siniestro", "Es el término técnico que usa la aseguradora para referirse al evento (enfermedad o accidente) cubierto por tu póliza o plan."),
+        ("Siniestro y/o Reclamo", "Es el término técnico que usa la aseguradora para referirse al evento (enfermedad o accidente) cubierto por tu póliza o plan."),
         ("Preexistencia", "Una enfermedad o condición de salud que ya tenías antes de contratar tu seguro médico."),
         ("Periodo de espera", "El tiempo que debes esperar desde que contratas la póliza hasta que puedes usar ciertas coberturas (como maternidad o cirugías programadas)."),
         ("Red de APS", "El listado de los centros afiliados para la atención primaria de salud. Esta red está disponible en todo el territorio nacional. Puedes acudir a un centro de APS para una consulta médica general o con un especialista, realizarte exámenes de laboratorio y estudios básicos como ecocardiogramas, electrocardiogramas, espirometrías, entre otros.")
