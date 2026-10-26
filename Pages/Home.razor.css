@@ -168,6 +168,81 @@
     background: color-mix(in srgb, var(--cn-primary) 22%, #fff);
 }
 
+.cn-home__call-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: grid;
+    place-items: center;
+    padding: 1.25rem;
+    background: rgba(10, 30, 50, 0.45);
+}
+
+.cn-home__call-dialog {
+    width: min(100%, 22rem);
+    padding: 1.15rem 1.15rem 1rem;
+    border-radius: 16px;
+    background: #fff;
+    color: var(--cn-deep);
+    font-family: var(--cn-font);
+    box-shadow: 0 16px 40px rgba(16, 24, 40, 0.22);
+}
+
+.cn-home__call-dialog h2 {
+    margin: 0 0 0.45rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.cn-home__call-dialog p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: #3d4f5c;
+}
+
+.cn-home__call-number {
+    margin-top: 0.55rem !important;
+    font-size: 1.15rem !important;
+    font-weight: 700;
+    color: var(--cn-deep) !important;
+    letter-spacing: 0.01em;
+}
+
+.cn-home__call-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.cn-home__call-cancel,
+.cn-home__call-dial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.4rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    font-family: var(--cn-font);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.cn-home__call-cancel {
+    border: 1.5px solid #d5e0e6;
+    background: #fff;
+    color: var(--cn-deep);
+}
+
+.cn-home__call-dial {
+    border: 0;
+    background: var(--cn-primary);
+    color: #fff;
+}
+
 .cn-home__hello {
     margin: 0 0 0.2rem;
     font-size: 1.45rem;

@@ -33,6 +33,7 @@ jobs:
           CUIDANET_BASE_URL: ${{ secrets.CUIDANET_BASE_URL }}
           CUIDANET_MAX_UPLOAD_MB: ${{ secrets.CUIDANET_MAX_UPLOAD_MB }}
           CUIDANET_RED_STATUS: ${{ secrets.CUIDANET_RED_STATUS }}
+          CUIDANET_TELEFONO_EMERGENCIA: ${{ secrets.CUIDANET_TELEFONO_EMERGENCIA }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         run: node scripts/generate-appsettings.js
 

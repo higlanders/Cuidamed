@@ -9,6 +9,7 @@
 @inject AfiliadoPerfilService PerfilService
 @inject LoginFlowState LoginFlow
 @inject BrandProfile Brand
+@inject CuidanetAppSettings AppSettings
 
 <PageTitle>@Brand.Title("Inicio")</PageTitle>
 
@@ -75,7 +76,11 @@
                                     Glosario
                                     <i class="bi bi-book" aria-hidden="true"></i>
                                 </button>
-                                <button type="button" class="cn-home__call" @onclick='() => NavigateTo("contacto-emergencia")'>
+                                <button type="button"
+                                        class="cn-home__call"
+                                        aria-haspopup="dialog"
+                                        aria-expanded="@llamadaAbierta"
+                                        @onclick="AbrirLlamada">
                                     Llamada de emergencia
                                     <i class="bi bi-telephone" aria-hidden="true"></i>
                                 </button>
@@ -123,6 +128,36 @@
             </nav>
 
             <div class="cn-home__overlay @(isSidebarOpen ? "is-open" : "")" @onclick="ToggleSidebar"></div>
+            @if (llamadaAbierta)
+            {
+                <div class="cn-home__call-backdrop" @onclick="CerrarLlamada">
+                    <div class="cn-home__call-dialog"
+                         role="dialog"
+                         aria-modal="true"
+                         aria-labelledby="cn-call-title"
+                         @onclick:stopPropagation="true"
+                         @onkeydown="OnLlamadaKey">
+                        <h2 id="cn-call-title">Llamada de emergencia</h2>
+                        @if (EnlaceLlamadaCelular is null)
+                        {
+                            <p>El número de celular de emergencia no está configurado.</p>
+                            <div class="cn-home__call-actions">
+                                <button type="button" class="cn-home__call-cancel" @onclick="CerrarLlamada">Cerrar</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <p>Vas a hacer una llamada de celular al número:</p>
+                            <p class="cn-home__call-number">@AppSettings.TelefonoEmergencia</p>
+                            <div class="cn-home__call-actions">
+                                <button type="button" class="cn-home__call-cancel" @onclick="CerrarLlamada">Cancelar</button>
+                                <a class="cn-home__call-dial" href="@EnlaceLlamadaCelular" @onclick="CerrarLlamada">Llamar</a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
             <aside class="cn-home__drawer @(isSidebarOpen ? "is-open" : "")" aria-hidden="@(!isSidebarOpen)">
                 <div class="cn-home__drawer-header">
                     <h2>Mi Perfil</h2>
@@ -186,6 +221,23 @@
 
 @code {
     private bool isSidebarOpen = false;
+    private bool llamadaAbierta;
+
+    private string? EnlaceLlamadaCelular
+    {
+        get
+        {
+            var raw = AppSettings.TelefonoEmergencia;
+            if (string.IsNullOrWhiteSpace(raw))
+                return null;
+
+            var digits = new string(raw.Where(char.IsDigit).ToArray());
+            if (digits.Length is < 3 or > 15)
+                return null;
+
+            return raw.TrimStart().StartsWith('+') ? $"tel:+{digits}" : $"tel:{digits}";
+        }
+    }
     private bool isLoading = true;
     private string cedulaUsuario = string.Empty;
     private string nombrePlan = string.Empty;
@@ -269,6 +321,16 @@
     }
 
     private void ToggleSidebar() => isSidebarOpen = !isSidebarOpen;
+
+    private void AbrirLlamada() => llamadaAbierta = true;
+
+    private void CerrarLlamada() => llamadaAbierta = false;
+
+    private void OnLlamadaKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            llamadaAbierta = false;
+    }
 
     private void NavigateTo(string page) =>
         Navigation.NavigateTo(page.TrimStart('/'));
