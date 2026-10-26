@@ -55,6 +55,8 @@ public static class AppModules
         "amd",
         "proveedores",
         "farmacias",
+        "contacto-emergencia",
+        "glosario",
         "reembolso",
         "mis-solicitudes",
         "tratamiento",

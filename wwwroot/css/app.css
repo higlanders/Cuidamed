@@ -1142,6 +1142,19 @@ code {
     line-height: 1.55;
 }
 
+.cn-svc__group {
+    margin: 0.2rem 0 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cn-muted, #6b7c85);
+}
+
+.cn-svc__group + .cn-svc__card {
+    margin-top: 0;
+}
+
 .cn-svc__card {
     border: 1px solid var(--cn-line);
     border-radius: 16px;

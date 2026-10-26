@@ -1,0 +1,65 @@
+@page "/glosario"
+@layout EmptyLayout
+@using Cuidanet.Services
+@inject NavigationManager Navigation
+@inject LisRouteGuard LisGuard
+@inject BrandProfile Brand
+
+<PageTitle>@Brand.Title("Glosario")</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="cn-svc">
+            <div class="cn-svc__shell">
+                <PageHeader Title="Glosario" Lead="Términos de tu póliza y de la atención." Back="GoHome" />
+
+                <section class="cn-svc__sheet">
+                    <h2 class="cn-svc__group">Términos</h2>
+                    @foreach (var termino in TerminosGenerales)
+                    {
+                        <article class="cn-svc__card">
+                            <h2>@termino.Nombre</h2>
+                            <p class="cn-svc__muted">@termino.Definicion</p>
+                        </article>
+                    }
+
+                    <h2 class="cn-svc__group">Términos de cobertura y atención</h2>
+                    @foreach (var termino in TerminosCobertura)
+                    {
+                        <article class="cn-svc__card">
+                            <h2>@termino.Nombre</h2>
+                            <p class="cn-svc__muted">@termino.Definicion</p>
+                        </article>
+                    }
+                </section>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private static readonly (string Nombre, string Definicion)[] TerminosGenerales =
+    [
+        ("Deducible", "Es la cantidad fija de dinero que tú debes pagar de tu bolsillo antes de que tu seguro empiece a cubrir los gastos."),
+        ("Copago", "Es una cantidad fija de dinero que pagas cada vez que utilizas un servicio médico (como una consulta o comprar medicinas)."),
+        ("Prima o cuota", "Es el costo periódico (mensual, trimestral o anual) que pagas por mantener tu póliza de seguro activa.")
+    ];
+
+    private static readonly (string Nombre, string Definicion)[] TerminosCobertura =
+    [
+        ("Siniestro", "Es el término técnico que usa la aseguradora para referirse al evento (enfermedad o accidente) cubierto por tu póliza o plan."),
+        ("Preexistencia", "Una enfermedad o condición de salud que ya tenías antes de contratar tu seguro médico."),
+        ("Periodo de espera", "El tiempo que debes esperar desde que contratas la póliza hasta que puedes usar ciertas coberturas (como maternidad o cirugías programadas)."),
+        ("Red de APS", "El listado de los centros afiliados para la atención primaria de salud. Esta red está disponible en todo el territorio nacional. Puedes acudir a un centro de APS para una consulta médica general o con un especialista, realizarte exámenes de laboratorio y estudios básicos como ecocardiogramas, electrocardiogramas, espirometrías, entre otros.")
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LisGuard.EnsureAllowedAsync();
+    }
+
+    private void GoHome() => Navigation.NavigateTo("Home");
+}

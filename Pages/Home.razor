@@ -54,19 +54,33 @@
                         </picture>
                     </div>
                     <div class="cn-home__hero-copy">
-                        <p class="cn-home__hello">@Saludo</p>
-                        <p class="cn-home__meta">
-                            @if (!string.IsNullOrWhiteSpace(cedulaUsuario))
-                            {
-                                <span>Cédula @cedulaUsuario</span>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(nombrePlan))
-                            {
-                                <span class="cn-home__dot" aria-hidden="true">·</span>
-                                <span>@nombrePlan</span>
-                            }
-                        </p>
-                        <p class="cn-home__slogan">Cuidamos tu bienestar</p>
+                        <div class="cn-home__hero-row">
+                            <div class="cn-home__hero-text">
+                                <p class="cn-home__hello">@Saludo</p>
+                                <p class="cn-home__meta">
+                                    @if (!string.IsNullOrWhiteSpace(cedulaUsuario))
+                                    {
+                                        <span>Cédula @cedulaUsuario</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(nombrePlan))
+                                    {
+                                        <span class="cn-home__dot" aria-hidden="true">·</span>
+                                        <span>@nombrePlan</span>
+                                    }
+                                </p>
+                                <p class="cn-home__slogan">Cuidamos tu bienestar</p>
+                            </div>
+                            <div class="cn-home__actions">
+                                <button type="button" class="cn-home__call" @onclick='() => NavigateTo("glosario")'>
+                                    Glosario
+                                    <i class="bi bi-book" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="cn-home__call" @onclick='() => NavigateTo("contacto-emergencia")'>
+                                    Llamada de emergencia
+                                    <i class="bi bi-telephone" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
                         <SocialLinks />
                     </div>
                 </header>
