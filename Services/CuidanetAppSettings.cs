@@ -60,15 +60,9 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
     public string WhatsAppCuidamed =>
         FirstNonEmpty(configuration["CuidanetApp:WhatsAppCuidamed"], "+584142387774");
 
-    /// <summary>Celular de la llamada de emergencia. Vacío si no está en configuración.</summary>
-    public string TelefonoEmergencia
-    {
-        get
-        {
-            var raw = configuration["CuidanetApp:TelefonoEmergencia"];
-            return string.IsNullOrWhiteSpace(raw) ? string.Empty : raw.Trim();
-        }
-    }
+    /// <summary>Número de la llamada de emergencia.</summary>
+    public string TelefonoEmergencia =>
+        FirstNonEmpty(configuration["CuidanetApp:TelefonoEmergencia"], "02128172400");
 
     public int ServicioImagenDocumentos =>
         ReadInt("CuidanetApp:ServicioImagenDocumentos", 1024);

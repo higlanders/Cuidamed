@@ -62,7 +62,7 @@ const settings = {
     MaxUploadMb: Number(process.env.CUIDANET_MAX_UPLOAD_MB || 10),
     WhatsAppRedyplan: process.env.CUIDANET_WA_REDYPLAN || "+584241271422",
     WhatsAppCuidamed: process.env.CUIDANET_WA_CUIDAMED || "+584142387774",
-    TelefonoEmergencia: process.env.CUIDANET_TELEFONO_EMERGENCIA || "",
+    TelefonoEmergencia: process.env.CUIDANET_TELEFONO_EMERGENCIA || "02128172400",
     ServicioImagenDocumentos: Number(
       process.env.CUIDANET_SERVICIO_IMAGEN || 1024
     ),
