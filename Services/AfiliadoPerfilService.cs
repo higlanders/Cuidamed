@@ -7,6 +7,7 @@ namespace Cuidanet.Services;
 public sealed class AfiliadoPerfil
 {
     public int? ClienteId { get; init; }
+    public int? EmpresaId { get; init; }
     public int? BeneficiarioId { get; init; }
     public string? NombreCliente { get; init; }
     public string? NombrePlan { get; init; }
@@ -41,13 +42,12 @@ public sealed class AfiliadoPerfilService(
         var auth = await authStateProvider.GetAuthenticationStateAsync();
         var cedula = auth.User.Identity?.Name;
 
-        CoberturaPlanDto? plan = null;
+        List<CoberturaPlanDto> planes = [];
         if (!string.IsNullOrWhiteSpace(cedula))
         {
             try
             {
-                var planes = await api.GetCoberturaPlanAsync(cedula);
-                plan = planes?.FirstOrDefault();
+                planes = await api.GetCoberturaPlanAsync(cedula) ?? [];
             }
             catch (Exception)
             {
@@ -55,15 +55,19 @@ public sealed class AfiliadoPerfilService(
             }
         }
 
+        var plan = planes.FirstOrDefault();
+        var filaLis = planes.FirstOrDefault(p => p.EmpresaId == appSettings.LisClienteId);
+
         _cache = new AfiliadoPerfil
         {
             ClienteId = plan?.ClienteId,
+            EmpresaId = filaLis?.EmpresaId ?? plan?.EmpresaId,
             BeneficiarioId = plan?.BeneficiarioId,
             NombreCliente = plan?.NombreCliente,
             NombrePlan = plan?.NombrePlan,
             Nombre = plan?.Nombre,
             Apellido = plan?.Apellido,
-            EsLis = plan?.ClienteId is int id && id == appSettings.LisClienteId
+            EsLis = filaLis is not null
         };
 
         return _cache;

@@ -32,6 +32,13 @@ public class CoberturaPlanDto
     [JsonPropertyName("beneficiarioId")]
     public int? BeneficiarioId { get; set; }
 
+    /// <summary>Empresa del titular (Cliente.EmpresaId).</summary>
+    [JsonPropertyName("empresaId")]
+    public int? EmpresaId { get; set; }
+
+    [JsonPropertyName("nombreEmpresa")]
+    public string? NombreEmpresa { get; set; }
+
     [JsonIgnore]
     public string NombreCompleto
     {

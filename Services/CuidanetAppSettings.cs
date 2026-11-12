@@ -5,6 +5,7 @@ namespace Cuidanet.Services;
 /// <summary>Parámetros públicos de la app (empresa LIS, enlaces y WhatsApp).</summary>
 public sealed class CuidanetAppSettings(IConfiguration configuration)
 {
+    /// <summary>EmpresaId de LIS en Cliente (titular), no el ClienteId del plan.</summary>
     public int LisClienteId => ReadInt("CuidanetApp:LisClienteId", 10);
 
     public string VenemergenciaUrl =>
