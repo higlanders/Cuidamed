@@ -65,6 +65,10 @@ public sealed class CuidanetAppSettings(IConfiguration configuration)
     public string TelefonoEmergencia =>
         FirstNonEmpty(configuration["CuidanetApp:TelefonoEmergencia"], "02128172400");
 
+    /// <summary>Central telefónica para Telemedicina y AMD / Ambulancia.</summary>
+    public string TelefonoTelemedicina =>
+        FirstNonEmpty(configuration["CuidanetApp:TelefonoTelemedicina"], "0212-2114500");
+
     public int ServicioImagenDocumentos =>
         ReadInt("CuidanetApp:ServicioImagenDocumentos", 1024);
 
