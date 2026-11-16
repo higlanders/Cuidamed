@@ -1054,6 +1054,25 @@ code {
     padding: 1.75rem 1.35rem calc(1.75rem + env(safe-area-inset-bottom, 0px));
 }
 
+.cn-svc__partners {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    margin: 0 0 1.35rem;
+    padding: 0.35rem 0 1.1rem;
+    border-bottom: 1px solid var(--cn-line);
+}
+
+.cn-svc__partner {
+    display: block;
+    width: min(46%, 11.5rem);
+    height: auto;
+    max-height: 4.25rem;
+    object-fit: contain;
+    object-position: center;
+}
+
 .cn-svc__lead {
     margin: 0 0 1.25rem;
     font-size: 0.95rem;
