@@ -39,6 +39,10 @@ public class CoberturaPlanDto
     [JsonPropertyName("nombreEmpresa")]
     public string? NombreEmpresa { get; set; }
 
+    /// <summary>Monto de cobertura del plan (Planes.MontoCobertura).</summary>
+    [JsonPropertyName("montoCobertura")]
+    public decimal? MontoCobertura { get; set; }
+
     [JsonIgnore]
     public string NombreCompleto
     {

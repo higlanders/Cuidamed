@@ -127,6 +127,10 @@
                                         <p class="cn-ben__value cn-ben__value--accent">@(string.IsNullOrWhiteSpace(plan.NombrePlan) ? "—" : plan.NombrePlan)</p>
                                     </div>
                                 </div>
+                                <div class="cn-ben__card-foot">
+                                    <span class="cn-ben__muted">Monto de cobertura</span>
+                                    <strong class="cn-ben__value--accent">@FormatoMonto(plan.MontoCobertura)</strong>
+                                </div>
                             </article>
                         }
                     }
