@@ -493,6 +493,10 @@ namespace Cuidanet.Services
                 query["fechaHasta"] = fechaHasta.Value.ToString("yyyy-MM-dd");
 
             var response = await _httpClient.GetAsync($"{_coberturaConsumosUrl}?{query}");
+            if (response.StatusCode is System.Net.HttpStatusCode.NotFound
+                or System.Net.HttpStatusCode.NoContent)
+                return null;
+
             if (!response.IsSuccessStatusCode)
             {
                 var detail = await response.Content.ReadAsStringAsync();
@@ -500,7 +504,21 @@ namespace Cuidanet.Services
                 throw new HttpRequestException("No se pudo cargar los consumos. Intenta de nuevo.");
             }
 
-            return await response.Content.ReadFromJsonAsync<CoberturaConsumoDto>();
+            var body = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(body) || body.Trim() == "null")
+                return null;
+
+            try
+            {
+                return System.Text.Json.JsonSerializer.Deserialize<CoberturaConsumoDto>(
+                    body,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                Console.Error.WriteLine($"[CuidanetApi] Cobertura/consumos JSON: {ex.Message}");
+                return null;
+            }
         }
 
         /// <summary>

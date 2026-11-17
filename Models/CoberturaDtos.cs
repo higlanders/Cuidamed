@@ -39,9 +39,17 @@ public class CoberturaPlanDto
     [JsonPropertyName("nombreEmpresa")]
     public string? NombreEmpresa { get; set; }
 
-    /// <summary>Monto de cobertura del plan (Planes.MontoCobertura).</summary>
+    /// <summary>Monto de cobertura del plan (legado / Bs, o USD si la API ya lo normalizó).</summary>
     [JsonPropertyName("montoCobertura")]
     public decimal? MontoCobertura { get; set; }
+
+    /// <summary>Monto de cobertura en USD (Planes.MontoCoberturaDivisa).</summary>
+    [JsonPropertyName("montoCoberturaDivisa")]
+    public decimal? MontoCoberturaDivisa { get; set; }
+
+    /// <summary>USD a mostrar: prioriza montoCoberturaDivisa; si no viene, montoCobertura.</summary>
+    [JsonIgnore]
+    public decimal? MontoCoberturaUsd => MontoCoberturaDivisa ?? MontoCobertura;
 
     [JsonIgnore]
     public string NombreCompleto

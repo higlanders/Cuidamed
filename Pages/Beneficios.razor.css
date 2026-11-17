@@ -218,11 +218,36 @@
     gap: 0.75rem;
 }
 
+.cn-ben__block {
+    margin-bottom: 0.15rem;
+}
+
+.cn-ben__block .cn-ben__value {
+    word-break: break-word;
+}
+
+.cn-ben__beneficiary {
+    margin: 0.15rem 0 0;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
 .cn-ben__card-foot {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
     margin-top: 0.75rem;
     padding-top: 0.75rem;
     border-top: 1px solid var(--cn-line);
+}
+
+.cn-ben__card-foot--stack {
+    align-items: flex-start;
+}
+
+.cn-ben__card-foot strong {
+    text-align: right;
+    word-break: break-word;
+    max-width: 70%;
 }

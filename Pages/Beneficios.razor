@@ -47,14 +47,14 @@
                         <p class="cn-ben__muted">@fechaDesde.ToString("dd/MM/yyyy") – @fechaHasta.ToString("dd/MM/yyyy")</p>
                     </div>
 
-                    @if (string.IsNullOrWhiteSpace(errorMessage) && consumo is null)
+                    @if (string.IsNullOrWhiteSpace(errorMessage) && sinConsumos)
                     {
                         <div class="cn-ben__empty">
                             <h3>Sin consumos en el período</h3>
                             <p>No se registraron movimientos para tu cuenta en estas fechas.</p>
                         </div>
                     }
-                    else if (consumo is not null)
+                    else if (!sinConsumos && consumo is not null)
                     {
                         <div class="cn-ben__total">
                             <span class="cn-ben__label cn-ben__label--light">Consumo total (USD)</span>
@@ -105,16 +105,9 @@
                         @foreach (var plan in planes)
                         {
                             <article class="cn-ben__card">
-                                <div class="cn-ben__card-head">
-                                    <div>
-                                        <span class="cn-ben__label">Asegurado</span>
-                                        <h3>@plan.NombreCompleto</h3>
-                                        <p class="cn-ben__muted">Cédula @plan.Cedula</p>
-                                    </div>
-                                    @if (!string.IsNullOrWhiteSpace(plan.Parentesco))
-                                    {
-                                        <span class="cn-ben__chip">@plan.Parentesco</span>
-                                    }
+                                <div class="cn-ben__block">
+                                    <span class="cn-ben__label">Cliente</span>
+                                    <p class="cn-ben__value">@(string.IsNullOrWhiteSpace(plan.NombreCliente) ? "—" : plan.NombreCliente)</p>
                                 </div>
                                 <div class="cn-ben__grid2">
                                     <div>
@@ -123,12 +116,19 @@
                                     </div>
                                     <div>
                                         <span class="cn-ben__label">Monto de cobertura (USD)</span>
-                                        <p class="cn-ben__value cn-ben__value--accent">@FormatoMontoUsd(plan.MontoCobertura)</p>
+                                        <p class="cn-ben__value cn-ben__value--accent">@FormatoMontoUsd(plan.MontoCoberturaUsd)</p>
                                     </div>
                                 </div>
-                                <div class="cn-ben__card-foot">
-                                    <span class="cn-ben__muted">Cliente</span>
-                                    <strong>@(string.IsNullOrWhiteSpace(plan.NombreCliente) ? "—" : plan.NombreCliente)</strong>
+                                <div class="cn-ben__card-foot cn-ben__card-foot--stack">
+                                    <div>
+                                        <span class="cn-ben__label">Beneficiario</span>
+                                        <h3 class="cn-ben__beneficiary">@plan.NombreCompleto</h3>
+                                        <p class="cn-ben__muted">Cédula @plan.Cedula</p>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(plan.Parentesco))
+                                    {
+                                        <span class="cn-ben__chip">@plan.Parentesco</span>
+                                    }
                                 </div>
                             </article>
                         }
@@ -208,6 +208,7 @@
     private List<BeneficioVm> BeneficiosPlan { get; set; } = new();
     private bool esLis;
     private decimal totalVisible;
+    private bool sinConsumos;
 
     private string Titulo => esConsumos ? "Consumos" : "Coberturas";
 
@@ -339,6 +340,8 @@
     private void RebuildConsumoItems()
     {
         ItemsConsumo = new();
+        totalVisible = 0;
+        sinConsumos = true;
         if (consumo is null) return;
 
         ItemsConsumo.Add(new ConsumoItemVm("APS", "Consultas y servicios APS", consumo.ConsumoAps, consumo.CasosAps));
@@ -360,6 +363,7 @@
         }
 
         totalVisible = ItemsConsumo.Sum(i => i.Monto);
+        sinConsumos = totalVisible == 0 && ItemsConsumo.All(i => i.Casos == 0);
     }
 
     private void GoHome() => Navigation.NavigateTo("Home");
