@@ -25,47 +25,55 @@
 
     private async Task EnforceAsync()
     {
-        var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').ToLowerInvariant();
-        if (path.EndsWith("/desbloquear")
-            || path.EndsWith("/configurar-acceso")
-            || path.EndsWith("/enrolar-celular")
-            || path == "" || path.EndsWith("/cuidamed") || path.EndsWith("/index.html"))
-            return;
-
-        // Raíz del login: "/" o base path sin más segmentos
-        var relative = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
-        if (string.IsNullOrEmpty(relative)
-            || relative.Equals("login", StringComparison.OrdinalIgnoreCase))
-            return;
-
-        if (AuthStateProvider is not CustomAuthStateProvider custom)
-            return;
-
-        await DeviceAccess.EnsureUnlockFlagAsync();
-        var snap = await custom.GetSessionSnapshotAsync();
-        if (snap is null)
-            return;
-
-        if (snap.IdentityExpiresAt != default && DateTimeOffset.UtcNow > snap.IdentityExpiresAt)
+        try
         {
-            await DeviceAccess.ClearCredentialAsync();
-            await custom.MarkUserAsLoggedOut();
-            Navigation.NavigateTo("./", forceLoad: true);
-            return;
+            var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').ToLowerInvariant();
+            if (path.EndsWith("/desbloquear")
+                || path.EndsWith("/configurar-acceso")
+                || path.EndsWith("/enrolar-celular")
+                || path == "" || path.EndsWith("/cuidamed") || path.EndsWith("/index.html"))
+                return;
+
+            // Raíz del login: "/" o base path sin más segmentos
+            var relative = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
+            if (string.IsNullOrEmpty(relative)
+                || relative.Equals("login", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (AuthStateProvider is not CustomAuthStateProvider custom)
+                return;
+
+            await DeviceAccess.EnsureUnlockFlagAsync();
+            var snap = await custom.GetSessionSnapshotAsync();
+            if (snap is null)
+                return;
+
+            if (snap.IdentityExpiresAt != default && DateTimeOffset.UtcNow > snap.IdentityExpiresAt)
+            {
+                await DeviceAccess.ClearCredentialAsync();
+                await custom.MarkUserAsLoggedOut();
+                Navigation.NavigateTo("./", forceLoad: true);
+                return;
+            }
+
+            var hasPin = await DeviceAccess.HasPinForCedulaAsync(snap.Cedula);
+            if (!hasPin)
+            {
+                if (!relative.StartsWith("configurar-acceso", StringComparison.OrdinalIgnoreCase))
+                    Navigation.NavigateTo("./configurar-acceso");
+                return;
+            }
+
+            if (!DeviceAccess.IsUnlocked
+                && !relative.StartsWith("desbloquear", StringComparison.OrdinalIgnoreCase))
+            {
+                Navigation.NavigateTo("./desbloquear");
+            }
         }
-
-        var hasPin = await DeviceAccess.HasPinForCedulaAsync(snap.Cedula);
-        if (!hasPin)
+        catch (Exception ex)
         {
-            if (!relative.StartsWith("configurar-acceso", StringComparison.OrdinalIgnoreCase))
-                Navigation.NavigateTo("./configurar-acceso");
-            return;
-        }
-
-        if (!DeviceAccess.IsUnlocked
-            && !relative.StartsWith("desbloquear", StringComparison.OrdinalIgnoreCase))
-        {
-            Navigation.NavigateTo("./desbloquear");
+            // Fuera de ErrorBoundary: sin catch Blazor muestra el toast amarillo.
+            Console.Error.WriteLine($"[DeviceAccessGate] {ex.GetType().Name}: {ex.Message}");
         }
     }
 

@@ -54,7 +54,10 @@ public class CoberturaPlanDto
     }
 }
 
-/// <summary>Consumos consolidados (GET Cobertura/consumos).</summary>
+/// <summary>
+/// Consumos consolidados (GET Cobertura/consumos).
+/// APS, órdenes, farmacia y reembolso vienen en USD (Bs / tasa del caso).
+/// </summary>
 public class CoberturaConsumoDto
 {
     [JsonPropertyName("cedula")]
