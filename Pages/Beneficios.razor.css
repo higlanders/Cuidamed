@@ -172,9 +172,18 @@
     font-size: 0.75rem;
 }
 
+.cn-ben__field {
+    min-width: 0;
+}
+
+.cn-ben__field > .cn-ben__value,
+.cn-ben__field > .cn-ben__beneficiary {
+    margin-top: 0.2rem;
+}
+
 .cn-ben__grid2 {
     display: grid;
-    gap: 0.75rem;
+    gap: 0.85rem;
     margin-top: 0.85rem;
     padding-top: 0.85rem;
     border-top: 1px solid var(--cn-line);
@@ -183,6 +192,8 @@
 @media (min-width: 640px) {
     .cn-ben__grid2 {
         grid-template-columns: 1fr 1fr;
+        column-gap: 1.25rem;
+        row-gap: 0.85rem;
     }
 
     .cn-ben__cards {
@@ -193,6 +204,8 @@
 .cn-ben__value {
     margin: 0.2rem 0 0;
     font-weight: 600;
+    line-height: 1.35;
+    word-break: break-word;
 }
 
 .cn-ben__value--accent {
@@ -234,25 +247,11 @@
     border-top: 1px solid var(--cn-line);
 }
 
-.cn-ben__card-foot--cliente {
-    margin-top: 0;
-    padding-top: 0;
-    border-top: 0;
-    margin-bottom: 0.15rem;
-    align-items: flex-start;
-}
-
-.cn-ben__card-foot--cliente strong {
-    text-align: right;
-    word-break: break-word;
-    max-width: 72%;
-    font-size: 0.92rem;
-}
-
 .cn-ben__card-head--asegurado {
     margin-top: 0.85rem;
     padding-top: 0.85rem;
     border-top: 1px solid var(--cn-line);
+    align-items: flex-start;
 }
 
 .cn-ben__card-foot strong {

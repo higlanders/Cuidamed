@@ -2,6 +2,7 @@
 @page "/consumos"
 @page "/beneficios"
 @layout EmptyLayout
+@using System.Net.Http
 @using Microsoft.AspNetCore.Components.Authorization
 @using Cuidanet.Services
 @using Cuidanet.Models
@@ -105,22 +106,22 @@
                         @foreach (var plan in planes)
                         {
                             <article class="cn-ben__card">
-                                <div class="cn-ben__card-foot cn-ben__card-foot--cliente">
-                                    <span class="cn-ben__muted">Cliente</span>
-                                    <strong>@(string.IsNullOrWhiteSpace(plan.NombreCliente) ? "—" : plan.NombreCliente)</strong>
+                                <div class="cn-ben__field">
+                                    <span class="cn-ben__label">Cliente</span>
+                                    <p class="cn-ben__value">@(string.IsNullOrWhiteSpace(plan.NombreCliente) ? "—" : plan.NombreCliente)</p>
                                 </div>
                                 <div class="cn-ben__grid2">
-                                    <div>
+                                    <div class="cn-ben__field">
                                         <span class="cn-ben__label">Plan</span>
                                         <p class="cn-ben__value cn-ben__value--accent">@(string.IsNullOrWhiteSpace(plan.NombrePlan) ? "—" : plan.NombrePlan)</p>
                                     </div>
-                                    <div>
+                                    <div class="cn-ben__field">
                                         <span class="cn-ben__label">Monto de cobertura (USD)</span>
                                         <p class="cn-ben__value cn-ben__value--accent">@FormatoMontoUsd(plan.MontoCoberturaUsd)</p>
                                     </div>
                                 </div>
                                 <div class="cn-ben__card-head cn-ben__card-head--asegurado">
-                                    <div>
+                                    <div class="cn-ben__field">
                                         <span class="cn-ben__label">Asegurado</span>
                                         <h3 class="cn-ben__beneficiary">@plan.NombreCompleto</h3>
                                         <p class="cn-ben__muted">Cédula @plan.Cedula</p>
@@ -309,10 +310,19 @@
                     planes = filtrados;
             }
         }
-        catch (Exception)
+        catch (HttpRequestException ex)
+        {
+            planes = new();
+            errorMessage = string.IsNullOrWhiteSpace(ex.Message)
+                ? "No se pudo cargar el cliente y plan."
+                : ex.Message;
+            Console.Error.WriteLine($"[Coberturas] {ex.StatusCode}: {ex.Message}");
+        }
+        catch (Exception ex)
         {
             planes = new();
             errorMessage = "No se pudo cargar el cliente y plan.";
+            Console.Error.WriteLine($"[Coberturas] {ex.GetType().Name}: {ex.Message}");
         }
     }
 

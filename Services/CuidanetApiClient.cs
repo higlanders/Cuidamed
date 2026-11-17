@@ -468,12 +468,26 @@ namespace Cuidanet.Services
             if (!response.IsSuccessStatusCode)
             {
                 var detail = await response.Content.ReadAsStringAsync();
-                Console.Error.WriteLine($"[CuidanetApi] Cobertura/plan {(int)response.StatusCode} {TrimError(detail)}");
-                throw new HttpRequestException("No se pudo cargar el plan de cobertura. Intenta de nuevo.");
+                var code = (int)response.StatusCode;
+                Console.Error.WriteLine($"[CuidanetApi] Cobertura/plan {code} cedula={cedula} {TrimError(detail)}");
+                throw new HttpRequestException(
+                    code == 403
+                        ? "No autorizado para consultar ese afiliado."
+                        : "No se pudo cargar el plan de cobertura. Intenta de nuevo.",
+                    null,
+                    response.StatusCode);
             }
 
-            return await response.Content.ReadFromJsonAsync<List<CoberturaPlanDto>>()
-                   ?? new List<CoberturaPlanDto>();
+            try
+            {
+                return await response.Content.ReadFromJsonAsync<List<CoberturaPlanDto>>()
+                       ?? new List<CoberturaPlanDto>();
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[CuidanetApi] Cobertura/plan JSON: {ex.Message}");
+                return new List<CoberturaPlanDto>();
+            }
         }
 
         /// <summary>
