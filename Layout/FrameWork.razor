@@ -269,11 +269,43 @@
         if (user.Identity != null && user.Identity.IsAuthenticated)
         {
             cedulaUsuario = user.Identity.Name ?? string.Empty;
+            int? beneficiarioActivoId = null;
+
+            if (AuthStateProvider is CustomAuthStateProvider custom)
+            {
+                try
+                {
+                    var snap = await custom.GetSessionSnapshotAsync();
+                    if (snap is not null)
+                    {
+                        if (!string.IsNullOrWhiteSpace(snap.CedulaActiva))
+                            cedulaUsuario = snap.CedulaActiva;
+                        beneficiarioActivoId = snap.BeneficiarioId;
+                        if (!string.IsNullOrWhiteSpace(snap.Nombre) || !string.IsNullOrWhiteSpace(snap.Apellido))
+                        {
+                            afiliadoDetalle = new BeneficiarioDto
+                            {
+                                BeneficiarioId = snap.BeneficiarioId ?? 0,
+                                Cedula = cedulaUsuario,
+                                Nombre = snap.Nombre,
+                                Apellido = snap.Apellido
+                            };
+                        }
+                    }
+                }
+                catch (Exception) { }
+            }
 
             try
             {
                 var resultados = await CuidanetService.GetBeneficiariosAsync(cedula: cedulaUsuario);
-                afiliadoDetalle = resultados?.FirstOrDefault();
+                if (resultados is { Count: > 0 })
+                {
+                    afiliadoDetalle = beneficiarioActivoId is > 0
+                        ? resultados.FirstOrDefault(b => b.BeneficiarioId == beneficiarioActivoId.Value)
+                          ?? resultados.FirstOrDefault()
+                        : resultados.FirstOrDefault();
+                }
             }
             catch (Exception) { }
             finally { isLoading = false; }

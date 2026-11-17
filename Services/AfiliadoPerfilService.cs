@@ -34,12 +34,16 @@ public sealed class AfiliadoPerfilService(
 {
     private AfiliadoPerfil? _cache;
 
+    /// <summary>Invalida el perfil cacheado (p. ej. tras elegir otro afiliado en login).</summary>
+    public void Clear() => _cache = null;
+
     public async Task<AfiliadoPerfil> GetAsync()
     {
         if (_cache is not null)
             return _cache;
 
         var auth = await authStateProvider.GetAuthenticationStateAsync();
+        // Identity.Name = cédula activa (afiliado elegido). Cobertura debe permitir grupo familiar.
         var cedula = auth.User.Identity?.Name;
 
         List<CoberturaPlanDto> planes = [];

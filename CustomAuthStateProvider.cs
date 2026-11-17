@@ -40,7 +40,7 @@ namespace Cuidanet
                 }
 
                 _tokenHolder.Set(session.Token, session.Cedula, session.ExpiresAt);
-                return new AuthenticationState(CreateClaimsPrincipal(session.Cedula));
+                return new AuthenticationState(CreateClaimsPrincipal(EffectiveCedula(session)));
             }
             catch (InvalidOperationException)
             {
@@ -63,14 +63,27 @@ namespace Cuidanet
             long cedula,
             string token,
             DateTimeOffset expiresAt,
-            DateTimeOffset? identityExpiresAt = null)
+            DateTimeOffset? identityExpiresAt = null,
+            string? cedulaActiva = null,
+            int? beneficiarioId = null,
+            string? nombre = null,
+            string? apellido = null)
         {
             var identityUntil = identityExpiresAt
                 ?? DateTimeOffset.UtcNow.AddDays(60);
 
+            var authCedula = DigitsOnly(cedula.ToString());
+            var activo = DigitsOnly(cedulaActiva);
+            if (string.IsNullOrEmpty(activo))
+                activo = authCedula;
+
             var session = new SessionDto
             {
-                Cedula = cedula.ToString(),
+                Cedula = authCedula,
+                CedulaActiva = activo,
+                BeneficiarioId = beneficiarioId,
+                Nombre = nombre?.Trim(),
+                Apellido = apellido?.Trim(),
                 Token = token,
                 ExpiresAt = expiresAt,
                 IssuedAt = DateTimeOffset.UtcNow,
@@ -88,7 +101,7 @@ namespace Cuidanet
                 await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "cn_device_cred", json);
             }
 
-            var user = CreateClaimsPrincipal(session.Cedula);
+            var user = CreateClaimsPrincipal(session.CedulaActiva);
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
         }
 
@@ -125,12 +138,29 @@ namespace Cuidanet
                 return null;
             return new SessionSnapshot(
                 session.Cedula,
+                EffectiveCedula(session),
+                session.BeneficiarioId,
+                session.Nombre,
+                session.Apellido,
                 session.ExpiresAt,
                 session.IdentityExpiresAt);
         }
 
         /// <summary>La caducidad real está en el JWT + tope de identidad (60 días).</summary>
         public Task TouchSessionAsync() => Task.CompletedTask;
+
+        private static string EffectiveCedula(SessionDto session)
+        {
+            var activo = DigitsOnly(session.CedulaActiva);
+            return string.IsNullOrEmpty(activo) ? session.Cedula : activo;
+        }
+
+        private static string DigitsOnly(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+            return new string(value.Where(char.IsDigit).ToArray());
+        }
 
         private async Task<SessionDto?> ReadSessionAsync()
         {
@@ -154,6 +184,9 @@ namespace Cuidanet
                 _tokenHolder.Clear();
                 return null;
             }
+
+            if (string.IsNullOrWhiteSpace(session.CedulaActiva))
+                session.CedulaActiva = session.Cedula;
 
             return session;
         }
@@ -182,7 +215,15 @@ namespace Cuidanet
 
         private sealed class SessionDto
         {
+            /// <summary>Cédula del SMS / JWT (PIN y auth).</summary>
             public string Cedula { get; set; } = string.Empty;
+
+            /// <summary>Cédula del afiliado elegido en “Selecciona afiliado”.</summary>
+            public string CedulaActiva { get; set; } = string.Empty;
+
+            public int? BeneficiarioId { get; set; }
+            public string? Nombre { get; set; }
+            public string? Apellido { get; set; }
             public string Token { get; set; } = string.Empty;
             public DateTimeOffset ExpiresAt { get; set; }
             public DateTimeOffset IssuedAt { get; set; }
@@ -191,6 +232,10 @@ namespace Cuidanet
 
         public sealed record SessionSnapshot(
             string Cedula,
+            string CedulaActiva,
+            int? BeneficiarioId,
+            string? Nombre,
+            string? Apellido,
             DateTimeOffset ExpiresAt,
             DateTimeOffset IdentityExpiresAt);
     }

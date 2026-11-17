@@ -12,6 +12,7 @@
 @inject DeviceAccessService DeviceAccess
 @inject CuidanetAppSettings AppSettings
 @inject BrandProfile Brand
+@inject AfiliadoPerfilService PerfilService
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -801,13 +802,34 @@
         try
         {
             var customAuth = (CustomAuthStateProvider)AuthStateProvider;
-            long temp = loginModel.Cedula is null ? 0 : Convert.ToInt64(loginModel.Cedula);
+            long authCedula = loginModel.Cedula is null ? 0 : Convert.ToInt64(loginModel.Cedula);
+
+            var seleccionado = afiliadoDetalle;
+            if (seleccionado is null
+                && int.TryParse(AfiliadoSeleccionadoValue, out var beneficiarioId))
+            {
+                seleccionado = listaAfiliados.FirstOrDefault(a => a.BeneficiarioId == beneficiarioId);
+            }
+
+            var cedulaActiva = string.IsNullOrWhiteSpace(seleccionado?.Cedula)
+                ? authCedula.ToString()
+                : new string(seleccionado.Cedula.Where(char.IsDigit).ToArray());
+
             await customAuth.MarkUserAsAuthenticated(
-                temp, _pendingToken, _pendingExpires, _pendingIdentityExpires);
+                authCedula,
+                _pendingToken,
+                _pendingExpires,
+                _pendingIdentityExpires,
+                cedulaActiva: cedulaActiva,
+                beneficiarioId: seleccionado?.BeneficiarioId,
+                nombre: seleccionado?.Nombre,
+                apellido: seleccionado?.Apellido);
+            PerfilService.Clear();
             await DeviceAccess.MarkUnlockedAsync();
             await LoginFlow.ClearAsync();
 
-            if (await DeviceAccess.HasPinForCedulaAsync(temp.ToString()))
+            // PIN queda ligado a la cédula del SMS (JWT), no al afiliado elegido.
+            if (await DeviceAccess.HasPinForCedulaAsync(authCedula.ToString()))
                 Navigation.NavigateTo("Home");
             else
                 Navigation.NavigateTo("configurar-acceso");

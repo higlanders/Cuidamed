@@ -105,9 +105,9 @@
                         @foreach (var plan in planes)
                         {
                             <article class="cn-ben__card">
-                                <div class="cn-ben__block">
-                                    <span class="cn-ben__label">Cliente</span>
-                                    <p class="cn-ben__value">@(string.IsNullOrWhiteSpace(plan.NombreCliente) ? "—" : plan.NombreCliente)</p>
+                                <div class="cn-ben__card-foot cn-ben__card-foot--cliente">
+                                    <span class="cn-ben__muted">Cliente</span>
+                                    <strong>@(string.IsNullOrWhiteSpace(plan.NombreCliente) ? "—" : plan.NombreCliente)</strong>
                                 </div>
                                 <div class="cn-ben__grid2">
                                     <div>
@@ -119,9 +119,9 @@
                                         <p class="cn-ben__value cn-ben__value--accent">@FormatoMontoUsd(plan.MontoCoberturaUsd)</p>
                                     </div>
                                 </div>
-                                <div class="cn-ben__card-foot cn-ben__card-foot--stack">
+                                <div class="cn-ben__card-head cn-ben__card-head--asegurado">
                                     <div>
-                                        <span class="cn-ben__label">Beneficiario</span>
+                                        <span class="cn-ben__label">Asegurado</span>
                                         <h3 class="cn-ben__beneficiary">@plan.NombreCompleto</h3>
                                         <p class="cn-ben__muted">Cédula @plan.Cedula</p>
                                     </div>
@@ -195,6 +195,7 @@
     private bool esConsumos;
     private string? errorMessage;
     private string cedulaUsuario = string.Empty;
+    private int? beneficiarioActivoId;
 
     private List<CoberturaPlanDto> planes = new();
     private CoberturaConsumoDto? consumo;
@@ -250,6 +251,19 @@
                 return;
 
             cedulaUsuario = user.Identity.Name ?? string.Empty;
+            beneficiarioActivoId = null;
+
+            if (AuthStateProvider is CustomAuthStateProvider custom)
+            {
+                var snap = await custom.GetSessionSnapshotAsync();
+                if (snap is not null)
+                {
+                    if (!string.IsNullOrWhiteSpace(snap.CedulaActiva))
+                        cedulaUsuario = snap.CedulaActiva;
+                    beneficiarioActivoId = snap.BeneficiarioId;
+                }
+            }
+
             if (string.IsNullOrWhiteSpace(cedulaUsuario))
             {
                 errorMessage = "No se encontró la cédula de sesión.";
@@ -288,6 +302,12 @@
         try
         {
             planes = await CuidanetService.GetCoberturaPlanAsync(cedulaUsuario) ?? new();
+            if (beneficiarioActivoId is > 0)
+            {
+                var filtrados = planes.Where(p => p.BeneficiarioId == beneficiarioActivoId).ToList();
+                if (filtrados.Count > 0)
+                    planes = filtrados;
+            }
         }
         catch (Exception)
         {
