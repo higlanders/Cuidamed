@@ -255,6 +255,14 @@
                 }
                 return document.activeElement === el;
             },
+            // iOS autofill a veces llena el DOM sin disparar onchange de Blazor.
+            readCodigo: function (id) {
+                var el = document.getElementById(id);
+                return el ? String(el.value || '') : '';
+            },
+            normalizeCodigo: function (raw) {
+                return String(raw || '').replace(/\D+/g, '');
+            },
             listen: async function () {
                 this.abort();
                 if (!this.webOtpSupported()) {

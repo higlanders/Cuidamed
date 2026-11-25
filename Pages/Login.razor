@@ -187,8 +187,10 @@
                                 <InputText id="codigoSms"
                                            class="cn-login-input cn-login-input--otp"
                                            @bind-Value="loginModel.CodigoSms"
+                                           @bind-Value:event="oninput"
                                            placeholder="••••"
                                            inputmode="numeric"
+                                           pattern="[0-9]*"
                                            maxlength="8"
                                            name="one-time-code"
                                            autocomplete="one-time-code"
@@ -489,7 +491,10 @@
 
     private async Task VerificarSmsAsync()
     {
-        var codigo = (loginModel.CodigoSms ?? string.Empty).Trim();
+        // Preferir el valor del DOM: en iPhone el autofill del SMS a menudo
+        // actualiza el input sin sincronizar a tiempo el @bind de Blazor.
+        var codigo = await LeerCodigoSmsNormalizadoAsync();
+        loginModel.CodigoSms = codigo;
         if (string.IsNullOrWhiteSpace(codigo))
         {
             errorMessage = "Ingresa el código SMS recibido.";
@@ -540,6 +545,30 @@
         }
     }
 
+    private async Task<string> LeerCodigoSmsNormalizadoAsync()
+    {
+        var codigo = loginModel.CodigoSms ?? string.Empty;
+        try
+        {
+            var fromDom = await JS.InvokeAsync<string>("BlazorSmsOtp.readCodigo", "codigoSms");
+            if (!string.IsNullOrWhiteSpace(fromDom))
+                codigo = fromDom;
+        }
+        catch
+        {
+            // Sin JS: usar el valor del modelo
+        }
+
+        try
+        {
+            return await JS.InvokeAsync<string>("BlazorSmsOtp.normalizeCodigo", codigo);
+        }
+        catch
+        {
+            return new string(codigo.Where(char.IsDigit).ToArray());
+        }
+    }
+
     private async Task ListenAndVerifyWebOtpAsync()
     {
         try
@@ -548,7 +577,7 @@
             if (string.IsNullOrWhiteSpace(code))
                 return;
 
-            loginModel.CodigoSms = code.Trim();
+            loginModel.CodigoSms = new string(code.Where(char.IsDigit).ToArray());
             await InvokeAsync(StateHasChanged);
 
             // El listen arranca antes de cambiar de paso; esperar el envío del SMS.

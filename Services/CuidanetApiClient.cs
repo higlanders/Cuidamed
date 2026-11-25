@@ -127,11 +127,13 @@ namespace Cuidanet.Services
         /// </summary>
         public async Task<SmsApiResponse> VerificarSmsAsync(string cedula, string telefono, string codigo)
         {
+            // iOS/autofill a veces manda espacios u otros caracteres no numéricos.
+            var codigoLimpio = new string((codigo ?? string.Empty).Where(char.IsDigit).ToArray());
             var payload = new VerificarSmsRequest
             {
                 Cedula = cedula,
                 Telefono = telefono,
-                Codigo = codigo
+                Codigo = codigoLimpio
             };
             var response = await _httpClient.PostAsJsonAsync(_verificarSmsUrl, payload);
             var body = await response.Content.ReadAsStringAsync();
@@ -237,10 +239,11 @@ namespace Cuidanet.Services
 
         public async Task<SmsApiResponse> ConfirmarCambioCelularAsync(string telefono, string codigo)
         {
+            var codigoLimpio = new string((codigo ?? string.Empty).Where(char.IsDigit).ToArray());
             var response = await _httpClient.PostAsJsonAsync(_afiliadoCelularConfirmarUrl, new VerificarSmsRequest
             {
                 Telefono = telefono,
-                Codigo = codigo
+                Codigo = codigoLimpio
             });
             var body = await response.Content.ReadAsStringAsync();
             var parsed = ParseSmsResponse(body);
@@ -299,13 +302,14 @@ namespace Cuidanet.Services
             string telefono,
             string codigo)
         {
+            var codigoLimpio = new string((codigo ?? string.Empty).Where(char.IsDigit).ToArray());
             var payload = new
             {
                 cedula,
                 fechaNacimiento = fechaNacimiento.ToString("yyyy-MM-dd"),
                 apellido,
                 telefono,
-                codigo
+                codigo = codigoLimpio
             };
             var response = await _httpClient.PostAsJsonAsync(_smsEnrolarConfirmarUrl, payload);
             var body = await response.Content.ReadAsStringAsync();
