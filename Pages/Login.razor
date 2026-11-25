@@ -184,21 +184,21 @@
                             </div>
                             <div class="cn-login-field">
                                 <label class="cn-login-label" for="codigoSms">Código de verificación</label>
-                                <InputText id="codigoSms"
-                                           class="cn-login-input cn-login-input--otp"
-                                           @bind-Value="loginModel.CodigoSms"
-                                           @bind-Value:event="oninput"
-                                           placeholder="••••"
-                                           inputmode="numeric"
-                                           pattern="[0-9]*"
-                                           maxlength="8"
-                                           name="one-time-code"
-                                           autocomplete="one-time-code"
-                                           autocorrect="off"
-                                           autocapitalize="none"
-                                           spellcheck="false"
-                                           enterkeyhint="done"
-                                           autofocus="true" />
+                                <input id="codigoSms"
+                                       class="cn-login-input cn-login-input--otp"
+                                       @bind="loginModel.CodigoSms"
+                                       @bind:event="oninput"
+                                       placeholder="••••"
+                                       inputmode="numeric"
+                                       pattern="[0-9]*"
+                                       maxlength="8"
+                                       name="one-time-code"
+                                       autocomplete="one-time-code"
+                                       autocorrect="off"
+                                       autocapitalize="none"
+                                       spellcheck="false"
+                                       enterkeyhint="done"
+                                       autofocus />
                                 @if (WebOtpDisponible && !EsIos)
                                 {
                                     <p class="cn-login-hint">Cuando llegue el SMS, acepta el aviso del navegador para completar el código automáticamente.</p>
